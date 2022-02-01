@@ -16,7 +16,7 @@ function generateCode(dataJson) {
     code.push(`const stageUtils = require('./stage.utils');`);
     code.push(``);
     code.push(``);
-    code.push(`router.use('/${dataJson.api}', async function (req, res) {`);
+    code.push(`router.use('${dataJson.api}', async function (req, res) {`);
     code.push(`let state = {};`);
     code.push(`let tempResponse = req;`);
     stages.forEach((item) => {
