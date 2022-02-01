@@ -1,0 +1,28 @@
+{
+  "dependencies": {
+    "express": "^4.17.2",
+    "form-data": "^4.0.0",
+    "got": "^12.0.1",
+    "lodash": "^4.17.21",
+    "log4js": "^6.4.1",
+    "mongodb": "^4.3.1",
+    "shorthash": "^0.0.2"
+  },
+  "name": "ds-b2b-base",
+  "description": "Integration base image",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "test": "test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/appveen/ds-b2b-base.git"
+  },
+  "author": "Jugnu Agrawal",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/appveen/ds-b2b-base/issues"
+  },
+  "homepage": "https://github.com/appveen/ds-b2b-base#readme"
+}
