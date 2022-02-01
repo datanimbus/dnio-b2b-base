@@ -9,14 +9,14 @@ function isK8sEnv() {
 
 if (isK8sEnv()) {
     logger.info('*** K8s environment detected ***');
-    logger.info('Image version: ' + process.env.IMAGE_TAG);
+    logger.info('Image version: ' + (process.env.IMAGE_TAG || 'dev'));
 } else {
     logger.info('*** Local environment detected ***');
 }
 
 const e = {
     isK8sEnv,
-    imageTag: process.env.IMAGE_TAG,
+    imageTag: process.env.IMAGE_TAG || 'dev',
     hostname: process.env.HOSTNAME,
     port: process.env.PORT || 8080,
     httpsPort: process.env.HTTPS_PORT || 8443,
