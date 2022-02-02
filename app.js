@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/b2b', require('./route'));
 
 const server = app.listen(config.port, function () {
-    logger.info('Server Listening on port:', config.port);
+	logger.info('Server Listening on port:', config.port);
 });
 
 server.setTimeout(300000);

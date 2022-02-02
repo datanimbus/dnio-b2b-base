@@ -13,7 +13,8 @@
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {
-    "test": "test.js"
+    "test": "test.js",
+    "lint": "./node_modules/.bin/eslint . --fix"
   },
   "repository": {
     "type": "git",
@@ -24,5 +25,9 @@
   "bugs": {
     "url": "https://github.com/appveen/ds-b2b-base/issues"
   },
-  "homepage": "https://github.com/appveen/ds-b2b-base#readme"
+  "homepage": "https://github.com/appveen/ds-b2b-base#readme",
+  "devDependencies": {
+    "eslint": "^8.8.0",
+    "husky": "^7.0.4"
+  }
 }
