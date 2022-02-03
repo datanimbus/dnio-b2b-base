@@ -8,12 +8,9 @@ const _ = require('lodash');
  * @param {any} dataJson 
  */
 function generateCode(dataJson) {
-	const initalStage = dataJson.initalStage;
+	const inputStage = dataJson.inputStage;
 	const stages = dataJson.stages;
 	let api = dataJson.api;
-	if (initalStage && initalStage.type === 'API' && initalStage.api) {
-		api = initalStage.api;
-	}
 	let code = [];
 	code.push('const router = require(\'express\').Router();');
 	code.push('const log4js = require(\'log4js\');');
