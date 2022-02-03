@@ -1,5 +1,4 @@
 const log4js = require('log4js');
-const _ = require('lodash');
 
 const logger = log4js.getLogger(global.loggerName);
 

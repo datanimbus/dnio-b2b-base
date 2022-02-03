@@ -1,6 +1,4 @@
 const got = require('got');
-const sh = require('shorthash');
-const crypto = require('crypto');
 /**
  * @typedef {Object} QueryParams
  * @property {string} [select]
