@@ -3,6 +3,8 @@ const log4js = require('log4js');
 const logger = log4js.getLogger('Config');
 logger.level = process.env.LOG_LEVEL || 'info';
 
+const DATA_STACK_NAMESPACE = process.env.DATA_STACK_NAMESPACE;
+
 function isK8sEnv() {
 	return process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT;
 }
@@ -48,6 +50,7 @@ const e = {
 	httpsPort: process.env.HTTPS_PORT || 8443,
 	app: process.env.DATA_STACK_APP,
 	flowId: process.env.DATA_STACK_FLOW_ID,
+	DATA_STACK_NAMESPACE,
 	mongoUrl: process.env.MONGO_APPCENTER_URL || 'mongodb://localhost',
 	authorDB: process.env.MONGO_AUTHOR_DBNAME || 'datastackConfig',
 	mongoAuthorUrl: process.env.MONGO_AUTHOR_URL || 'mongodb://localhost',
