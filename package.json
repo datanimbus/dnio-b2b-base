@@ -14,7 +14,7 @@
   "main": "app.js",
   "scripts": {
     "test": "test.js",
-    "lint": "./node_modules/.bin/eslint . --fix"
+    "lint": "./node_modules/.bin/eslint --ignore-pattern test . --fix"
   },
   "repository": {
     "type": "git",

@@ -29,8 +29,8 @@ global.falseBooleanValues = ['n', 'no', 'false', '0'];
 		logger.info(`NODE_ENV is ${process.env.NODE_ENV}. Won't call BM API.`);
 	} else {
 		try {
-			let b2bBaseURL = config.baseUrlBM + '/' + config.app + '/flow/utils/' + config.flowId + '/init'
-			logger.debug(`BM API Call :: ${config.baseUrlBM + '/' + config.app + '/flow/utils/' + config.flowId + '/init'}`)
+			let b2bBaseURL = config.baseUrlBM + '/' + config.app + '/flow/utils/' + config.flowId + '/init';
+			logger.debug(`BM API Call :: ${config.baseUrlBM + '/' + config.app + '/flow/utils/' + config.flowId + '/init'}`);
 			const resp = await httpClient.request({
 				method: 'PUT',
 				url: b2bBaseURL,
