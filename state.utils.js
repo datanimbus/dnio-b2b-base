@@ -5,26 +5,35 @@ const logger = log4js.getLogger();
 
 function getState(req, stateId) {
 	const data = {};
-	data._id = stateId;
 	data.txnId = req.headers['data-stack-txn-id'];
 	data.remoteTxnId = req.headers['data-stack-remote-txn-id'];
+	data._id = {
+		txnId: data.txnId,
+		stateId: stateId
+	};
 	data.headers = req.headers;
 	data.body = req.body;
 	data.status = 'Init';
-	logger.debug(`${data._id} TXN ID: ${data.txnId}`);
-	logger.debug(`${data._id} TXN ID: ${data.remoteTxnId}`);
 	return data;
 }
 
 async function upsertState(req, state) {
 	const txnId = state.txnId;
-	const remoteTxnId = req.headers['data-stack-remote-txn-id'];
-	logger.trace(`[${txnId}] [${remoteTxnId}] Starting Upsert Stage: ${_.camelCase(state._id)}`);
+	const remoteTxnId = state.remoteTxnId;
+	logger.trace(`[${txnId}] [${remoteTxnId}] Starting Upsert Stage: ${JSON.stringify(state._id)}`);
 	try {
-		await global.appcenterDB.collection('b2b.state').findOneAndUpdate({ stageId: state._id, dataStackTxnId: txnId }, { $set: state }, { upsert: true });
-		logger.trace(`[${txnId}] [${remoteTxnId}] Ending Upsert Stage: ${_.camelCase(state._id)}`);
+		await global.appcenterDB.collection('b2b.state').findOneAndUpdate(
+			{ _id: {
+					txnId: state.txnId,
+					stateId: state.stateId
+				}
+			}, 
+			{ $set: state }, 
+			{ upsert: true }
+		);
+		logger.trace(`[${txnId}] [${remoteTxnId}] Ending Upsert Stage: ${JSON.stringify(state._id)}`);
 	} catch (err) {
-		logger.trace(`[${txnId}] [${remoteTxnId}] Ending Upsert Stage With Error: ${_.camelCase(state._id)}`);
+		logger.trace(`[${txnId}] [${remoteTxnId}] Ending Upsert Stage With Error: ${JSON.stringify(state._id)}`);
 		logger.error(err);
 	}
 }
