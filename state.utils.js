@@ -1,16 +1,15 @@
 const log4js = require('log4js');
 const _ = require('lodash');
 
-const logger = log4js.getLogger();
+const logger = log4js.getLogger(global.loggerName);
 
 function getState(req, stateId) {
 	const data = {};
-	data.txnId = req.headers['data-stack-txn-id'];
-	data.remoteTxnId = req.headers['data-stack-remote-txn-id'];
 	data._id = {
-		txnId: data.txnId,
+		txnId: req.headers['data-stack-txn-id'],
 		stateId: stateId
 	};
+	data.remoteTxnId = req.headers['data-stack-remote-txn-id'];
 	data.headers = req.headers;
 	data.body = req.body;
 	data.status = 'Init';
@@ -18,16 +17,12 @@ function getState(req, stateId) {
 }
 
 async function upsertState(req, state) {
-	const txnId = state.txnId;
+	const txnId = state._id.txnId;
 	const remoteTxnId = state.remoteTxnId;
 	logger.trace(`[${txnId}] [${remoteTxnId}] Starting Upsert Stage: ${JSON.stringify(state._id)}`);
 	try {
 		await global.appcenterDB.collection('b2b.state').findOneAndUpdate(
-			{ _id: {
-					txnId: state.txnId,
-					stateId: state.stateId
-				}
-			}, 
+			{ _id: state._id}, 
 			{ $set: state }, 
 			{ upsert: true }
 		);

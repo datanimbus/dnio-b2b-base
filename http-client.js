@@ -40,7 +40,7 @@ async function request(options) {
 			options['headers'] = {};
 		}
 		if (!options['headers']['TxnId']) {
-			options['headers']['TxnId'] = `${sh.unique(crypto.createHash('md5').update(Date.now().toString()).digest('hex'))}`;
+			options['headers']['TxnId'] = options['headers']['data-stack-txn-id'];
 		}
 		if (!options['headers']['Content-Type']) {
 			options['headers']['Content-Type'] = 'application/json';

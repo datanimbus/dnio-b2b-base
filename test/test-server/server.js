@@ -13,7 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(loggingMW);
 
 app.post('/api/test1', (_req, _res) => {
-	_res.json({});
+	_res.json(_req.body);
 });
 
 const server = app.listen(18080, function () {
