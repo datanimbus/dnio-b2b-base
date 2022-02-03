@@ -17,6 +17,18 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/b2b', require('./route'));
 
+app.use('/api/b2b/internal/health/ready', async function (req, res) {
+	try {
+		if (global.authorDB) {
+			return res.status(200).json({ message: 'Alive' });
+		}
+		return res.status(400).json({ message: 'DB Not Connected' });
+	} catch (err) {
+		logger.error(err);
+		return res.status(500).json({ message: err.message });
+	}
+});
+
 const server = app.listen(config.port, function () {
 	logger.info('Server Listening on port:', config.port);
 });
