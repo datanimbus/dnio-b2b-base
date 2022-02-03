@@ -6,7 +6,6 @@ const httpClient = require('./http-client');
 
 const LOGGER_NAME = config.isK8sEnv() ? `[${config.hostname}] [INTEGRATION-FLOW v${config.imageTag}]` : `[INTEGRATION-FLOW v${config.imageTag}]`;
 const logger = log4js.getLogger(LOGGER_NAME);
-logger.level = process.env.LOG_LEVEL || 'info';
 
 // For threads to pick txnId and user headers
 global.userHeader = 'user';

@@ -1,4 +1,9 @@
 const log4js = require('log4js');
+
+let logLevel = process.env.LOG_LEVEL || 'info';
+
+if (process.env.NODE_ENV !== 'production') logLevel = 'trace';
+
 log4js.configure({
 	"appenders": {
 		"out": {
@@ -9,19 +14,15 @@ log4js.configure({
 	"categories": {
 		"default": {
 			"appenders": ['out'],
-			"level": 'error'
+			"level": logLevel
 		}
 	}
 });
 
 const logger = log4js.getLogger('Config');
-logger.level = process.env.LOG_LEVEL || 'info';
 
-if (process.env.NODE_ENV !== 'production') {
-	logger.level = 'trace';
-	logger.info(`NODE_ENV :: ${process.env.NODE_ENV}`);
-	logger.trace(`Logging level set to trace.`);
-} else logger.info(`NODE_ENV :: ${process.env.NODE_ENV}`);
+logger.info(`NODE_ENV :: ${process.env.NODE_ENV}`);
+logger.info(`LOG_LEVEL :: ${logLevel}`);
 
 const DATA_STACK_NAMESPACE = process.env.DATA_STACK_NAMESPACE;
 
