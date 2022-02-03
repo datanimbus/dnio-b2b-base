@@ -3,12 +3,12 @@ const _ = require('lodash');
 
 // const logger = log4js.getLogger(global.loggerName);
 
-function tab(len){
-	let d = "";
-	while(len > 0 ){
-		d += "  ";
+function tab(len) {
+	let d = '';
+	while (len > 0) {
+		d += '  ';
 		len--;
-	};
+	}
 	return d;
 }
 
@@ -17,7 +17,7 @@ function tab(len){
  * @param {any} dataJson 
  */
 function generateCode(dataJson) {
-	const inputStage = dataJson.inputStage;
+	// const inputStage = dataJson.inputStage;
 	const stages = dataJson.stages;
 	let api = dataJson.api;
 	let code = [];
@@ -33,8 +33,9 @@ function generateCode(dataJson) {
 	code.push(`router.post('${api}', async function (req, res) {`);
 	code.push(`${tab(1)}let state = {};`);
 	code.push(`${tab(1)}let tempResponse = req;`);
-	stages.forEach((item) => {
-		code.push(`${tab(1)}// ═══════════════════ ${item._id} / ${item.name} / ${item.type} ══════════════════════`)
+	stages.forEach((item, i) => {
+		const isLast = stages.length - 1 == i;
+		code.push(`${tab(1)}// ═══════════════════ ${item._id} / ${item.name} / ${item.type} ══════════════════════`);
 		code.push(`${tab(1)}logger.debug("Invoking stage :: ${item._id} / ${item.name} / ${item.type}")`);
 		code.push(`${tab(1)}state = stateUtils.getState(tempResponse, '${item._id}');`);
 		code.push(`${tab(1)}try {`);
@@ -44,6 +45,9 @@ function generateCode(dataJson) {
 		code.push(`${tab(1)}    if( tempResponse.statusCode != 200 ) {`);
 		code.push(`${tab(1)}         return res.status(tempResponse.statusCode).json(tempResponse.body)`);
 		code.push(`${tab(1)}    }`);
+		if (isLast) {
+			code.push(`${tab(1)}res.status(tempResponse.statusCode).json(tempResponse.body)`);
+		}
 		code.push(`${tab(1)}} catch (err) {`);
 		code.push(`${tab(1)}    logger.error(err);`);
 		code.push(`${tab(1)}    return res.status(500).json({ message: err.message });`);

@@ -2,10 +2,10 @@ const log4js = require('log4js');
 const express = require('express');
 
 const app = express();
-const logger = log4js.getLogger("Test Server");
+const logger = log4js.getLogger('Test Server');
 logger.level = process.env.LOG_LEVEL || 'info';
 
-const loggingMW = require(`./mw.logger`)(logger);
+const loggingMW = require('./mw.logger')(logger);
 
 app.use(express.json({ inflate: true, limit: '100mb' }));
 app.use(express.urlencoded({ extended: true }));

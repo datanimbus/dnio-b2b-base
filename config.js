@@ -5,16 +5,16 @@ let logLevel = process.env.LOG_LEVEL || 'info';
 if (process.env.NODE_ENV !== 'production') logLevel = 'trace';
 
 log4js.configure({
-	"appenders": {
-		"out": {
-			"type": 'stdout',
-			"layout": { type: 'basic' }
+	'appenders': {
+		'out': {
+			'type': 'stdout',
+			'layout': { type: 'basic' }
 		}
 	},
-	"categories": {
-		"default": {
-			"appenders": ['out'],
-			"level": logLevel
+	'categories': {
+		'default': {
+			'appenders': ['out'],
+			'level': logLevel
 		}
 	}
 });
