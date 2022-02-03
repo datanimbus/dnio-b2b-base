@@ -6,7 +6,7 @@ const logger = log4js.getLogger();
 function getState(req, stateId) {
 	const data = {};
 	data._id = stateId;
-	data.txnId = req.header('data-stack-txn-id');
+	data.txnId = req.headers['data-stack-txn-id'];
 	data.headers = req.headers;
 	data.body = req.body;
 	data.status = 'Init';
@@ -14,8 +14,8 @@ function getState(req, stateId) {
 }
 
 async function upsertState(req, state) {
-	const txnId = req.header('data-stack-txn-id');
-	const remoteTxnId = req.header('data-stack-remote-txn-id');
+	const txnId = req.headers['data-stack-txn-id'];
+	const remoteTxnId = req.headers['data-stack-remote-txn-id'];
 	logger.info(`[${txnId}] [${remoteTxnId}] Starting Upsert Stage: ${_.camelCase(state._id)}`);
 	try {
 		await global.appcenterDB.collection('b2b.state').findOneAndUpdate({ stageId: state._id, dataStackTxnId: txnId }, { $set: state }, { upsert: true });

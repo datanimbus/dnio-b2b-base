@@ -24,6 +24,8 @@ function generateCode(dataJson) {
 	code.push('let state = {};');
 	code.push('let tempResponse = req;');
 	stages.forEach((item) => {
+		code.push(`// ═══════════════════ ${item._id} / ${item.name} / ${item.type} ══════════════════════`)
+		logger.debug(`Invoking stage :: ${item._id} / ${item.name} / ${item.type}`)
 		code.push(`state = stateUtils.getState(tempResponse, '${item._id}');`);
 		code.push('try {');
 		code.push(`    tempResponse = await stageUtils.${_.camelCase(item._id)}(req, state);`);
