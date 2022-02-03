@@ -3,6 +3,12 @@ const log4js = require('log4js');
 const logger = log4js.getLogger('Config');
 logger.level = process.env.LOG_LEVEL || 'info';
 
+if (process.env.NODE_ENV !== 'production') {
+	logger.level = 'trace';
+	logger.info(`NODE_ENV :: ${process.env.NODE_ENV}`);
+	logger.trace(`Logging level set to trace.`);
+} else logger.info(`NODE_ENV :: ${process.env.NODE_ENV}`);
+
 const DATA_STACK_NAMESPACE = process.env.DATA_STACK_NAMESPACE;
 
 function isK8sEnv() {
