@@ -8,7 +8,12 @@ const _ = require('lodash');
  * @param {any} dataJson 
  */
 function generateCode(dataJson) {
+	const initalStage = dataJson.initalStage;
 	const stages = dataJson.stages;
+	let api = dataJson.api;
+	if (initalStage && initalStage.type === 'API' && initalStage.api) {
+		api = initalStage.api;
+	}
 	let code = [];
 	code.push('const router = require(\'express\').Router();');
 	code.push('const log4js = require(\'log4js\');');
@@ -18,7 +23,7 @@ function generateCode(dataJson) {
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('');
-	code.push(`router.use('${dataJson.api}', async function (req, res) {`);
+	code.push(`router.use('${api}', async function (req, res) {`);
 	code.push('let state = {};');
 	code.push('let tempResponse = req;');
 	stages.forEach((item) => {
