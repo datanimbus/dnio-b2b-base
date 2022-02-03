@@ -19,7 +19,7 @@ app.use('/api/b2b', require('./route'));
 
 app.use('/api/b2b/internal/health/ready', async function (req, res) {
 	try {
-		if (global.authorDB) {
+		if (global.appcenterDB) {
 			return res.status(200).json({ message: 'Alive' });
 		}
 		return res.status(400).json({ message: 'DB Not Connected' });

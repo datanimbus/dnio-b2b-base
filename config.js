@@ -49,6 +49,8 @@ const e = {
 	port: process.env.PORT || 8080,
 	httpsPort: process.env.HTTPS_PORT || 8443,
 	app: process.env.DATA_STACK_APP,
+	appDB: process.env.DATA_DB,
+	appNamespace: process.env.DATA_STACK_FLOW_NAMESPACE,
 	flowId: process.env.DATA_STACK_FLOW_ID,
 	DATA_STACK_NAMESPACE,
 	mongoUrl: process.env.MONGO_APPCENTER_URL || 'mongodb://localhost',

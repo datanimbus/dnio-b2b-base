@@ -17,11 +17,11 @@ global.falseBooleanValues = ['n', 'no', 'false', '0'];
 
 (async () => {
 	try {
-		logger.trace(config.mongoAuthorUrl, config.mongoAuthorOptions, config.authorDB);
-		const client = await MongoClient.connect(config.mongoAuthorUrl, config.mongoAuthorOptions);
-		logger.info('Connected to ', config.authorDB);
-		const authorDB = client.db(config.authorDB);
-		global.authorDB = authorDB;
+		logger.trace(config.mongoUrl, config.mongoAppCenterOptions, config.appDB);
+		const client = await MongoClient.connect(config.mongoUrl, config.mongoAppCenterOptions);
+		logger.info('Connected to ', config.appDB);
+		const appcenterDB = client.db(config.appDB);
+		global.appcenterDB = appcenterDB;
 	} catch (err) {
 		logger.error(err);
 		process.exit(0);
