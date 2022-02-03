@@ -2,6 +2,7 @@ const { MongoClient } = require('mongodb');
 const log4js = require('log4js');
 
 const config = require('./config');
+const httpClient = require('./http-client');
 
 const LOGGER_NAME = config.isK8sEnv() ? `[${config.hostname}] [INTEGRATION-FLOW v${config.imageTag}]` : `[INTEGRATION-FLOW v${config.imageTag}]`;
 const logger = log4js.getLogger(LOGGER_NAME);
@@ -22,6 +23,20 @@ global.falseBooleanValues = ['n', 'no', 'false', '0'];
 		const authorDB = client.db(config.authorDB);
 		global.authorDB = authorDB;
 	} catch (err) {
+		logger.error(err);
+		process.exit(0);
+	}
+	try {
+		const resp = await httpClient.request({
+			method: 'PUT',
+			url: config.baseUrlBM + '/' + config.app + '/flow/utils/' + config.flowId + '/init',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+		logger.debug(resp.statusCode, resp.body);
+	} catch (err) {
+		logger.error('Unable to inform B2B Manager');
 		logger.error(err);
 	}
 })();
