@@ -15,8 +15,13 @@ global.trueBooleanValues = ['y', 'yes', 'true', '1'];
 global.falseBooleanValues = ['n', 'no', 'false', '0'];
 
 (async () => {
-	const client = await MongoClient.connect(config.mongoAuthorUrl, config.mongoAuthorOptions);
-	logger.info('Connected to ', config.authorDB);
-	const authorDB = client.db(config.authorDB);
-	global.authorDB = authorDB;
+	try {
+		logger.trace(config.mongoAuthorUrl, config.mongoAuthorOptions, config.authorDB);
+		const client = await MongoClient.connect(config.mongoAuthorUrl, config.mongoAuthorOptions);
+		logger.info('Connected to ', config.authorDB);
+		const authorDB = client.db(config.authorDB);
+		global.authorDB = authorDB;
+	} catch (err) {
+		logger.error(err);
+	}
 })();
