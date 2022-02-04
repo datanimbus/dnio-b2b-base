@@ -17,9 +17,9 @@ function tab(len) {
  * @param {any} dataJson 
  */
 function generateCode(dataJson) {
-	// const inputStage = dataJson.inputStage;
+	const inputStage = dataJson.inputStage;
 	const stages = dataJson.stages;
-	let api = dataJson.api;
+	let api = inputStage.api;
 	let code = [];
 	code.push('const router = require(\'express\').Router();');
 	code.push('const log4js = require(\'log4js\');');
