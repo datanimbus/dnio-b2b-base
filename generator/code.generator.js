@@ -46,17 +46,22 @@ function generateCode(dataJson) {
 		code.push(`${tab(1)}    state.body = tempResponse.body;`);
 		code.push(`${tab(1)}    if( tempResponse.statusCode != 200 ) {`);
 		code.push(`${tab(1)}      state.status = "ERROR";`);
-		code.push(`${tab(1)}      return res.status(tempResponse.statusCode).json(tempResponse.body)`);
+		code.push(`${tab(1)}      await stateUtils.upsertState(req, state);`);
+		code.push(`${tab(1)}      state = stateUtils.getState(tempResponse, '${item.onError._id}');`);
+		if (item.onError) {
+			code.push(`${tab(1)}    tempResponse = await stageUtils.${_.camelCase(item.onError._id)}(req, state);`);
+		} else {
+			code.push(`${tab(1)}      return res.status(tempResponse.statusCode).json(tempResponse.body)`);
+		}
 		code.push(`${tab(1)}    }`);
 		code.push(`${tab(1)}    state.status = "SUCCESS";`);
+		code.push(`${tab(1)}    await stateUtils.upsertState(req, state);`);
 		if (isLast) {
 			code.push(`${tab(1)}    res.status(tempResponse.statusCode).json(tempResponse.body)`);
 		}
 		code.push(`${tab(1)}} catch (err) {`);
 		code.push(`${tab(1)}    logger.error(err);`);
 		code.push(`${tab(1)}    return res.status(500).json({ message: err.message });`);
-		code.push(`${tab(1)}} finally {`);
-		code.push(`${tab(1)}    await stateUtils.upsertState(req, state);`);
 		code.push(`${tab(1)}}`);
 	});
 	code.push('});');
