@@ -3,7 +3,7 @@
   "name": "Test Flow",
   "api": "/test01",
   "options": {
-  	"uniqueTxnID": true,
+    "uniqueTxnID": true
   },
   "inputStage": {
     "type": "API",
@@ -29,7 +29,8 @@
   },
   "stages": [
     {
-      "_id": "ID1002",
+      "_id": "STAGE 1001",
+      "name": "Convert from DF1001 to DF1003",
       "type": "TRANSFORM",
       "next": [
         {
@@ -76,7 +77,8 @@
       }
     },
     {
-      "_id": "ID1004",
+      "_id": "STAGE 1002",
+      "name": "Call external API",
       "type": "API",
       "outgoing": {
         "url": "http://localhost:18080/api/test1",

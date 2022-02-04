@@ -12,8 +12,11 @@ global.promises = [];
 const app = express();
 const logger = log4js.getLogger(global.loggerName);
 
+const middlewares = require('./lib.middlewares');
+
 app.use(express.json({ inflate: true, limit: '100mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(middlewares.addHeaders);
 
 app.use('/api/b2b', require('./route'));
 
