@@ -7,12 +7,6 @@
   "inputStage": {
     "type": "API",
     "name": "Get Data",
-    "onSuccess": [
-      {
-        "_id": "ID1002"
-      }
-    ],
-    "onError": [],
     "incoming": {
       "path": "/test01",
       "method": "POST",
@@ -20,6 +14,12 @@
         "Content-Type": "application/json"
       }
     },
+    "onSuccess": [
+      {
+        "_id": "ID1002"
+      }
+    ],
+    "onError": [],
     "dataStructure": {
       "outgoing": {
         "type": "dataFormat",
