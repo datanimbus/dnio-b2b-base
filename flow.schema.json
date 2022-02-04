@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/product.schema.json",
+  "title": "Product",
+  "description": "A product in the catalog",
+  "type": "object",
+  "properties": {
+    "_id": {
+      "description": "Unique flow identifier",
+      "type": "string"
+    },
+    "name": {
+      "description": "Name of the flow",
+      "type": "string"
+    },
+    "options": {
+      "type": "object",
+      "properties": {
+        "uniqueTxnID": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "inputStage": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "API",
+            "FILE",
+            "TIMER"
+          ]
+        }
+      }
+    }
+  },
+  "required": [
+    "_id",
+    "name",
+    "inputStage"
+  ]
+}

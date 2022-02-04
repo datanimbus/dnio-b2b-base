@@ -29,12 +29,12 @@
   },
   "stages": [
     {
-      "_id": "STAGE 1001",
+      "_id": "STAGE-1001",
       "name": "Convert from DF1001 to DF1003",
       "type": "TRANSFORM",
       "onSuccess": [
         {
-          "_id": "ID1003"
+          "_id": "STAGE-1002"
         }
       ],
       "onError": [],
@@ -99,9 +99,67 @@
           "_id": "DF1003"
         }
       },
-      "onSuccess": [],
+      "onSuccess": [
+      	{
+      		"_id": "STAGE 1003"
+      	}
+      ],
       "onError": []
-    }
+    },
+    {
+      "_id": "STAGE 1003",
+      "name": "Convert from DF1001 to DF1003",
+      "type": "TRANSFORM",
+      "onSuccess": [
+        {
+          "_id": "ID1003"
+        }
+      ],
+      "onError": [],
+      "mapping": [
+        {
+          "source": [
+            "_id"
+          ],
+          "target": "_id",
+          "formula": "return input1"
+        },
+        {
+          "source": [
+            "name"
+          ],
+          "target": "name",
+          "formula": "return input1"
+        },
+        {
+          "source": [
+            "email"
+          ],
+          "target": "email",
+          "formula": "return input1"
+        },
+        {
+          "source": [
+            "contactNo"
+          ],
+          "target": "contactNo",
+          "formula": "return input1"
+        },
+        {
+          "source": [
+            "age"
+          ],
+          "target": "age",
+          "formula": "return input1"
+        }
+      ],
+      "dataStructure": {
+        "outgoing": {
+          "type": "dataFormat",
+          "_id": "DF1002"
+        }
+      }
+    },
   ],
   "dataStructures": {
     "DF1001": {

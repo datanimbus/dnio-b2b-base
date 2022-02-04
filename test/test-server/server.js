@@ -13,7 +13,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(loggingMW);
 
 app.post('/api/test1', (_req, _res) => {
+	_req.body.name = `${_req.body.name} (200/TEST1)`;
 	_res.json(_req.body);
+});
+
+app.post('/api/test2', (_req, _res) => {
+	_req.body.name = `${_req.body.name} (300/TEST2)`;
+	_res.status(300).json(_req.body);
 });
 
 const server = app.listen(18080, function () {

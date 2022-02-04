@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "ajv": "^6.12.6",
     "express": "^4.17.2",
     "form-data": "^4.0.0",
     "got": "^11.8.3",
