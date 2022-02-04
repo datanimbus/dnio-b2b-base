@@ -1,18 +1,18 @@
 {
   "_id": "FLOW1001",
   "name": "Test Flow",
-  "api": "/test01",
   "options": {
     "uniqueTxnID": true
   },
   "inputStage": {
     "type": "API",
     "name": "Get Data",
-    "next": [
+    "onSuccess": [
       {
         "_id": "ID1002"
       }
     ],
+    "onError": [],
     "incoming": {
       "path": "/test01",
       "method": "POST",
@@ -32,41 +32,47 @@
       "_id": "STAGE 1001",
       "name": "Convert from DF1001 to DF1003",
       "type": "TRANSFORM",
-      "next": [
+      "onSuccess": [
         {
           "_id": "ID1003"
         }
       ],
+      "onError": [],
       "mapping": [
         {
           "source": [
             "_id"
           ],
-          "target": "_id"
+          "target": "_id",
+          "formula": "return input1"
         },
         {
           "source": [
-            "name"
+            "fname", "lname"
           ],
-          "target": "name"
+          "target": "name",
+          "formula": "return input1"
         },
         {
           "source": [
             "email"
           ],
-          "target": "email"
+          "target": "email",
+          "formula": "return input1"
         },
         {
           "source": [
             "contactNo"
           ],
-          "target": "contactNo"
+          "target": "contactNo",
+          "formula": "return input1"
         },
         {
           "source": [
             "age"
           ],
-          "target": "age"
+          "target": "age",
+          "formula": "return input1"
         }
       ],
       "dataStructure": {
@@ -92,7 +98,9 @@
           "type": "dataFormat",
           "_id": "DF1003"
         }
-      }
+      },
+      "onSuccess": [],
+      "onError": []
     }
   ],
   "dataStructures": {
