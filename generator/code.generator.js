@@ -48,7 +48,7 @@ function generateCode(dataJson) {
 		code.push(`${tab(1)}      state.status = "ERROR";`);
 		code.push(`${tab(1)}      await stateUtils.upsertState(req, state);`);
 		code.push(`${tab(1)}      state = stateUtils.getState(tempResponse, '${item.onError._id}');`);
-		if (item.onError) {
+		if (item.onError && item.onError.length > 0) {
 			code.push(`${tab(1)}    tempResponse = await stageUtils.${_.camelCase(item.onError._id)}(req, state);`);
 		} else {
 			code.push(`${tab(1)}      return res.status(tempResponse.statusCode).json(tempResponse.body)`);
