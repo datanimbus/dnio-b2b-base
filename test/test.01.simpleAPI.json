@@ -48,7 +48,7 @@
         },
         {
           "source": [
-            "fname", "lname"
+            "name"
           ],
           "target": "name",
           "formula": "return input1"

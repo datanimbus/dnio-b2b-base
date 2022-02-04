@@ -19,7 +19,7 @@ function tab(len) {
 function generateCode(dataJson) {
 	const inputStage = dataJson.inputStage;
 	const stages = dataJson.stages;
-	let api = inputStage.api;
+	let api = inputStage.incoming.path;
 	let code = [];
 	code.push('const router = require(\'express\').Router();');
 	code.push('const log4js = require(\'log4js\');');
@@ -44,7 +44,7 @@ function generateCode(dataJson) {
 		code.push(`${tab(1)}    tempResponse = await stageUtils.${_.camelCase(item._id)}(req, state);`);
 		code.push(`${tab(1)}    state.statusCode = tempResponse.statusCode;`);
 		code.push(`${tab(1)}    state.body = tempResponse.body;`);
-		code.push(`${tab(1)}    if( tempResponse.statusCode != 200 ) {`);
+		code.push(`${tab(1)}    if( tempResponse.statusCode >= 400 ) {`);
 		code.push(`${tab(1)}      state.status = "ERROR";`);
 		code.push(`${tab(1)}      await stateUtils.upsertState(req, state);`);
 		code.push(`${tab(1)}      state = stateUtils.getState(tempResponse, '${item.onError._id}');`);
