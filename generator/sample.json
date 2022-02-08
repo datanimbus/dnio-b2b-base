@@ -2,29 +2,29 @@
     "_id": "FLOW1001",
     "name": "Test Flow",
     "api": "/Adam/testFlow",
-    "stages": [
-        {
-            "_id": "ID1001",
-            "type": "API",
-            "next": [
-                {
-                    "_id": "ID1002"
-                }
-            ],
-            "incomming": {
-                "path": "/Adam/flow-one",
-                "method": "POST",
-                "headers": {
-                    "Content-Type": "application/json"
-                }
-            },
-            "dataStructure": {
-                "outgoing": {
-                    "type": "dataFormat",
-                    "_id": "DF1001"
-                }
+    "inputStage": {
+        "_id": "ID1001",
+        "type": "API",
+        "next": [
+            {
+                "_id": "ID1002"
+            }
+        ],
+        "incoming": {
+            "path": "/Adam/flow-one",
+            "method": "POST",
+            "headers": {
+                "Content-Type": "application/json"
             }
         },
+        "dataStructure": {
+            "outgoing": {
+                "type": "dataFormat",
+                "_id": "DF1001"
+            }
+        }
+    },
+    "stages": [
         {
             "_id": "ID1002",
             "type": "TRANSFORM",
