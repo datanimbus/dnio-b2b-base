@@ -1,22 +1,25 @@
 {
     "_id": "FLOW1001",
     "name": "Test Flow",
-    "api": "/Adam/testFlow",
+    "options": {
+        "uniqueTxnID": true
+    },
     "inputStage": {
-        "_id": "ID1001",
         "type": "API",
-        "next": [
-            {
-                "_id": "ID1002"
-            }
-        ],
+        "name": "Get Data",
         "incoming": {
-            "path": "/Adam/flow-one",
+            "path": "/test01",
             "method": "POST",
             "headers": {
                 "Content-Type": "application/json"
             }
         },
+        "onSuccess": [
+            {
+                "_id": "STAGE1001"
+            }
+        ],
+        "onError": [],
         "dataStructure": {
             "outgoing": {
                 "type": "dataFormat",
@@ -26,43 +29,50 @@
     },
     "stages": [
         {
-            "_id": "ID1002",
+            "_id": "STAGE1001",
+            "name": "Convert from DF1001 to DF1003",
             "type": "TRANSFORM",
-            "next": [
+            "onSuccess": [
                 {
-                    "_id": "ID1003"
+                    "_id": "STAGE1003"
                 }
             ],
+            "onError": [],
             "mapping": [
                 {
                     "source": [
                         "_id"
                     ],
-                    "target": "_id"
+                    "target": "_id",
+                    "formula": "return input1"
                 },
                 {
                     "source": [
                         "name"
                     ],
-                    "target": "name"
+                    "target": "name",
+                    "formula": "return input1"
                 },
                 {
                     "source": [
                         "email"
                     ],
-                    "target": "email"
+                    "target": "email",
+                    "formula": "return input1"
                 },
                 {
                     "source": [
                         "contactNo"
                     ],
-                    "target": "contactNo"
+                    "target": "contactNo",
+                    "formula": "return input1"
                 },
                 {
                     "source": [
                         "age"
                     ],
-                    "target": "age"
+                    "target": "age",
+                    "formula": "return input1"
                 }
             ],
             "dataStructure": {
@@ -73,36 +83,11 @@
             }
         },
         {
-            "_id": "ID1003",
-            "type": "LOGIN",
-            "outgoing": {
-                "url": "http://somethirdpartyURL",
-                "method": "POST",
-                "headers": {
-                    "Content-Type": "application/json"
-                }
-            },
-            "credentials": {
-                "username": "",
-                "password": ""
-            },
-            "dataStructure": {
-                "outgoing": {
-                    "type": "dataFormat",
-                    "_id": "DF1003"
-                }
-            },
-            "next": [
-                {
-                    "_id": "ID1004"
-                }
-            ]
-        },
-        {
-            "_id": "ID1004",
+            "_id": "STAGE1002",
+            "name": "Call external API",
             "type": "API",
             "outgoing": {
-                "url": "http://somethirdpartyURL",
+                "url": "http://localhost:18080/api/test1",
                 "method": "POST",
                 "headers": {
                     "Content-Type": "application/json"
@@ -112,6 +97,62 @@
                 "outgoing": {
                     "type": "dataFormat",
                     "_id": "DF1003"
+                }
+            },
+            "onSuccess": [],
+            "onError": []
+        },
+        {
+            "_id": "STAGE1003",
+            "name": "Convert from DF1001 to DF1003",
+            "type": "TRANSFORM",
+            "onSuccess": [
+                {
+                    "_id": "STAGE1002"
+                }
+            ],
+            "onError": [],
+            "mapping": [
+                {
+                    "source": [
+                        "_id"
+                    ],
+                    "target": "_id",
+                    "formula": "return input1"
+                },
+                {
+                    "source": [
+                        "name"
+                    ],
+                    "target": "name",
+                    "formula": "return input1"
+                },
+                {
+                    "source": [
+                        "email"
+                    ],
+                    "target": "email",
+                    "formula": "return input1"
+                },
+                {
+                    "source": [
+                        "contactNo"
+                    ],
+                    "target": "contactNo",
+                    "formula": "return input1"
+                },
+                {
+                    "source": [
+                        "age"
+                    ],
+                    "target": "age",
+                    "formula": "return input1"
+                }
+            ],
+            "dataStructure": {
+                "outgoing": {
+                    "type": "dataFormat",
+                    "_id": "DF1002"
                 }
             }
         }
