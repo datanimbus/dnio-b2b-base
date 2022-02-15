@@ -53,7 +53,32 @@
 			"onError": []
 		}
 	],
-	"error": [],
+	"error": [
+		{
+			"_id": "STAGE 1001",
+			"name": "Call external API",
+			"type": "API",
+			"outgoing": {
+				"url": "http://localhost:18080/api/erorr/logError",
+				"method": "POST",
+				"headers": {
+					"Content-Type": "application/json"
+				}
+			},
+			"dataStructure": {
+				"outgoing": {
+					"type": "dataFormat",
+					"_id": "DF1001"
+				}
+			},
+			"onSuccess": [
+				{
+					"_id": "STAGE 1003"
+				}
+			],
+			"onError": []
+		}
+	],
 	"dataStructures": {
 		"DF1001": {
 			"name": "Some Structure",

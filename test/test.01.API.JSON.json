@@ -62,11 +62,7 @@
           "_id": "DF1001"
         }
       },
-      "onSuccess": [
-        {
-          "_id": "STAGE 1003"
-        }
-      ],
+      "onSuccess": [],
       "onError": []
     }
   ],
