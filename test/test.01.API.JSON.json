@@ -8,7 +8,7 @@
     "type": "API",
     "name": "Get Data",
     "incoming": {
-      "path": "/test01",
+      "path": "/testAPI",
       "method": "POST",
       "headers": {
         "Content-Type": [
@@ -18,7 +18,7 @@
     },
     "onSuccess": [
       {
-        "_id": "STAGE-1001"
+        "_id": "STAGE1001"
       }
     ],
     "onError": [],
@@ -31,11 +31,11 @@
   },
   "stages": [
     {
-      "_id": "STAGE 1001",
-      "name": "Call external API",
+      "_id": "STAGE1001",
+      "name": "Call external API 1",
       "type": "API",
       "outgoing": {
-        "url": "http://localhost:18080/api/test1",
+        "url": "http://localhost:18080/api/testAPI/stage1",
         "method": "POST",
         "headers": {
           "Content-Type": "application/json"
@@ -49,14 +49,14 @@
       },
       "onSuccess": [
         {
-          "_id": "STAGE 1003"
+          "_id": "STAGE1003"
         }
       ],
       "onError": []
     },
     {
-      "_id": "STAGE 1001",
-      "name": "Call external API",
+      "_id": "STAGE1002",
+      "name": "Response node",
       "type": "RESPONSE",
       "dataStructure": {
         "outgoing": {

@@ -8,7 +8,7 @@
     "type": "API",
     "name": "Get Data",
     "incoming": {
-      "path": "/test01",
+      "path": "/mapper",
       "method": "POST",
       "headers": {
         "Content-Type": [
@@ -18,7 +18,7 @@
     },
     "onSuccess": [
       {
-        "_id": "STAGE-1001"
+        "_id": "STAGE1001"
       }
     ],
     "onError": [],
@@ -31,12 +31,12 @@
   },
   "stages": [
     {
-      "_id": "STAGE-1001",
+      "_id": "STAGE1001",
       "name": "Convert from DF1001 to DF1003",
       "type": "TRANSFORM",
       "onSuccess": [
         {
-          "_id": "STAGE-1002"
+          "_id": "STAGE1002"
         }
       ],
       "onError": [],
@@ -85,20 +85,11 @@
       }
     },
     {
-      "type": "LOOP",
-      "stages": [
-        {},
-        {},
-        {},
-        {},
-      ]
-    },
-    {
-      "_id": "STAGE 1002",
+      "_id": "STAGE1002",
       "name": "Call external API",
       "type": "API",
       "outgoing": {
-        "url": "http://localhost:18080/api/test1",
+        "url": "http://localhost:18080/api/mapper/stage2",
         "method": "POST",
         "headers": {
           "Content-Type": "application/json"
@@ -112,64 +103,23 @@
       },
       "onSuccess": [
         {
-          "_id": "STAGE 1003"
+          "_id": "STAGE1003"
         }
       ],
       "onError": []
     },
     {
-      "_id": "STAGE 1003",
-      "name": "Convert from DF1001 to DF1003",
-      "type": "TRANSFORM",
-      "onSuccess": [
-        {
-          "_id": "ID1003"
-        }
-      ],
-      "onError": [],
-      "mapping": [
-        {
-          "source": [
-            "_id"
-          ],
-          "target": "_id",
-          "formula": "return input1"
-        },
-        {
-          "source": [
-            "name"
-          ],
-          "target": "name",
-          "formula": "return input1"
-        },
-        {
-          "source": [
-            "email"
-          ],
-          "target": "email",
-          "formula": "return input1"
-        },
-        {
-          "source": [
-            "contactNo"
-          ],
-          "target": "contactNo",
-          "formula": "return input1"
-        },
-        {
-          "source": [
-            "age"
-          ],
-          "target": "age",
-          "formula": "return input1"
-        }
-      ],
+      "_id": "STAGE1003",
+      "name": "Response Node",
+      "type": "RESPONSE",
       "dataStructure": {
         "outgoing": {
           "type": "dataFormat",
-          "_id": "DF1002"
+          "_id": "DF1001"
         }
-      }
+      },
+      "onSuccess": [],
+      "onError": []
     }
   ],
   "error": [],

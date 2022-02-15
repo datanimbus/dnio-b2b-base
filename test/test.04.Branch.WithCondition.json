@@ -18,7 +18,7 @@
     },
     "onSuccess": [
       {
-        "_id": "STAGE 1001"
+        "_id": "STAGE1001"
       }
     ],
     "onError": [],
@@ -31,8 +31,8 @@
   },
   "stages": [
     {
-      "_id": "STAGE 1001",
-      "name": "Call external API",
+      "_id": "STAGE1001",
+      "name": "Call external API /condition/stage1",
       "type": "API",
       "outgoing": {
         "url": "http://localhost:18080/api/condition/stage1",
@@ -49,19 +49,19 @@
       },
       "onSuccess": [
         {
-          "_id": "STAGE 1002",
+          "_id": "STAGE1002",
           "condition": "response.data.age < 10"
         },
         {
-          "_id": "STAGE 1003",
+          "_id": "STAGE1003",
           "condition": "response.data.age > 10"
         }
       ],
       "onError": []
     },
     {
-      "_id": "STAGE 1002",
-      "name": "Call external API",
+      "_id": "STAGE1002",
+      "name": "Call external API /condition/stage2",
       "type": "API",
       "outgoing": {
         "url": "http://localhost:18080/api/condition/stage2",
@@ -78,14 +78,14 @@
       },
       "onSuccess": [
         {
-          "_id": "STAGE 1003"
+          "_id": "STAGE1004"
         }
       ],
       "onError": []
     },
     {
-      "_id": "STAGE 1003",
-      "name": "Call external API",
+      "_id": "STAGE1003",
+      "name": "Call external API /condition/stage3",
       "type": "API",
       "outgoing": {
         "url": "http://localhost:18080/api/condition/stage3",
@@ -102,9 +102,22 @@
       },
       "onSuccess": [
         {
-          "_id": "STAGE 1003"
+          "_id": "STAGE1004"
         }
       ],
+      "onError": []
+    },
+    {
+      "_id": "STAGE1004",
+      "name": "Response Node",
+      "type": "RESPONSE",
+      "dataStructure": {
+        "outgoing": {
+          "type": "dataFormat",
+          "_id": "DF1001"
+        }
+      },
+      "onSuccess": [],
       "onError": []
     }
   ],

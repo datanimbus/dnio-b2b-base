@@ -8,7 +8,7 @@
     "type": "API",
     "name": "Get Data",
     "incoming": {
-      "path": "/error01",
+      "path": "/errorDefault",
       "method": "POST",
       "headers": {
         "Content-Type": [
@@ -18,7 +18,7 @@
     },
     "onSuccess": [
       {
-        "_id": "STAGE-1001"
+        "_id": "STAGE1001"
       }
     ],
     "onError": [],
@@ -31,11 +31,11 @@
   },
   "stages": [
     {
-      "_id": "STAGE 1001",
+      "_id": "STAGE1001",
       "name": "Call external API",
       "type": "API",
       "outgoing": {
-        "url": "http://localhost:18080/api/erorr/error1",
+        "url": "http://localhost:18080/api/erorr/stage1",
         "method": "POST",
         "headers": {
           "Content-Type": "application/json"
@@ -47,11 +47,20 @@
           "_id": "DF1001"
         }
       },
-      "onSuccess": [
-        {
-          "_id": "STAGE 1003"
+      "onSuccess": [],
+      "onError": []
+    },
+    {
+      "_id": "STAGE1002",
+      "name": "Response Node",
+      "type": "RESPONSE",
+      "dataStructure": {
+        "outgoing": {
+          "type": "dataFormat",
+          "_id": "DF1001"
         }
-      ],
+      },
+      "onSuccess": [],
       "onError": []
     }
   ],
