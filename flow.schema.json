@@ -67,12 +67,22 @@
         "required": []
       }
     },
+    "error": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
     "dataStructures": {}
   },
   "required": [
     "_id",
     "name",
-    "inputStage"
+    "inputStage",
+    "stages",
+    "error"
   ],
   "additionalProperties": true,
   "$defs": {
@@ -117,10 +127,13 @@
           "type": "object",
           "properties": {
             "Content-type": {
-              "type": "string",
-              "enum": [
-                "application/json"
-              ]
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "application/json"
+                ]
+              }
             }
           },
           "required": [
