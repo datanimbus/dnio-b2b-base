@@ -8,7 +8,7 @@
     "type": "API",
     "name": "Get Data",
     "incoming": {
-      "path": "/testAPI",
+      "path": "/dataservicePost",
       "method": "POST",
       "headers": {
         "Content-Type": [
@@ -24,27 +24,26 @@
     "onError": [],
     "dataStructure": {
       "outgoing": {
-        "type": "dataFormat",
-        "_id": "DF1001"
+        "type": "dataService",
+        "_id": "SRVC1001"
       }
     }
   },
   "stages": [
     {
       "_id": "STAGE1001",
-      "name": "Call external API 1",
-      "type": "API",
-      "outgoing": {
-        "url": "http://localhost:18080/api/testAPI/stage1",
-        "method": "POST",
-        "headers": {
-          "Content-Type": "application/json"
-        }
+      "name": "Call User dataservice",
+      "type": "DATASERVICE",
+      "dataServiceOptions": {
+      	"_id": "SRVC1001",
+      	"name": "Users",
+      	"action": "POST",
+      	"authenticated": false
       },
       "dataStructure": {
         "outgoing": {
-          "type": "dataFormat",
-          "_id": "DF1001"
+          "type": "dataService",
+          "_id": "SRVC1001"
         }
       },
       "onSuccess": [
@@ -60,8 +59,8 @@
       "type": "RESPONSE",
       "dataStructure": {
         "outgoing": {
-          "type": "dataFormat",
-          "_id": "DF1001"
+          "type": "dataService",
+          "_id": "SRVC1001"
         }
       },
       "onSuccess": [],
@@ -70,8 +69,8 @@
   ],
   "error": [],
   "dataStructures": {
-    "DF1001": {
-      "name": "Some Structure",
+    "SRVC1001": {
+      "name": "User data service",
       "definition": [
         {
           "key": "_id",
