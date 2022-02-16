@@ -34,30 +34,30 @@ function generateCode(dataJson) {
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
 	code.push(`${tab(1)}let state = {};`);
-	code.push(`${tab(1)}let tempResponse = req;`);
+	code.push(`${tab(1)}let response = req;`);
 	stages.forEach((item, i) => {
 		const isLast = stages.length - 1 == i;
 		code.push(`${tab(1)}// ═══════════════════ ${item._id} / ${item.name} / ${item.type} ══════════════════════`);
 		code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking stage :: ${item._id} / ${item.name} / ${item.type}\`)`);
-		code.push(`${tab(1)}state = stateUtils.getState(tempResponse, '${item._id}');`);
+		code.push(`${tab(1)}state = stateUtils.getState(response, '${item._id}');`);
 		code.push(`${tab(1)}try {`);
-		code.push(`${tab(1)}    tempResponse = await stageUtils.${_.camelCase(item._id)}(req, state);`);
-		code.push(`${tab(1)}    state.statusCode = tempResponse.statusCode;`);
-		code.push(`${tab(1)}    state.body = tempResponse.body;`);
-		code.push(`${tab(1)}    if( tempResponse.statusCode >= 400 ) {`);
+		code.push(`${tab(1)}    response = await stageUtils.${_.camelCase(item._id)}(req, state);`);
+		code.push(`${tab(1)}    state.statusCode = response.statusCode;`);
+		code.push(`${tab(1)}    state.body = response.body;`);
+		code.push(`${tab(1)}    if( response.statusCode >= 400 ) {`);
 		code.push(`${tab(1)}      state.status = "ERROR";`);
 		code.push(`${tab(1)}      await stateUtils.upsertState(req, state);`);
 		if (item.onError && item.onError.length > 0) {
-			code.push(`${tab(1)}    state = stateUtils.getState(tempResponse, '${item.onError._id}');`);
-			code.push(`${tab(1)}    tempResponse = await stageUtils.${_.camelCase(item.onError._id)}(req, state);`);
+			code.push(`${tab(1)}    state = stateUtils.getState(response, '${item.onError._id}');`);
+			code.push(`${tab(1)}    response = await stageUtils.${_.camelCase(item.onError._id)}(req, state);`);
 		} else {
-			code.push(`${tab(1)}      return res.status(tempResponse.statusCode).json(tempResponse.body)`);
+			code.push(`${tab(1)}      return res.status(response.statusCode).json(response.body)`);
 		}
 		code.push(`${tab(1)}    }`);
 		code.push(`${tab(1)}    state.status = "SUCCESS";`);
 		code.push(`${tab(1)}    await stateUtils.upsertState(req, state);`);
 		if (isLast) {
-			code.push(`${tab(1)}    res.status(tempResponse.statusCode).json(tempResponse.body)`);
+			code.push(`${tab(1)}    res.status(response.statusCode).json(response.body)`);
 		}
 		code.push(`${tab(1)}} catch (err) {`);
 		code.push(`${tab(1)}    logger.error(err);`);
@@ -94,13 +94,13 @@ function generateStages(dataJson) {
 			code.push(`options.headers = _.merge(state.headers,${JSON.stringify(stage.outgoing.headers)});`);
 			code.push('options.json = state.body;');
 			code.push('try {');
-			code.push('  const tempResponse = await httpClient.request(options);');
-			code.push('  if( tempResponse && tempResponse.statusCode != 200 ) {');
+			code.push('  const response = await httpClient.request(options);');
+			code.push('  if( response && response.statusCode != 200 ) {');
 			code.push(`    logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with not 200\`);`);
-			code.push('    return { statusCode: tempResponse.statusCode, body: tempResponse.body, headers: tempResponse.headers };');
+			code.push('    return { statusCode: response.statusCode, body: response.body, headers: response.headers };');
 			code.push('  }');
 			code.push(`  logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with 200\`);`);
-			code.push('  return { statusCode: tempResponse.statusCode, body: tempResponse.body, headers: tempResponse.headers };');
+			code.push('  return { statusCode: response.statusCode, body: response.body, headers: response.headers };');
 			code.push('} catch(err) {');
 			code.push(`  logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with Error\`);`);
 			code.push('  logger.error(err);');
@@ -131,12 +131,12 @@ function generateStages(dataJson) {
 				code.push('const allHeaders = promises.reduce((prev,curr)=>_.merge(prev,curr.headers),{})');
 				code.push('return { statusCode: 200, body: allBody, headers: allHeaders };');
 			} else if (stage.sequence && stage.sequence.length > 0) {
-				code.push('let tempResponse = state;');
+				code.push('let response = state;');
 				stage.sequence.forEach(flow => {
-					code.push(`tempResponse = await callFlow('${flow._id}', tempResponse)`);
-					code.push('  if( tempResponse && tempResponse.statusCode != 200 ) {');
+					code.push(`response = await callFlow('${flow._id}', response)`);
+					code.push('  if( response && response.statusCode != 200 ) {');
 					code.push(`    logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with not 200\`);`);
-					code.push('    return { statusCode: tempResponse.statusCode, body: tempResponse.body, headers: tempResponse.headers };');
+					code.push('    return { statusCode: response.statusCode, body: response.body, headers: response.headers };');
 					code.push('  }');
 				});
 			}

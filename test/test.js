@@ -3,8 +3,10 @@ const { writeFileSync } = require('fs');
 const codeGen = require('../generator/code.generator');
 const validator = require('../generator/schema.validator');
 
-const sampleJSON = require('./test.01.API.JSON.json');
+// const sampleJSON = require('./test.01.API.JSON.json');
 // const sampleJSON = require('./test.01.error.json');
+const sampleJSON = require('./test.02.Mapper.json');
+// const sampleJSON = require('./test.04.Branch.WithCondition.json');
 
 try{
 	validator(sampleJSON);
