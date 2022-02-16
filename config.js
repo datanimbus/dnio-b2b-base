@@ -24,7 +24,7 @@ const logger = log4js.getLogger('Config');
 logger.info(`NODE_ENV :: ${process.env.NODE_ENV}`);
 logger.info(`LOG_LEVEL :: ${logLevel}`);
 
-const DATA_STACK_NAMESPACE = process.env.DATA_STACK_NAMESPACE;
+const DATA_STACK_NAMESPACE = process.env.DATA_STACK_NAMESPACE || 'appveen';
 
 function isK8sEnv() {
 	return process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT;
