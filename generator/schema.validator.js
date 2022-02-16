@@ -10,4 +10,4 @@ module.exports = (flowDefinition) => {
 	const valid = validate(flowDefinition);
 	if (!valid) throw Error(ajv.errorsText(validate.errors));
 	else console.log('Flow definition is valid');
-}
+};
