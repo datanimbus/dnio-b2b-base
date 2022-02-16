@@ -1,5 +1,4 @@
 // const log4js = require('log4js');
-const e = require('express');
 const _ = require('lodash');
 const { v4: uuid } = require('uuid');
 
@@ -25,14 +24,14 @@ function parseFlow(dataJson) {
 	const stages = dataJson.stages;
 	let api = inputStage.incoming.path;
 	let code = [];
-	code.push(`const router = require(\'express\').Router();`);
-	code.push(`const log4js = require(\'log4js\');`);
-	code.push(``);
-	code.push(`const stateUtils = require(\'./state.utils\');`);
-	code.push(`const stageUtils = require(\'./stage.utils\');`);
-	code.push(``);
-	code.push(`const logger = log4js.getLogger(global.loggerName);`);
-	code.push(``);
+	code.push('const router = require(\'express\').Router();');
+	code.push('const log4js = require(\'log4js\');');
+	code.push('');
+	code.push('const stateUtils = require(\'./state.utils\');');
+	code.push('const stageUtils = require(\'./stage.utils\');');
+	code.push('');
+	code.push('const logger = log4js.getLogger(global.loggerName);');
+	code.push('');
 	// TODO: Method to be fixed.
 	code.push(`router.post('${api}', async function (req, res) {`);
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
@@ -54,8 +53,8 @@ function parseFlow(dataJson) {
 		if (stage.condition) code.push(`${tab(1)}}`);
 	});
 	code.push(`${tab(1)}return res.status(response.statusCode).json(response.body)`);
-	code.push(`});`);
-	code.push(`module.exports = router;`);
+	code.push('});');
+	code.push('module.exports = router;');
 	return code.join('\n');
 }
 
@@ -101,12 +100,14 @@ function generateCode(stage, stages) {
 
 function parseStages(dataJson) {
 	const code = [];
-	code.push(`const log4js = require(\'log4js\');`);
-	code.push(`const _ = require(\'lodash\');`);
-	code.push(`const httpClient = require(\'./http-client\');`);
-	code.push(``);
-	code.push(`const logger = log4js.getLogger(global.loggerName);`);
-	code.push(``);
+	code.push('const log4js = require(\'log4js\');');
+	code.push('const _ = require(\'lodash\');');
+	code.push('const httpClient = require(\'./http-client\');');
+	code.push('const commonUtils = require(\'./common.utils\');');
+	code.push('const stateUtils = require(\'./state.utils\');');
+	code.push('');
+	code.push('const logger = log4js.getLogger(global.loggerName);');
+	code.push('');
 	return _.concat(code, generateStages(dataJson)).join('\n');
 }
 
@@ -120,14 +121,32 @@ function generateStages(stage) {
 		code.push(`async function ${_.camelCase(stage._id)}(req, state) {`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${_.camelCase(stage._id)} Stage\`);`);
 		code.push(`${tab(1)}try {`);
-		if ((stage.type === 'API' || stage.type === 'FAAS' || stage.type === 'DATA_SERVICE') && stage.outgoing) {
+		if (stage.type === 'API' || stage.type === 'DATASERVICE' || stage.type === 'FAAS') {
 			code.push(`${tab(2)}const options = {};`);
-			code.push(`${tab(2)}state.url = '${stage.outgoing.url}';`);
-			code.push(`${tab(2)}state.method = '${stage.outgoing.method}';`);
-			code.push(`${tab(2)}options.url = '${stage.outgoing.url}';`);
-			code.push(`${tab(2)}options.method = '${stage.outgoing.method}';`);
-			code.push(`${tab(2)}options.headers = _.merge(state.headers, ${JSON.stringify(stage.outgoing.headers)});`);
-			code.push(`${tab(2)}options.json = state.body;`);
+			if (stage.type === 'API' && stage.outgoing) {
+				code.push(`${tab(2)}state.url = '${stage.outgoing.url}';`);
+				code.push(`${tab(2)}state.method = '${stage.outgoing.method}';`);
+				code.push(`${tab(2)}options.url = state.url;`);
+				code.push(`${tab(2)}options.method = state.method;`);
+				code.push(`${tab(2)}options.headers = _.merge(state.headers, ${JSON.stringify(stage.outgoing.headers)});`);
+				code.push(`${tab(2)}options.json = state.body;`);
+			} else if (stage.type === 'DATASERVICE') {
+				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.dataServiceOptions._id}');`);
+				code.push(`${tab(2)}state.url = '/' + dataService.app + dataService.api`);
+				code.push(`${tab(2)}state.method = '${stage.dataServiceOptions.method}';`);
+				code.push(`${tab(2)}options.url = state.url;`);
+				code.push(`${tab(2)}options.method = state.method;`);
+				code.push(`${tab(2)}options.headers = state.headers;`);
+				code.push(`${tab(2)}options.json = state.body;`);
+			} else if (stage.type === 'FAAS') {
+				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${stage.faasOptions._id}');`);
+				code.push(`${tab(2)}state.url = '/' + faas.app + faas.api`);
+				code.push(`${tab(2)}state.method = '${stage.faasOptions.method}';`);
+				code.push(`${tab(2)}options.url = state.url;`);
+				code.push(`${tab(2)}options.method = state.method;`);
+				code.push(`${tab(2)}options.headers = state.headers;`);
+				code.push(`${tab(2)}options.json = state.body;`);
+			}
 			code.push(`${tab(2)}const response = await httpClient.request(options);`);
 			code.push(`${tab(2)}state.statusCode = response.statusCode;`);
 			code.push(`${tab(2)}state.body = response.body;`);
@@ -144,7 +163,7 @@ function generateStages(stage) {
 			code.push(`${tab(2)}const newBody = {};`);
 			stage.mapping.forEach(mappingData => {
 				const formulaCode = [];
-				const formulaID = 'formula_'+ _.camelCase(uuid());
+				const formulaID = 'formula_' + _.camelCase(uuid());
 				mappingData.formulaID = formulaID;
 				formulaCode.push(`function ${formulaID}(data) {`);
 				mappingData.source.forEach((source, i) => {
@@ -153,9 +172,9 @@ function generateStages(stage) {
 				if (mappingData.formula) {
 					formulaCode.push(mappingData.formula);
 				} else {
-					formulaCode.push(`return input1;`);
+					formulaCode.push('return input1;');
 				}
-				formulaCode.push(`}`);
+				formulaCode.push('}');
 				code.push(formulaCode.join('\n'));
 			});
 			code.push(`${tab(2)}if (Array.isArray(state.body)) {`);
@@ -204,7 +223,7 @@ function generateStages(stage) {
 		code.push(`${tab(1)}} finally {`);
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 		code.push(`${tab(1)}}`);
-		code.push(`}`);
+		code.push('}');
 	});
 	return _.concat(code, exportsCode).join('\n');
 }
