@@ -37,7 +37,7 @@
       "dataServiceOptions": {
       	"_id": "SRVC1001",
       	"name": "Users",
-      	"action": "PUT",
+      	"method": "PUT",
       	"authenticated": false
       },
       "dataStructure": {
