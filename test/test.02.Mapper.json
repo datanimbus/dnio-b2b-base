@@ -43,37 +43,67 @@
       "mapping": [
         {
           "source": [
-            "_id"
+            {
+              "type": "String",
+              "dataPath": "_id"
+            }
           ],
-          "target": "_id",
+          "target": {
+            "type": "String",
+            "dataPath": "_id"
+          },
           "formula": "return input1"
         },
         {
           "source": [
-            "name"
+            {
+              "type": "String",
+              "dataPath": "name"
+            }
           ],
-          "target": "name",
+          "target": {
+            "type": "String",
+            "dataPath": "name"
+          },
           "formula": "return input1"
         },
         {
           "source": [
-            "email"
+            {
+              "type": "String",
+              "dataPath": "email"
+            }
           ],
-          "target": "email",
+          "target": {
+            "type": "String",
+            "dataPath": "email"
+          },
           "formula": "return input1"
         },
         {
           "source": [
-            "contactNo"
+            {
+              "type": "Number",
+              "dataPath": "contactNo"
+            }
           ],
-          "target": "contactNo",
+          "target": {
+            "type": "Number",
+            "dataPath": "contactNo"
+          },
           "formula": "return input1"
         },
         {
           "source": [
-            "age"
+            {
+              "type": "Number",
+              "dataPath": "age"
+            }
           ],
-          "target": "age",
+          "target": {
+            "type": "Number",
+            "dataPath": "age"
+          },
           "formula": "return input1"
         }
       ],
