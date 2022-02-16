@@ -5,8 +5,9 @@ const validator = require('../generator/schema.validator');
 
 // const sampleJSON = require('./test.01.API.JSON.json');
 // const sampleJSON = require('./test.01.error.json');
-const sampleJSON = require('./test.02.Mapper.json');
+// const sampleJSON = require('./test.02.Mapper.json');
 // const sampleJSON = require('./test.04.Branch.WithCondition.json');
+const sampleJSON = require('./test.05.Dataservice.POST.json');
 
 try{
 	validator(sampleJSON);
