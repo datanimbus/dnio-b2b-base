@@ -1,6 +1,7 @@
 // const log4js = require('log4js');
 const _ = require('lodash');
 const { v4: uuid } = require('uuid');
+const config = require('../config');
 
 // const logger = log4js.getLogger(global.loggerName);
 
@@ -9,7 +10,7 @@ const visitedStages = [];
 function tab(len) {
 	let d = '';
 	while (len > 0) {
-		d += '  ';
+		d += '    ';
 		len--;
 	}
 	return d;
@@ -38,6 +39,7 @@ function parseFlow(dataJson) {
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
 	code.push(`${tab(1)}let state = {};`);
 	code.push(`${tab(1)}let response = req;`);
+	code.push(`${tab(1)}let isResponseSent = false;`);
 	inputStage.onSuccess.map(ss => {
 		const stageCondition = ss.condition;
 		const temp = stages.find(e => e._id === ss._id);
@@ -52,7 +54,7 @@ function parseFlow(dataJson) {
 		code = code.concat(generateCode(stage, stages));
 		if (stage.condition) code.push(`${tab(1)}}`);
 	});
-	code.push(`${tab(1)}return res.status(response.statusCode).json(response.body)`);
+	code.push(`${tab(1)}return isResponseSent ? true : res.status(response.statusCode).json(response.body)`);
 	code.push('});');
 	code.push('module.exports = router;');
 	return code.join('\n');
@@ -66,20 +68,25 @@ function generateCode(stage, stages) {
 	let code = [];
 	code.push(`${tab(1)}// ═══════════════════ ${stage._id} / ${stage.name} / ${stage.type} ══════════════════════`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking stage :: ${stage._id} / ${stage.name} / ${stage.type}\`)`);
-	code.push(`${tab(1)}state = stateUtils.getState(response, '${stage._id}');`);
 	code.push(`${tab(1)}try {`);
-	code.push(`${tab(2)}response = await stageUtils.${_.camelCase(stage._id)}(req, state);`);
-	code.push(`${tab(2)}if (response.statusCode >= 400) {`);
-	if (stage.onError && stage.onError.length > 0) {
-		code.push(`${tab(3)}state = stateUtils.getState(response, '${stage.onError._id}');`);
-		code.push(`${tab(3)}response = await stageUtils.${_.camelCase(stage.onError._id)}(req, state);`);
+	if (stage.type === 'RESPONSE') {
+		code.push(`${tab(2)}isResponseSent = true;`);
+		code.push(`${tab(2)}res.status(response.statusCode).json(response.body)`);
 	} else {
-		code.push(`${tab(3)}return res.status(response.statusCode).json(response.body)`);
+		code.push(`${tab(2)}state = stateUtils.getState(response, '${stage._id}');`);
+		code.push(`${tab(2)}response = await stageUtils.${_.camelCase(stage._id)}(req, state);`);
+		code.push(`${tab(2)}if (response.statusCode >= 400) {`);
+		if (stage.onError && stage.onError.length > 0) {
+			code.push(`${tab(3)}state = stateUtils.getState(response, '${stage.onError[0]._id}');`);
+			code.push(`${tab(3)}await stageUtils.${_.camelCase(stage.onError[0]._id)}(req, state);`);
+		} else {
+			code.push(`${tab(3)}return isResponseSent ? true : res.status(response.statusCode).json(response.body)`);
+		}
+		code.push(`${tab(2)}}`);
 	}
-	code.push(`${tab(2)}}`);
 	code.push(`${tab(1)}} catch (err) {`);
 	code.push(`${tab(2)}logger.error(err);`);
-	code.push(`${tab(2)}return res.status(500).json({ message: err.message });`);
+	code.push(`${tab(2)}return isResponseSent ? true : res.status(500).json({ message: err.message });`);
 	code.push(`${tab(1)}}`);
 	stage.onSuccess.map(ss => {
 		const stageCondition = ss.condition;
@@ -132,7 +139,7 @@ function generateStages(stage) {
 				code.push(`${tab(2)}options.json = state.body;`);
 			} else if (stage.type === 'DATASERVICE') {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.dataServiceOptions._id}');`);
-				code.push(`${tab(2)}state.url = '/' + dataService.app + dataService.api`);
+				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api`);
 				code.push(`${tab(2)}state.method = '${stage.dataServiceOptions.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
