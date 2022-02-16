@@ -6,6 +6,7 @@ parserOptions:
   ecmaVersion: 8
   sourceType: module
 rules:
+  no-unused-vars: off
   camelcase: error
   indent:
     - error
