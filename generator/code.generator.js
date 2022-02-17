@@ -129,7 +129,7 @@ function generateStages(stage) {
 		code.push(`async function ${_.camelCase(stage._id)}(req, state, stage) {`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${_.camelCase(stage._id)} Stage\`);`);
 		code.push(`${tab(1)}try {`);
-		if (stage.type === 'API' || stage.type === 'DATASERVICE' || stage.type === 'FAAS') {
+		if (stage.type === 'API' || stage.type === 'DATASERVICE' || stage.type === 'FAAS' || stage.type === 'AUTH_DATA_STACK') {
 			code.push(`${tab(2)}const options = {};`);
 			if (stage.type === 'API' && stage.outgoing) {
 				code.push(`${tab(2)}state.url = '${stage.outgoing.url}';`);
@@ -148,12 +148,20 @@ function generateStages(stage) {
 				code.push(`${tab(2)}options.json = state.body;`);
 			} else if (stage.type === 'FAAS') {
 				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${stage.faasOptions._id}');`);
-				code.push(`${tab(2)}state.url = '/' + faas.app + faas.api`);
+				code.push(`${tab(2)}state.url = '${config.baseUrlBM}/faas/' + faas.app + faas.api`);
 				code.push(`${tab(2)}state.method = '${stage.faasOptions.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
 				code.push(`${tab(2)}options.headers = state.headers;`);
 				code.push(`${tab(2)}options.json = state.body;`);
+			} else if (stage.type === 'AUTH_DATA_STACK') {
+				code.push(`${tab(2)}const password = '${stage.auth.password}'`);
+				code.push(`${tab(2)}state.url = '${config.baseUrlUSR}/login'`);
+				code.push(`${tab(2)}state.method = 'POST';`);
+				code.push(`${tab(2)}options.url = state.url;`);
+				code.push(`${tab(2)}options.method = state.method;`);
+				code.push(`${tab(2)}options.headers = state.headers;`);
+				code.push(`${tab(2)}options.json = { username: '${stage.auth.username}', password: '${stage.auth.password}' };`);
 			}
 			code.push(`${tab(2)}const response = await httpClient.request(options);`);
 			code.push(`${tab(2)}state.statusCode = response.statusCode;`);
