@@ -30,21 +30,13 @@
     }
   },
   "stages": [
-    {
+  	{
       "_id": "STAGE1001",
       "name": "Call User dataservice",
-      "type": "DATASERVICE",
-      "dataServiceOptions": {
-      	"_id": "SRVC1001",
-      	"name": "Users",
-      	"method": "POST",
-      	"authenticated": false
-      },
-      "dataStructure": {
-        "outgoing": {
-          "type": "dataService",
-          "_id": "SRVC1001"
-        }
+      "type": "AUTH-DATASTACK",
+      "authOptions": {
+      	"username": "rahul@appveen.com",
+      	"password": "password"
       },
       "onSuccess": [
         {
@@ -55,6 +47,28 @@
     },
     {
       "_id": "STAGE1002",
+      "name": "Call User dataservice",
+      "type": "DATASERVICE",
+      "dataServiceOptions": {
+      	"_id": "SRVC1001",
+      	"name": "Users",
+      	"method": "POST",
+      },
+      "dataStructure": {
+        "outgoing": {
+          "type": "dataService",
+          "_id": "SRVC1001"
+        }
+      },
+      "onSuccess": [
+        {
+          "_id": "STAGE1003"
+        }
+      ],
+      "onError": []
+    },
+    {
+      "_id": "STAGE1003",
       "name": "Response node",
       "type": "RESPONSE",
       "dataStructure": {
