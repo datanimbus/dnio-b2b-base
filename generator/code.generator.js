@@ -38,6 +38,7 @@ function parseFlow(dataJson) {
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
 	code.push(`${tab(1)}let state = {};`);
+	code.push(`${tab(1)}let stageData = {};`);
 	code.push(`${tab(1)}let response = req;`);
 	code.push(`${tab(1)}let isResponseSent = false;`);
 	inputStage.onSuccess.map(ss => {
@@ -74,11 +75,11 @@ function generateCode(stage, stages) {
 		code.push(`${tab(2)}res.status(response.statusCode).json(response.body)`);
 	} else {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${stage._id}');`);
-		code.push(`${tab(2)}response = await stageUtils.${_.camelCase(stage._id)}(req, state);`);
+		code.push(`${tab(2)}response = await stageUtils.${_.camelCase(stage._id)}(req, state, stageData);`);
 		code.push(`${tab(2)}if (response.statusCode >= 400) {`);
 		if (stage.onError && stage.onError.length > 0) {
 			code.push(`${tab(3)}state = stateUtils.getState(response, '${stage.onError[0]._id}');`);
-			code.push(`${tab(3)}await stageUtils.${_.camelCase(stage.onError[0]._id)}(req, state);`);
+			code.push(`${tab(3)}await stageUtils.${_.camelCase(stage.onError[0]._id)}(req, state, stageData);`);
 		} else {
 			code.push(`${tab(3)}return isResponseSent ? true : res.status(response.statusCode).json(response.body)`);
 		}
@@ -125,7 +126,7 @@ function generateStages(stage) {
 	const exportsCode = [];
 	stages.forEach((stage) => {
 		exportsCode.push(`module.exports.${_.camelCase(stage._id)} = ${_.camelCase(stage._id)};`);
-		code.push(`async function ${_.camelCase(stage._id)}(req, state) {`);
+		code.push(`async function ${_.camelCase(stage._id)}(req, state, stage) {`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${_.camelCase(stage._id)} Stage\`);`);
 		code.push(`${tab(1)}try {`);
 		if (stage.type === 'API' || stage.type === 'DATASERVICE' || stage.type === 'FAAS') {
@@ -228,6 +229,7 @@ function generateStages(stage) {
 		code.push(`${tab(2)}logger.error(err);`);
 		code.push(`${tab(2)}return { statusCode: 500, body: err, headers: state.headers };`);
 		code.push(`${tab(1)}} finally {`);
+		code.push(`${tab(2)}stage['${stage._id}'] = state;`);
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 		code.push(`${tab(1)}}`);
 		code.push('}');
