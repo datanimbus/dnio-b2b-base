@@ -131,38 +131,48 @@ function generateStages(stage) {
 		code.push(`${tab(1)}try {`);
 		if (stage.type === 'API' || stage.type === 'DATASERVICE' || stage.type === 'FAAS' || stage.type === 'AUTH_DATA_STACK') {
 			code.push(`${tab(2)}const options = {};`);
+			code.push(`${tab(2)}let customHeaders = {};`);
+			code.push(`${tab(2)}let customBody = state.body;`);
 			if (stage.type === 'API' && stage.outgoing) {
 				code.push(`${tab(2)}state.url = '${stage.outgoing.url}';`);
 				code.push(`${tab(2)}state.method = '${stage.outgoing.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}options.headers = _.merge(state.headers, ${JSON.stringify(stage.outgoing.headers)});`);
-				code.push(`${tab(2)}options.json = state.body;`);
+				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.outgoing.headers)}\`);`);
+				if (stage.outgoing.body && !_.isEmpty(stage.outgoing.body)) {
+					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.outgoing.body)}\`);`);
+				}
 			} else if (stage.type === 'DATASERVICE') {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.dataServiceOptions._id}');`);
 				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api`);
 				code.push(`${tab(2)}state.method = '${stage.dataServiceOptions.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}options.headers = state.headers;`);
-				code.push(`${tab(2)}options.json = state.body;`);
+				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.dataServiceOptions.headers)}\`);`);
+				if (stage.dataServiceOptions.body && !_.isEmpty(stage.dataServiceOptions.body)) {
+					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.dataServiceOptions.body)}\`);`);
+				}
 			} else if (stage.type === 'FAAS') {
 				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${stage.faasOptions._id}');`);
 				code.push(`${tab(2)}state.url = '${config.baseUrlBM}/faas/' + faas.app + faas.api`);
 				code.push(`${tab(2)}state.method = '${stage.faasOptions.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}options.headers = state.headers;`);
-				code.push(`${tab(2)}options.json = state.body;`);
+				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.faasOptions.headers)}\`);`);
+				if (stage.faasOptions.body && !_.isEmpty(stage.faasOptions.body)) {
+					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.faasOptions.body)}\`);`);
+				}
 			} else if (stage.type === 'AUTH_DATA_STACK') {
 				code.push(`${tab(2)}const password = '${stage.auth.password}'`);
 				code.push(`${tab(2)}state.url = '${config.baseUrlUSR}/login'`);
 				code.push(`${tab(2)}state.method = 'POST';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}options.headers = state.headers;`);
-				code.push(`${tab(2)}options.json = { username: '${stage.auth.username}', password: '${stage.auth.password}' };`);
+				code.push(`${tab(2)}customHeaders = state.headers;`);
+				code.push(`${tab(2)}customBody = { username: '${stage.auth.username}', password: '${stage.auth.password}' };`);
 			}
+			code.push(`${tab(2)}options.headers = _.merge(state.headers, customHeaders);`);
+			code.push(`${tab(2)}options.json = customBody;`);
 			code.push(`${tab(2)}const response = await httpClient.request(options);`);
 			code.push(`${tab(2)}state.statusCode = response.statusCode;`);
 			code.push(`${tab(2)}state.body = response.body;`);
@@ -245,7 +255,33 @@ function generateStages(stage) {
 	return _.concat(code, exportsCode).join('\n');
 }
 
+function parseHeaders(headers) {
+	let tempHeaders = {};
+	if (headers) {
+		if (typeof headers === 'string' && headers.indexOf('{{') > -1) {
+			return headers.replaceAll('{{', '${').replaceAll('}}', '}');
+		} else if (typeof headers === 'object') {
+			Object.keys(headers).forEach(key => {
+				tempHeaders[key] = parseHeaders(headers[key]);
+			});
+		}
+	}
+	return JSON.stringify(tempHeaders);
+}
 
+function parseBody(body) {
+	let tempBody = {};
+	if (body) {
+		if (typeof body === 'string' && body.indexOf('{{') > -1) {
+			return body.replaceAll('{{', '${').replaceAll('}}', '}');
+		} else if (typeof body === 'object') {
+			Object.keys(body).forEach(key => {
+				tempBody[key] = parseBody(body[key]);
+			});
+		}
+	}
+	return JSON.stringify(tempBody);
+}
 
 
 module.exports.parseFlow = parseFlow;

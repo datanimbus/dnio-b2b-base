@@ -34,47 +34,120 @@
             "type": "TRANSFORM",
             "onSuccess": [
                 {
-                    "_id": "STAGE1003"
+                    "_id": "STAGE1012"
                 }
             ],
             "onError": [],
             "mapping": [
                 {
                     "source": [
-                        "_id"
+                        {
+                            "type": "String",
+                            "dataPath": "_id"
+                        }
                     ],
-                    "target": "_id",
+                    "target": {
+                        "type": "String",
+                        "dataPath": "_id"
+                    },
                     "formula": "return input1"
                 },
                 {
                     "source": [
-                        "name"
+                        {
+                            "type": "String",
+                            "dataPath": "name"
+                        }
                     ],
-                    "target": "name",
+                    "target": {
+                        "type": "String",
+                        "dataPath": "name"
+                    },
                     "formula": "return input1"
                 },
                 {
                     "source": [
-                        "email"
+                        {
+                            "type": "String",
+                            "dataPath": "email"
+                        }
                     ],
-                    "target": "email",
+                    "target": {
+                        "type": "String",
+                        "dataPath": "email"
+                    },
                     "formula": "return input1"
                 },
                 {
                     "source": [
-                        "contactNo"
+                        {
+                            "type": "Number",
+                            "dataPath": "contactNo"
+                        }
                     ],
-                    "target": "contactNo",
+                    "target": {
+                        "type": "Number",
+                        "dataPath": "contactNo"
+                    },
                     "formula": "return input1"
                 },
                 {
                     "source": [
-                        "age"
+                        {
+                            "type": "Number",
+                            "dataPath": "age"
+                        }
                     ],
-                    "target": "age",
+                    "target": {
+                        "type": "Number",
+                        "dataPath": "age"
+                    },
                     "formula": "return input1"
                 }
             ],
+            "dataStructure": {
+                "outgoing": {
+                    "type": "dataFormat",
+                    "_id": "DF1002"
+                }
+            }
+        },
+        {
+            "_id": "STAGE1012",
+            "name": "Call external API",
+            "type": "API",
+            "outgoing": {
+                "url": "http://localhost:18080/api/test1",
+                "method": "POST",
+                "headers": "{{stage['STAGE1001'].headers}}"
+            },
+            "dataStructure": {
+                "outgoing": {
+                    "type": "dataFormat",
+                    "_id": "DF1003"
+                }
+            },
+            "onSuccess": [
+                {
+                    "_id": "LOGIN"
+                }
+            ],
+            "onError": []
+        },
+        {
+            "_id": "LOGIN",
+            "name": "DS Login",
+            "type": "AUTH_DATA_STACK",
+            "onSuccess": [
+                {
+                    "_id": "STAGE1002"
+                }
+            ],
+            "onError": [],
+            "auth": {
+                "username": "johndoe@ds.com",
+                "password": "123123123"
+            },
             "dataStructure": {
                 "outgoing": {
                     "type": "dataFormat",
@@ -90,7 +163,8 @@
                 "url": "http://localhost:18080/api/test1",
                 "method": "POST",
                 "headers": {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Authorization": "JWT {{stage['LOGIN'].body.token}}"
                 }
             },
             "dataStructure": {
