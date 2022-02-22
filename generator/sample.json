@@ -137,7 +137,7 @@
         {
             "_id": "LOGIN",
             "name": "DS Login",
-            "type": "AUTH_DATA_STACK",
+            "type": "AUTH-DATASTACK",
             "onSuccess": [
                 {
                     "_id": "STAGE1002"

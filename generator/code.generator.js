@@ -129,7 +129,7 @@ function generateStages(stage) {
 		code.push(`async function ${_.camelCase(stage._id)}(req, state, stage) {`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${_.camelCase(stage._id)} Stage\`);`);
 		code.push(`${tab(1)}try {`);
-		if (stage.type === 'API' || stage.type === 'DATASERVICE' || stage.type === 'FAAS' || stage.type === 'AUTH_DATA_STACK') {
+		if (stage.type === 'API' || stage.type === 'DATASERVICE' || stage.type === 'FAAS' || stage.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
 			code.push(`${tab(2)}let customHeaders = {};`);
 			code.push(`${tab(2)}let customBody = state.body;`);
@@ -162,14 +162,14 @@ function generateStages(stage) {
 				if (stage.faasOptions.body && !_.isEmpty(stage.faasOptions.body)) {
 					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.faasOptions.body)}\`);`);
 				}
-			} else if (stage.type === 'AUTH_DATA_STACK') {
-				code.push(`${tab(2)}const password = '${stage.auth.password}'`);
+			} else if (stage.type === 'AUTH-DATASTACK') {
+				code.push(`${tab(2)}const password = '${stage.authOptions.password}'`);
 				code.push(`${tab(2)}state.url = '${config.baseUrlUSR}/login'`);
 				code.push(`${tab(2)}state.method = 'POST';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
 				code.push(`${tab(2)}customHeaders = state.headers;`);
-				code.push(`${tab(2)}customBody = { username: '${stage.auth.username}', password: '${stage.auth.password}' };`);
+				code.push(`${tab(2)}customBody = { username: '${stage.authOptions.username}', password: '${stage.authOptions.password}' };`);
 			}
 			code.push(`${tab(2)}options.headers = _.merge(state.headers, customHeaders);`);
 			code.push(`${tab(2)}options.json = customBody;`);
