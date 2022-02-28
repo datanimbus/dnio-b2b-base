@@ -125,6 +125,7 @@ function generateStages(stage) {
 	const stages = stage.stages;
 	let code = [];
 	const exportsCode = [];
+	let loopCode = [];
 	stages.forEach((stage) => {
 		exportsCode.push(`module.exports.${_.camelCase(stage._id)} = ${_.camelCase(stage._id)};`);
 		code.push(`async function ${_.camelCase(stage._id)}(req, state, stage) {`);
@@ -134,14 +135,14 @@ function generateStages(stage) {
 			code.push(`${tab(2)}const options = {};`);
 			code.push(`${tab(2)}let customHeaders = {};`);
 			code.push(`${tab(2)}let customBody = state.body;`);
-			if (stage.type === 'API' && stage.outgoing) {
-				code.push(`${tab(2)}state.url = '${stage.outgoing.url}';`);
-				code.push(`${tab(2)}state.method = '${stage.outgoing.method}';`);
+			if (stage.type === 'API' && stage.options) {
+				code.push(`${tab(2)}state.url = '${stage.options.host}${stage.options.path}';`);
+				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.outgoing.headers)}\`);`);
-				if (stage.outgoing.body && !_.isEmpty(stage.outgoing.body)) {
-					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.outgoing.body)}\`);`);
+				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				if (stage.options.body && !_.isEmpty(stage.options.body)) {
+					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
 			} else if (stage.type === 'DATASERVICE') {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.options._id}');`);
@@ -237,7 +238,50 @@ function generateStages(stage) {
 				});
 			}
 		} else if (stage.type === 'FOREACH' || stage.type === 'REDUCE') {
-			code = _.concat(code, generateStages(stage));
+			loopCode = generateStages(stage);
+			code.push(`${tab(2)}let temp = JSON.parse(JSON.stringify(state.body));`);
+			code.push(`${tab(2)}if (!Array.isArray(temp)) {`);
+			code.push(`${tab(3)}temp = [temp]`);
+			code.push(`${tab(2)}}`);
+			if (stage.type === 'FOREACH') {
+				code.push(`${tab(2)}promises = temp.map(async(data) => {`);
+				code.push(`${tab(2)}let response = { header: state.headers, body: data };`);
+				stage.stages.forEach((st, si) => {
+					code.push(`${tab(2)}state = stateUtils.getState(response, '${st._id}', true);`);
+					code.push(`${tab(2)}response = await ${_.camelCase(st._id)}(req, state, stage);`);
+					code.push(`${tab(2)}if (response.statusCode >= 400) {`);
+					if (st.onError && st.onError.length > 0) {
+						code.push(`${tab(3)}state = stateUtils.getState(response, '${st.onError[0]._id}', true);`);
+						code.push(`${tab(3)}await ${_.camelCase(st.onError[0]._id)}(req, state, stage);`);
+					} else {
+						code.push(`${tab(3)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
+					}
+					code.push(`${tab(2)}}`);
+					if (stage.stages.length - 1 === si) {
+						code.push(`${tab(3)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
+					}
+				});
+				code.push(`${tab(2)}});`);
+				code.push(`${tab(2)}promises = await Promise.all(promises);`);
+				code.push(`${tab(2)}return { statusCode: 200, body: promises.map(e=>e.body), headers: state.headers };`);
+			} else {
+				// code.push(`${tab(2)}promises = await temp.reduce(async(response, data) => {`);
+				// code.push(`${tab(2)}let response = { header: state.headers, body: data };`);
+				// stage.stages.forEach(st => {
+				// 	code.push(`${tab(2)}state = stateUtils.getState(response, '${st._id}');`);
+				// 	code.push(`${tab(2)}response = await ${_.camelCase(st._id)}(req, state, stage);`);
+				// 	code.push(`${tab(2)}if (response.statusCode >= 400) {`);
+				// 	if (st.onError && st.onError.length > 0) {
+				// 		code.push(`${tab(3)}state = stateUtils.getState(response, '${st.onError[0]._id}');`);
+				// 		code.push(`${tab(3)}await ${_.camelCase(st.onError[0]._id)}(req, state, stage);`);
+				// 	} else {
+				// 		code.push(`${tab(3)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
+				// 	}
+				// 	code.push(`${tab(2)}}`);
+				// });
+				// code.push(`${tab(2)}});`);
+				// code.push(`${tab(2)}return { statusCode: 200, body: promises.body, headers: state.headers };`);
+			}
 		} else {
 			code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
 		}
@@ -253,7 +297,7 @@ function generateStages(stage) {
 		code.push(`${tab(1)}}`);
 		code.push('}');
 	});
-	return _.concat(code, exportsCode).join('\n');
+	return _.concat(code, loopCode, exportsCode).join('\n');
 }
 
 function parseHeaders(headers) {
