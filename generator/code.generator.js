@@ -23,7 +23,7 @@ function tab(len) {
 function parseFlow(dataJson) {
 	const inputStage = dataJson.inputStage;
 	const stages = dataJson.stages;
-	let api = inputStage.incoming.path;
+	let api = inputStage.options.path;
 	let code = [];
 	code.push('const router = require(\'express\').Router();');
 	code.push('const log4js = require(\'log4js\');');
@@ -37,9 +37,10 @@ function parseFlow(dataJson) {
 	code.push(`router.post('${api}', async function (req, res) {`);
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
-	code.push(`${tab(1)}let state = {};`);
-	code.push(`${tab(1)}let stageData = {};`);
 	code.push(`${tab(1)}let response = req;`);
+	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputStage._id}');`);
+	code.push(`${tab(1)}let stage = {};`);
+	code.push(`${tab(1)}stage['${inputStage._id}'] = state;`);
 	code.push(`${tab(1)}let isResponseSent = false;`);
 	inputStage.onSuccess.map(ss => {
 		const stageCondition = ss.condition;
@@ -75,11 +76,11 @@ function generateCode(stage, stages) {
 		code.push(`${tab(2)}res.status(response.statusCode).json(response.body)`);
 	} else {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${stage._id}');`);
-		code.push(`${tab(2)}response = await stageUtils.${_.camelCase(stage._id)}(req, state, stageData);`);
+		code.push(`${tab(2)}response = await stageUtils.${_.camelCase(stage._id)}(req, state, stage);`);
 		code.push(`${tab(2)}if (response.statusCode >= 400) {`);
 		if (stage.onError && stage.onError.length > 0) {
 			code.push(`${tab(3)}state = stateUtils.getState(response, '${stage.onError[0]._id}');`);
-			code.push(`${tab(3)}await stageUtils.${_.camelCase(stage.onError[0]._id)}(req, state, stageData);`);
+			code.push(`${tab(3)}await stageUtils.${_.camelCase(stage.onError[0]._id)}(req, state, stage);`);
 		} else {
 			code.push(`${tab(3)}return isResponseSent ? true : res.status(response.statusCode).json(response.body)`);
 		}
@@ -143,33 +144,33 @@ function generateStages(stage) {
 					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.outgoing.body)}\`);`);
 				}
 			} else if (stage.type === 'DATASERVICE') {
-				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.dataServiceOptions._id}');`);
+				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.options._id}');`);
 				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api`);
-				code.push(`${tab(2)}state.method = '${stage.dataServiceOptions.method}';`);
+				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.dataServiceOptions.headers)}\`);`);
-				if (stage.dataServiceOptions.body && !_.isEmpty(stage.dataServiceOptions.body)) {
-					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.dataServiceOptions.body)}\`);`);
+				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				if (stage.options.body && !_.isEmpty(stage.options.body)) {
+					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
 			} else if (stage.type === 'FAAS') {
-				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${stage.faasOptions._id}');`);
+				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${stage.options._id}');`);
 				code.push(`${tab(2)}state.url = '${config.baseUrlBM}/faas/' + faas.app + faas.api`);
-				code.push(`${tab(2)}state.method = '${stage.faasOptions.method}';`);
+				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.faasOptions.headers)}\`);`);
-				if (stage.faasOptions.body && !_.isEmpty(stage.faasOptions.body)) {
-					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.faasOptions.body)}\`);`);
+				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				if (stage.options.body && !_.isEmpty(stage.options.body)) {
+					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
 			} else if (stage.type === 'AUTH-DATASTACK') {
-				code.push(`${tab(2)}const password = '${stage.authOptions.password}'`);
+				code.push(`${tab(2)}const password = '${stage.options.password}'`);
 				code.push(`${tab(2)}state.url = '${config.baseUrlUSR}/login'`);
 				code.push(`${tab(2)}state.method = 'POST';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
 				code.push(`${tab(2)}customHeaders = state.headers;`);
-				code.push(`${tab(2)}customBody = { username: '${stage.authOptions.username}', password: '${stage.authOptions.password}' };`);
+				code.push(`${tab(2)}customBody = { username: '${stage.options.username}', password: '${stage.options.password}' };`);
 			}
 			code.push(`${tab(2)}options.headers = _.merge(state.headers, customHeaders);`);
 			code.push(`${tab(2)}options.json = customBody;`);
