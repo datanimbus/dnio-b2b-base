@@ -5,7 +5,6 @@ const logger = log4js.getLogger(global.loggerName);
 
 function getState(req, stateId, isChild) {
 	const data = {};
-	data = {};
 	data._id = uuid();
 	data.stateId = stateId;
 	data.txnId = isChild ? uuid() : req.headers['data-stack-txn-id'];
@@ -30,7 +29,7 @@ async function upsertState(req, state) {
 		logger.trace(`[${txnId}] [${remoteTxnId}] Ending Upsert Stage: ${JSON.stringify(state._id)}`);
 	} catch (err) {
 		logger.trace(`[${txnId}] [${remoteTxnId}] Ending Upsert Stage With Error: ${JSON.stringify(state._id)}`);
-		logger.error(err);
+		// logger.error(err);
 	}
 }
 

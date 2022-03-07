@@ -187,7 +187,7 @@ function generateStages(stage) {
 			code.push(`${tab(2)}state.status = "SUCCESS";`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with 200\`);`);
 			code.push(`${tab(2)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
-		} else if (stage.type === 'TRANSFORM' && stage.mapping) {
+		} else if ((stage.type === 'TRANSFORM' || stage.type === 'MAPPING') && stage.mapping) {
 			code.push(`${tab(2)}const newBody = {};`);
 			stage.mapping.forEach(mappingData => {
 				const formulaCode = [];
@@ -199,7 +199,7 @@ function generateStages(stage) {
 				});
 				if (mappingData.formula) {
 					formulaCode.push(mappingData.formula);
-				} else {
+				} else if (mappingData.source && mappingData.source.length > 0) {
 					formulaCode.push('return input1;');
 				}
 				formulaCode.push('}');
@@ -245,7 +245,7 @@ function generateStages(stage) {
 			code.push(`${tab(2)}}`);
 			if (stage.type === 'FOREACH') {
 				code.push(`${tab(2)}promises = temp.map(async(data) => {`);
-				code.push(`${tab(2)}let response = { header: state.headers, body: data };`);
+				code.push(`${tab(2)}let response = { headers: state.headers, body: data };`);
 				stage.stages.forEach((st, si) => {
 					code.push(`${tab(2)}state = stateUtils.getState(response, '${st._id}', true);`);
 					code.push(`${tab(2)}response = await ${_.camelCase(st._id)}(req, state, stage);`);
@@ -266,7 +266,7 @@ function generateStages(stage) {
 				code.push(`${tab(2)}return { statusCode: 200, body: promises.map(e=>e.body), headers: state.headers };`);
 			} else {
 				// code.push(`${tab(2)}promises = await temp.reduce(async(response, data) => {`);
-				// code.push(`${tab(2)}let response = { header: state.headers, body: data };`);
+				// code.push(`${tab(2)}let response = { headers: state.headers, body: data };`);
 				// stage.stages.forEach(st => {
 				// 	code.push(`${tab(2)}state = stateUtils.getState(response, '${st._id}');`);
 				// 	code.push(`${tab(2)}response = await ${_.camelCase(st._id)}(req, state, stage);`);
