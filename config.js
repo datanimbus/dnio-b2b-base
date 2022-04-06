@@ -8,7 +8,7 @@ log4js.configure({
 	'appenders': {
 		'out': {
 			'type': 'stdout',
-			'layout': { type: 'basic' }
+			'layout': { type: 'coloured' }
 		}
 	},
 	'categories': {
