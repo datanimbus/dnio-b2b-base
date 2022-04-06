@@ -105,3 +105,4 @@ dist
 stage.utils.js
 route.js
 send.sh
+.env

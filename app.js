@@ -19,6 +19,9 @@ httpClient.request({
 		'Authorization': 'JWT ' + token
 	}
 }).then(async (flowData) => {
+	config.appNamespace = flowData.namespace;
+	config.imageTag = flowData._id + ':' + flowData.version;
+	config.appDB = config.DATA_STACK_NAMESPACE + '-' + flowData.app;
 	try {
 		await codeGen.createProject(flowData);
 		initialize();
