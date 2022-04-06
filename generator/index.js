@@ -3,7 +3,7 @@ const path = require('path');
 const mkdirp = require('mkdirp');
 const log4js = require('log4js');
 
-const codeGen = require('./generators/code.generator');
+const codeGen = require('./code.generator');
 const schemaUtils = require('./schema.utils');
 
 const logger = log4js.getLogger(global.loggerName);
@@ -33,7 +33,7 @@ async function createProject(flowJSON) {
 		fs.writeFileSync(path.join(folderPath, 'flow.json'), JSON.stringify(flowJSON));
 
 		fs.rmdirSync(path.join(folderPath, 'test'), { recursive: true });
-		fs.rmdirSync(path.join(folderPath, 'generators'), { recursive: true });
+		fs.rmdirSync(path.join(folderPath, 'generator'), { recursive: true });
 
 		logger.info('Project Created!');
 	} catch (e) {
