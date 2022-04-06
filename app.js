@@ -18,7 +18,11 @@ httpClient.request({
 		'Content-Type': 'application/json',
 		'Authorization': 'JWT ' + token
 	}
-}).then(async (flowData) => {
+}).then(async (res) => {
+	if (res.statusCode !== 200) {
+		throw res.body;
+	}
+	const flowData = res.body;
 	config.appNamespace = flowData.namespace;
 	config.imageTag = flowData._id + ':' + flowData.version;
 	config.appDB = config.DATA_STACK_NAMESPACE + '-' + flowData.app;
