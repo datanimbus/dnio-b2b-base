@@ -26,7 +26,10 @@ function getProperties(definition) {
 			dataKey = def.properties.dataKey;
 		}
 		const dataTypes = [];
-		if (def.type.toLowerCase() === 'date') {
+		if (def.type.toLowerCase() === 'date'
+			|| def.type.toLowerCase() === 'user'
+			|| def.type.toLowerCase() === 'geojson'
+			|| def.type.toLowerCase() === 'file') {
 			def.type = 'string';
 		}
 		dataTypes.push(def.type.toLowerCase());
