@@ -1,9 +1,14 @@
 if (process.env.NODE_ENV !== 'production') {
 	require('dotenv').config();
 }
+// const fs = require('fs');
+// const path = require('path');
 const log4js = require('log4js');
 const express = require('express');
 const JWT = require('jsonwebtoken');
+const mongoose = require('mongoose');
+
+const { XMLParser } = require('fast-xml-parser');
 
 const config = require('./config');
 const codeGen = require('./generator/index');
@@ -48,12 +53,21 @@ function initialize() {
 
 	const app = express();
 	const logger = log4js.getLogger(global.loggerName);
+	const xmlParser = new XMLParser();
 
 	const middlewares = require('./lib.middlewares');
 
-	app.use(express.json({ inflate: true, limit: '100mb' }));
 	app.use(express.urlencoded({ extended: true }));
+	app.use(express.raw({ type: ['application/xml', 'text/xml'] }));
+	app.use(express.json({ inflate: true, limit: '100mb' }));
 	app.use(middlewares.addHeaders);
+
+	app.use((req, res, next) => {
+		if (req.get('content-type') === 'application/xml' || req.get('content-type') == 'text/xml') {
+			req.body = xmlParser.parse(req.body);
+		}
+		next();
+	});
 
 	app.use('/api/b2b', require('./route'));
 
@@ -74,4 +88,128 @@ function initialize() {
 	});
 
 	server.setTimeout(300000);
+
+	process.on('SIGTERM', () => {
+		try {
+			// Handle Request for 15 sec then stop recieving
+			setTimeout(() => {
+				global.stopServer = true;
+			}, 15000);
+			logger.info('Process Kill Request Recieved');
+			// Stopping CRON Job;
+			global.job.cancel();
+			// global.pullJob.cancel();
+			// clearInterval(global.pullJob)
+			const intVal = setInterval(() => {
+				// Waiting For all pending requests to finish;
+				if (global.activeRequest === 0) {
+					// Closing Express Server;
+					server.close(() => {
+						logger.info('Server Stopped.');
+						// Waiting For all DB Operations to finish;
+						Promise.all(global.dbPromises).then(() => {
+							// Closing MongoDB Connection;
+							if (mongoose.connection) {
+								mongoose.connection.close(false, (err) => {
+									logger.info('MongoDB connection closed.');
+									process.exit(0);
+								});
+							} else {
+								process.exit(0);
+							}
+						}).catch(err => {
+							// Closing MongoDB Connection;
+							if (mongoose.connection) {
+								mongoose.connection.close(false, (err) => {
+									logger.info('MongoDB connection closed.');
+									process.exit(0);
+								});
+							} else {
+								process.exit(0);
+							}
+						});
+					});
+					clearInterval(intVal);
+				} else {
+					logger.info('Waiting for request to complete, Active Requests:', global.activeRequest);
+				}
+			}, 2000);
+		} catch (e) {
+			logger.error(e);
+			throw e;
+		}
+	});
+
+
+	// function cleanUpJob(firetime) {
+	// 	let counter = 0;
+	// 	try {
+	// 		const date = new Date();
+	// 		date.setSeconds(-7200);
+	// 		logger.trace('Clean up Job Triggred at:', firetime);
+	// 		logger.trace('Removing files older then:', date.toISOString());
+	// 		const uploads = fs.readdirSync('./uploads', {
+	// 			withFileTypes: true
+	// 		});
+	// 		const downloads = fs.readdirSync('./downloads', {
+	// 			withFileTypes: true
+	// 		});
+	// 		uploads.forEach(file => {
+	// 			try {
+	// 				const filePath = path.join(__dirname, 'uploads', file.name);
+	// 				if (file.isFile()) {
+	// 					const lastAccessTime = fs.statSync(filePath).atimeMs;
+	// 					if (lastAccessTime < date.getTime()) {
+	// 						logger.debug('Removing old file:', file.name);
+	// 						fs.unlinkSync(filePath);
+	// 						counter++;
+	// 					}
+	// 				}
+	// 				logger.trace('Clean up Job Completed. Removed files:');
+	// 			} catch (e) {
+	// 				logger.warn('Unable to remove old file', file.name);
+	// 				logger.warn(e);
+	// 			}
+	// 		});
+	// 		downloads.forEach(file => {
+	// 			try {
+	// 				const filePath = path.join(__dirname, 'downloads', file.name);
+	// 				if (file.isFile()) {
+	// 					const lastAccessTime = fs.statSync(filePath).atimeMs;
+	// 					if (lastAccessTime < date.getTime()) {
+	// 						logger.debug('Removing old file:', file.name);
+	// 						fs.unlinkSync(filePath);
+	// 						counter++;
+	// 					}
+	// 				}
+	// 				logger.trace('Clean up Job Completed. Removed files:');
+	// 			} catch (e) {
+	// 				logger.warn('Unable to remove old file', file.name);
+	// 				logger.warn(e);
+	// 			}
+	// 		});
+
+	// 		// Cleaing DB Promises
+	// 		const len = global.dbPromises.length;
+	// 		for (let index = len - 1; index >= 0; index--) {
+	// 			const item = global.dbPromises[index];
+	// 			isFinished(item).then(flag => {
+	// 				if (flag) {
+	// 					global.dbPromises.splice(index, 1);
+	// 				}
+	// 			}).catch(() => { });
+	// 		}
+	// 	} catch (e) {
+	// 		logger.warn('Unable to complete cleanup job. Removed files:', counter);
+	// 		logger.warn(e);
+	// 	}
+	// }
+
+	// function delay(msec, value) {
+	// 	return new Promise(done => setTimeout((() => done(value)), msec));
+	// }
+
+	// function isFinished(promise) {
+	// 	return Promise.race([delay(0, false), promise.then(() => true, () => true)]);
+	// }
 }

@@ -29,11 +29,13 @@ function parseFlow(dataJson) {
 	let code = [];
 	code.push('const router = require(\'express\').Router();');
 	code.push('const log4js = require(\'log4js\');');
+	code.push('const { XMLBuilder } = require(\'fast-xml-parser\');');
 	code.push('');
 	code.push('const stateUtils = require(\'./state.utils\');');
 	code.push('const stageUtils = require(\'./stage.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
+	code.push('const xmlBuilder = new XMLBuilder();');
 	code.push('');
 	// TODO: Method to be fixed.
 	code.push(`router.${(inputStage.options.method || 'POST').toLowerCase()}('${api}', async function (req, res) {`);
@@ -102,7 +104,13 @@ function generateCode(stage, stages) {
 		} else {
 			code.push(`${tab(2)}responseBody = response.body;`);
 		}
-		code.push(`${tab(2)}res.status(statusCode).json(responseBody)`);
+		if (stage.options.responseType == 'xml') {
+			code.push(`${tab(2)}const xmlContent = xmlBuilder.build(responseBody);`);
+			code.push(`${tab(2)}res.set('Content-Type','application/xml');`);
+			code.push(`${tab(2)}res.status(statusCode).write(xmlContent).end();`);
+		} else {
+			code.push(`${tab(2)}res.status(statusCode).json(responseBody);`);
+		}
 	} else {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${stage._id}');`);
 		code.push(`${tab(2)}response = await stageUtils.${_.camelCase(stage._id)}(req, state, stage);`);
