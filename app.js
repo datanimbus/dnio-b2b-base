@@ -6,7 +6,6 @@ if (process.env.NODE_ENV !== 'production') {
 const log4js = require('log4js');
 const express = require('express');
 const JWT = require('jsonwebtoken');
-const mongoose = require('mongoose');
 
 const { XMLParser } = require('fast-xml-parser');
 
@@ -108,25 +107,10 @@ function initialize() {
 						logger.info('Server Stopped.');
 						// Waiting For all DB Operations to finish;
 						Promise.all(global.dbPromises).then(() => {
-							// Closing MongoDB Connection;
-							if (mongoose.connection) {
-								mongoose.connection.close(false, (err) => {
-									logger.info('MongoDB connection closed.');
-									process.exit(0);
-								});
-							} else {
-								process.exit(0);
-							}
+							process.exit(0);
 						}).catch(err => {
-							// Closing MongoDB Connection;
-							if (mongoose.connection) {
-								mongoose.connection.close(false, (err) => {
-									logger.info('MongoDB connection closed.');
-									process.exit(0);
-								});
-							} else {
-								process.exit(0);
-							}
+							logger.error(err);
+							process.exit(0);
 						});
 					});
 					clearInterval(intVal);
