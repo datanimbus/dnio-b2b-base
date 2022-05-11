@@ -1,4 +1,7 @@
-FROM node:16-alpine
+FROM node:16.14.0-alpine3.15
+
+RUN apk update
+RUN apk upgrade
 
 WORKDIR /app
 
