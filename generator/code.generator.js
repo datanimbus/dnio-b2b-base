@@ -261,16 +261,16 @@ function generateStages(stage) {
 			code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with not 200\`, response.statusCode);`);
 			code.push(`${tab(3)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
 			code.push(`${tab(2)}}`);
-
-			code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, response.body);`);
-			code.push(`${tab(2)}if (errors) {`);
-			code.push(`${tab(3)}state.status = "ERROR";`);
-			code.push(`${tab(3)}state.statusCode = 400;`);
-			code.push(`${tab(3)}state.body = { message: errors };`);
-			code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with not 200\`);`);
-			code.push(`${tab(3)}return { statusCode: 400, body: { message: errors }, headers: response.headers };`);
-			code.push(`${tab(2)}}`);
-
+			if (stage.dataStructure && stage.dataStructure.outgoing && stage.dataStructure.outgoing._id) {
+				code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, response.body);`);
+				code.push(`${tab(2)}if (errors) {`);
+				code.push(`${tab(3)}state.status = "ERROR";`);
+				code.push(`${tab(3)}state.statusCode = 400;`);
+				code.push(`${tab(3)}state.body = { message: errors };`);
+				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with not 200\`);`);
+				code.push(`${tab(3)}return { statusCode: 400, body: { message: errors }, headers: response.headers };`);
+				code.push(`${tab(2)}}`);
+			}
 			code.push(`${tab(2)}state.status = "SUCCESS";`);
 			code.push(`${tab(3)}state.statusCode = 200;`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with 200\`);`);
@@ -308,15 +308,17 @@ function generateStages(stage) {
 			});
 			code.push(`${tab(2)}}`);
 
-			code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, newBody);`);
-			code.push(`${tab(2)}if (errors) {`);
-			code.push(`${tab(3)}state.status = "ERROR";`);
-			code.push(`${tab(3)}state.statusCode = 400;`);
-			code.push(`${tab(3)}state.body = { message: errors };`);
-			code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(stage._id)} \`, errors);`);
-			code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with not 200\`);`);
-			code.push(`${tab(3)}return { statusCode: 400, body: { message: errors }, headers: response.headers };`);
-			code.push(`${tab(2)}}`);
+			if (stage.dataStructure && stage.dataStructure.outgoing && stage.dataStructure.outgoing._id) {
+				code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, newBody);`);
+				code.push(`${tab(2)}if (errors) {`);
+				code.push(`${tab(3)}state.status = "ERROR";`);
+				code.push(`${tab(3)}state.statusCode = 400;`);
+				code.push(`${tab(3)}state.body = { message: errors };`);
+				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(stage._id)} \`, errors);`);
+				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with not 200\`);`);
+				code.push(`${tab(3)}return { statusCode: 400, body: { message: errors }, headers: response.headers };`);
+				code.push(`${tab(2)}}`);
+			}
 
 			code.push(`${tab(2)}return { statusCode: 200, body: newBody, headers: state.headers };`);
 		} else if (stage.type === 'VALIDATION' && stage.validation) {
