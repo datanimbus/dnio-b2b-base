@@ -13,7 +13,7 @@ const config = require('./config');
 const codeGen = require('./generator/index');
 const httpClient = require('./http-client');
 
-const token = JWT.sign({ name: 'DS_BM', _id: 'admin', isSuperAdmin: true }, config.TOKEN_SECRET);
+const token = JWT.sign({ name: 'DS_BM', _id: 'admin', isSuperAdmin: true }, config.RBAC_JWT_KEY);
 
 httpClient.request({
 	url: config.baseUrlBM + '/' + config.app + '/flow/' + config.flowId,
