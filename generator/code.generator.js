@@ -46,6 +46,8 @@ function parseFlow(dataJson) {
 	code.push(`${tab(1)}let stage = {};`);
 	code.push(`${tab(1)}stage['${inputStage._id}'] = state;`);
 	code.push(`${tab(1)}let isResponseSent = false;`);
+	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input stage Request Body - \`, JSON.stringify(req.body));`);
+	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input stage Request Headers - \`, JSON.stringify(req.headers));`);
 	let tempStages = (inputStage.onSuccess || []);
 	for (let index = 0; index < tempStages.length; index++) {
 		const ss = tempStages[index];
@@ -249,11 +251,12 @@ function generateStages(stage) {
 			code.push(`${tab(2)}delete options.headers['connection'];`);
 			code.push(`${tab(2)}delete options.headers['user-agent'];`);
 			code.push(`${tab(2)}delete options.headers['content-length'];`);
+			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request Data of ${_.camelCase(stage._id)} \`, JSON.stringify(options));`);
 			code.push(`${tab(2)}const response = await httpClient.request(options);`);
-			code.push(`${tab(3)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Reponse Data of ${_.camelCase(stage._id)} \`, response.statusCode, response.headers, response.body);`);
 			code.push(`${tab(2)}state.statusCode = response.statusCode;`);
 			code.push(`${tab(2)}state.body = response.body;`);
 			code.push(`${tab(2)}state.headers = response.headers;`);
+			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Response Data of ${_.camelCase(stage._id)} \`, JSON.stringify(state));`);
 			code.push(`${tab(2)}if (response && response.statusCode != 200) {`);
 			code.push(`${tab(3)}state.status = "ERROR";`);
 			code.push(`${tab(3)}state.statusCode = response && response.statusCode ? response.statusCode : 400;`);
@@ -431,19 +434,24 @@ function generateStages(stage) {
 			code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
 		}
 		code.push(`${tab(1)}} catch (err) {`);
-		code.push(`${tab(2)}state.statusCode = 500;`);
+		code.push(`${tab(2)}if (err.statusCode) {`);
+		code.push(`${tab(3)}state.statusCode = err.statusCode;`);
+		code.push(`${tab(2)}} else {`);
+		code.push(`${tab(3)}state.statusCode = 500;`);
+		code.push(`${tab(2)}}`);
+		code.push(`${tab(2)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with\`,state.statusCode);`);
 		code.push(`${tab(2)}if (err.body) {`);
 		code.push(`${tab(3)}state.body = err.body;`);
-		code.push(`${tab(3)}logger.error(err.body);`);
+		code.push(`${tab(3)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}]\`,err.body);`);
 		code.push(`${tab(2)}} else if (err.message) {`);
 		code.push(`${tab(3)}state.body = { message: err.message };`);
-		code.push(`${tab(3)}logger.error(err.message);`);
+		code.push(`${tab(3)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}]\`,err.message);`);
 		code.push(`${tab(2)}} else {`);
 		code.push(`${tab(3)}state.body = err;`);
-		code.push(`${tab(3)}logger.error(err);`);
+		code.push(`${tab(3)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}]\`,err);`);
 		code.push(`${tab(2)}}`);
 		code.push(`${tab(2)}state.status = "ERROR";`);
-		code.push(`${tab(2)}return { statusCode: 500, body: err, headers: state.headers };`);
+		code.push(`${tab(2)}return { statusCode: state.statusCode, body: err, headers: state.headers };`);
 		code.push(`${tab(1)}} finally {`);
 		code.push(`${tab(2)}stage['${stage._id}'] = state;`);
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
@@ -455,7 +463,7 @@ function generateStages(stage) {
 
 function parseDynamicVariable(value) {
 	if (value) {
-		return value.replaceAll('{{', '${').replaceAll('}}', '}');
+		return value.replace('{{', '${').replace('}}', '}');
 	}
 }
 
