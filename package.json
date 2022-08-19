@@ -9,7 +9,7 @@
     "lodash": "^4.17.21",
     "log4js": "^6.5.2",
     "mkdirp": "^1.0.4",
-    "mongodb": "^3.7.3",
+    "mongodb": "^4.9.0",
     "uuid": "^8.3.2"
   },
   "name": "ds-b2b-base",
