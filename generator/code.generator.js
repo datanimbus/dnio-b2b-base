@@ -284,9 +284,9 @@ function generateStages(stage) {
 			code.push(`${tab(3)}state.statusCode = 200;`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with 200\`);`);
 			code.push(`${tab(2)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
-		} else if ((stage.type === 'TRANSFORM' || stage.type === 'MAPPING') && stage.mapping) {
+		} else if ((stage.type === 'TRANSFORM' || stage.type === 'MAPPING') && stage.mappings) {
 			code.push(`${tab(2)}let newBody = {};`);
-			stage.mapping.forEach(mappingData => {
+			stage.mappings.forEach(mappingData => {
 				const formulaCode = [];
 				const formulaID = 'formula_' + _.camelCase(uuid());
 				mappingData.formulaID = formulaID;
@@ -306,13 +306,13 @@ function generateStages(stage) {
 			code.push(`${tab(2)}newBody = [];`);
 			code.push(`${tab(3)}state.body.forEach(item => {`);
 			code.push(`${tab(2)}let tempBody = {};`);
-			stage.mapping.forEach(mappingData => {
+			stage.mappings.forEach(mappingData => {
 				code.push(`${tab(4)}_.set(tempBody, '${mappingData.target.dataPath}', ${mappingData.formulaID}(item));`);
 			});
 			code.push(`${tab(2)}newBody.push(tempBody);`);
 			code.push(`${tab(3)}});`);
 			code.push(`${tab(2)}} else {`);
-			stage.mapping.forEach(mappingData => {
+			stage.mappings.forEach(mappingData => {
 				code.push(`${tab(3)}_.set(newBody, '${mappingData.target.dataPath}', ${mappingData.formulaID}(state.body));`);
 			});
 			code.push(`${tab(2)}}`);
