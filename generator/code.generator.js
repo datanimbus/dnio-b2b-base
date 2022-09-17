@@ -204,11 +204,11 @@ function generateStages(stage) {
 					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
 			} else if (stage.type === 'DATASERVICE') {
-				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.options._id}');`);
-				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api+'?upsert=true'`);
-				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
+				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.options.dataService._id}');`);
+				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/' + (state.body && state.body._id ? state.body._id : '') + '?upsert=true'`);
+				code.push(`${tab(2)}state.method = state.body && state.body._id ? 'PUT' : 'POST';`);
 				code.push(`${tab(2)}options.url = state.url;`);
-				code.push(`${tab(2)}options.method = 'POST';`);
+				code.push(`${tab(2)}options.method = state.method;`);
 				if (stage.options.headers && !_.isEmpty(stage.options.headers)) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
 				}
@@ -216,7 +216,7 @@ function generateStages(stage) {
 					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
 			} else if (stage.type === 'FAAS') {
-				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${stage.options._id}');`);
+				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${stage.options.faas._id}');`);
 				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/\${faas.app}/faas/\${faas.api}\`;`);
 				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
