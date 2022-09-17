@@ -203,7 +203,7 @@ function generateStages(stage) {
 				if (stage.options.body && !_.isEmpty(stage.options.body)) {
 					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
-			} else if (stage.type === 'DATASERVICE') {
+			} else if (stage.type === 'DATASERVICE' && stage.options.dataService && stage.options.dataService._id) {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.options.dataService._id}');`);
 				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/' + (state.body && state.body._id ? state.body._id : '') + '?upsert=true'`);
 				code.push(`${tab(2)}state.method = state.body && state.body._id ? 'PUT' : 'POST';`);
