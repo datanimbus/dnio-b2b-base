@@ -190,7 +190,7 @@ function generateStages(stage) {
 		let functionName = 'validate_structure_' + _.camelCase(stage._id);
 		if (stage.type === 'API' || stage.type === 'DATASERVICE' || stage.type === 'FAAS' || stage.type === 'FLOW' || stage.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
-			code.push(`${tab(2)}let customHeaders = {};`);
+			code.push(`${tab(2)}let customHeaders = {'Content-Type':'application/json', 'Authorization':'JWT ' + req.header('authorization')};`);
 			code.push(`${tab(2)}let customBody = state.body;`);
 			if (stage.type === 'API' && stage.options) {
 				code.push(`${tab(2)}state.url = \`${parseDynamicVariable(stage.options.host)}${parseDynamicVariable(stage.options.path)}\`;`);
@@ -203,23 +203,27 @@ function generateStages(stage) {
 				if (stage.options.body && !_.isEmpty(stage.options.body)) {
 					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
-			} else if (stage.type === 'DATASERVICE') {
-				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.options._id}');`);
-				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api`);
-				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
+			} else if (stage.type === 'DATASERVICE' && stage.options.dataService && stage.options.dataService._id) {
+				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.options.dataService._id}');`);
+				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/' + (state.body && state.body._id ? state.body._id : '') + '?upsert=true'`);
+				code.push(`${tab(2)}state.method = state.body && state.body._id ? 'PUT' : 'POST';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				if (stage.options.headers && !_.isEmpty(stage.options.headers)) {
+					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				}
 				if (stage.options.body && !_.isEmpty(stage.options.body)) {
 					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
 			} else if (stage.type === 'FAAS') {
-				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${stage.options._id}');`);
+				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${stage.options.faas._id}');`);
 				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/\${faas.app}/faas/\${faas.api}\`;`);
 				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				if (stage.options.headers && !_.isEmpty(stage.options.headers)) {
+					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				}
 				if (stage.options.body && !_.isEmpty(stage.options.body)) {
 					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
@@ -229,7 +233,9 @@ function generateStages(stage) {
 				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				if (stage.options.headers && !_.isEmpty(stage.options.headers)) {
+					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				}
 				if (stage.options.body && !_.isEmpty(stage.options.body)) {
 					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
@@ -278,9 +284,9 @@ function generateStages(stage) {
 			code.push(`${tab(3)}state.statusCode = 200;`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with 200\`);`);
 			code.push(`${tab(2)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
-		} else if ((stage.type === 'TRANSFORM' || stage.type === 'MAPPING') && stage.mapping) {
+		} else if ((stage.type === 'TRANSFORM' || stage.type === 'MAPPING') && stage.mappings) {
 			code.push(`${tab(2)}let newBody = {};`);
-			stage.mapping.forEach(mappingData => {
+			stage.mappings.forEach(mappingData => {
 				const formulaCode = [];
 				const formulaID = 'formula_' + _.camelCase(uuid());
 				mappingData.formulaID = formulaID;
@@ -300,13 +306,13 @@ function generateStages(stage) {
 			code.push(`${tab(2)}newBody = [];`);
 			code.push(`${tab(3)}state.body.forEach(item => {`);
 			code.push(`${tab(2)}let tempBody = {};`);
-			stage.mapping.forEach(mappingData => {
+			stage.mappings.forEach(mappingData => {
 				code.push(`${tab(4)}_.set(tempBody, '${mappingData.target.dataPath}', ${mappingData.formulaID}(item));`);
 			});
 			code.push(`${tab(2)}newBody.push(tempBody);`);
 			code.push(`${tab(3)}});`);
 			code.push(`${tab(2)}} else {`);
-			stage.mapping.forEach(mappingData => {
+			stage.mappings.forEach(mappingData => {
 				code.push(`${tab(3)}_.set(newBody, '${mappingData.target.dataPath}', ${mappingData.formulaID}(state.body));`);
 			});
 			code.push(`${tab(2)}}`);
