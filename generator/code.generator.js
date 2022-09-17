@@ -190,7 +190,7 @@ function generateStages(stage) {
 		let functionName = 'validate_structure_' + _.camelCase(stage._id);
 		if (stage.type === 'API' || stage.type === 'DATASERVICE' || stage.type === 'FAAS' || stage.type === 'FLOW' || stage.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
-			code.push(`${tab(2)}let customHeaders = {};`);
+			code.push(`${tab(2)}let customHeaders = {'Content-Type':'application/json', 'Authorization':'JWT ' + req.header('authorization')};`);
 			code.push(`${tab(2)}let customBody = state.body;`);
 			if (stage.type === 'API' && stage.options) {
 				code.push(`${tab(2)}state.url = \`${parseDynamicVariable(stage.options.host)}${parseDynamicVariable(stage.options.path)}\`;`);
@@ -205,11 +205,13 @@ function generateStages(stage) {
 				}
 			} else if (stage.type === 'DATASERVICE') {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.options._id}');`);
-				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api`);
+				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api+'?upsert=true'`);
 				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
-				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				code.push(`${tab(2)}options.method = 'POST';`);
+				if (stage.options.headers && !_.isEmpty(stage.options.headers)) {
+					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				}
 				if (stage.options.body && !_.isEmpty(stage.options.body)) {
 					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
@@ -219,7 +221,9 @@ function generateStages(stage) {
 				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				if (stage.options.headers && !_.isEmpty(stage.options.headers)) {
+					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				}
 				if (stage.options.body && !_.isEmpty(stage.options.body)) {
 					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
@@ -229,7 +233,9 @@ function generateStages(stage) {
 				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				if (stage.options.headers && !_.isEmpty(stage.options.headers)) {
+					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				}
 				if (stage.options.body && !_.isEmpty(stage.options.body)) {
 					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
 				}
