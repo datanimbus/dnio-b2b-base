@@ -29,18 +29,17 @@ function parseFlow(dataJson) {
 	let code = [];
 	code.push('const router = require(\'express\').Router();');
 	code.push('const log4js = require(\'log4js\');');
-	code.push('const { XMLBuilder } = require(\'fast-xml-parser\');');
+	code.push('const { XMLBuilder, J2XParser, parse } = require(\'fast-xml-parser\');');
+	code.push('const fs = require(\'fs\');');
+	code.push('const path = require(\'path\');');
+	code.push('const fastcsv = require(\'fast-csv\');');
+	code.push('const XLSX = require(\'xlsx\');');
 	code.push('');
 	code.push('const stateUtils = require(\'./state.utils\');');
 	code.push('const stageUtils = require(\'./stage.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('const xmlBuilder = new XMLBuilder();');
-	code.push('const fs = require(\'fs\');');
-	code.push('const path = require(\'path\');');
-	code.push('const fastcsv = require(\'fast-csv\');');
-	code.push('const { parse } = require(\'fast-xml-parser\');');
-	code.push('const J2XParser = require(\'fast-xml-parser\').j2xParser;');
 	code.push('');
 	// TODO: Method to be fixed.
 	code.push(`router.${(inputStage.options.method || 'POST').toLowerCase()}('${api}', async function (req, res) {`);
@@ -53,40 +52,31 @@ function parseFlow(dataJson) {
 	code.push(`${tab(1)}let isResponseSent = false;`);
 	if (inputStage.type === 'FILE') {
 		code.push(`${tab(1)}if (!req.files || Object.keys(req.files).length === 0) {`);
-		code.push(`${tab(2)}res.status(400).send('No files were uploaded');`);
+		code.push(`${tab(2)}return res.status(400).send('No files were uploaded');`);
 		code.push(`${tab(1)}}`);
 		code.push(`${tab(1)}const reqFile = req.files.file;`);
 		code.push(`${tab(1)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request file info - \`, reqFile);`);
+		const dataFormat = dataJson.dataStructures[inputStage.dataStructure.outgoing._id];
+		if (!dataFormat.formatType) {
+			dataFormat.formatType = 'JSON';
+		}
+		if (dataFormat.formatType == 'EXCEL') {
+			code.push(`${tab(1)}const workBook = XLSX.readFile(reqFile.tempFilePath);`);
+			code.push(`${tab(1)}XLSX.writeFile(workBook, reqFile.tempFilePath, { bookType: "csv" });`);
+		}
 
-		if (inputStage.options.contentType === 'CSV') {
+		if (dataFormat.formatType === 'CSV' || dataFormat.formatType == 'EXCEL') {
 			code.push(`${tab(1)}logger.debug('Parsing request file to ${inputStage.options.contentType}');`);
-			let dataformatID = '';
-			if (inputStage.dataStructure && inputStage.dataStructure.outgoing && inputStage.dataStructure.outgoing._id) {
-				dataformatID = inputStage.dataStructure.outgoing._id;
-			}
-			let delimiter = '';
 			let rowDelimiter = '';
-			let strictValidation = '';
-			if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
-				Object.values(dataJson.dataStructures).forEach(schema => {
-					if (schema._id === dataformatID) {
-						rowDelimiter = schema.lineSeparator;
-						delimiter = schema.character;
-						strictValidation = schema.strictValidation;
-					}
-				});
-			}
-
-			if (rowDelimiter === '\\\\n') {
+			if (dataFormat.lineSeparator === '\\\\n') {
 				rowDelimiter = '\\n';
-			} else if (rowDelimiter === '\\\\r\\\\n') {
+			} else if (dataFormat.lineSeparator === '\\\\r\\\\n') {
 				rowDelimiter = '\\r\\n';
-			} else if (rowDelimiter === '\\\\r') {
+			} else if (dataFormat.lineSeparator === '\\\\r') {
 				rowDelimiter = '\\r';
 			} else {
 				rowDelimiter = '\\n';
 			}
-
 			code.push(`${tab(1)}const pr = await new Promise((resolve, reject) => {`);
 			code.push(`${tab(2)}let reqData = [];`);
 			code.push(`${tab(2)}const fileStream = fs.createReadStream(reqFile.tempFilePath);`);
@@ -94,10 +84,10 @@ function parseFlow(dataJson) {
 			code.push(`${tab(3)}headers: true,`);
 			code.push(`${tab(3)}skipLines: 0,`);
 			code.push(`${tab(3)}rowDelimiter: '${rowDelimiter}',`);
-			code.push(`${tab(3)}delimiter: '${delimiter}',`);
-			code.push(`${tab(3)}${strictValidation ? `strictColumnHandling: true` : `discardUnmappedColumns: true`}`);
+			code.push(`${tab(3)}delimiter: '${dataFormat.character}',`);
+			code.push(`${tab(3)}${dataFormat.strictValidation ? `strictColumnHandling: true` : `discardUnmappedColumns: true`}`);
 			code.push(`${tab(2)}}).transform(row => {`);
-			code.push(`${tab(3)}let schema = require(path.join(process.cwd(), 'schemas', '${dataformatID}.schema.json'));`);
+			code.push(`${tab(3)}let schema = require(path.join(process.cwd(), 'schemas', '${dataFormat._id}.schema.json'));`);
 			code.push(`${tab(3)}for (property in schema.properties) {`);
 			code.push(`${tab(4)}if (schema.properties[property].type.includes('number') || schema.properties[property].type.includes('integer')) {`);
 			code.push(`${tab(5)}row[property] = Number(row[property]);`);
@@ -116,17 +106,17 @@ function parseFlow(dataJson) {
 			code.push(`${tab(3)}resolve();`);
 			code.push(`${tab(2)}});`);
 			code.push(`${tab(1)}});`);
-		} else if (inputStage.options.contentType === 'XML') {
+		} else if (dataFormat.formatType === 'XML') {
 			// code.push(`${tab(2)}}`);
 			// code.push(`${tab(2)}}`);
 			// code.push(`${tab(2)}}`);
-		} else if (inputStage.options.contentType === 'BINARY') {
+		} else if (dataFormat.formatType === 'BINARY') {
 			// code.push(`${tab(2)}fs.copyFileSync(reqFile.tempFilePath, path.join(process.cwd(), 'downloads', req['local']['output-file-name']));`);
 			// code.push(`${tab(2)}}`);
 			// code.push(`${tab(2)}}`);
 		}
 	}
-	
+
 	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input stage Request Body - \`, JSON.stringify(req.body));`);
 	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input stage Request Headers - \`, JSON.stringify(req.headers));`);
 	let tempStages = (inputStage.onSuccess || []);
