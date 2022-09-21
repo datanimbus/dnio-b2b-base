@@ -12,6 +12,7 @@ const { XMLParser } = require('fast-xml-parser');
 const config = require('./config');
 const codeGen = require('./generator/index');
 const httpClient = require('./http-client');
+const fileUpload = require('express-fileupload');
 
 const token = JWT.sign({ name: 'DS_BM', _id: 'admin', isSuperAdmin: true }, config.RBAC_JWT_KEY);
 
@@ -57,8 +58,12 @@ function initialize() {
 	const middlewares = require('./lib.middlewares');
 
 	app.use(express.urlencoded({ extended: true }));
-	app.use(express.raw({ type: ['application/xml', 'text/xml'] }));
+	app.use(express.raw({ type: ['application/xml', 'text/xml', 'application/octet-stream'] }));
 	app.use(express.json({ inflate: true, limit: '100mb' }));
+	app.use(fileUpload({
+		useTempFiles: true,
+		tempFileDir: './uploads'
+	}));
 	app.use(middlewares.addHeaders);
 
 	app.use((req, res, next) => {
