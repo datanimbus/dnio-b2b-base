@@ -1,0 +1,237 @@
+{
+    "_id": "FLOW0330",
+    "app": "Sushmitha",
+    "name": "TestFDS",
+    "version": 5,
+    "status": "Active",
+    "inputStage": {
+        "_id": "SGHWIK",
+        "type": "FILE",
+        "options": {
+            "_id": "STAGE1000",
+            "method": "POST",
+            "path": "/testFds",
+            "agentId": "fb07af89-8f21-4203-9850-47a46a878f08",
+            "contentType": "CSV"
+        },
+        "dataStructure": {
+            "outgoing": {
+                "_id": "DF0032",
+                "name": "samplecsv"
+            }
+        },
+        "onSuccess": [
+            {
+                "_id": "SCGFFM"
+            }
+        ]
+    },
+    "stages": [
+        {
+            "_id": "SJBZBM",
+            "type": "DATASERVICE",
+            "onSuccess": [],
+            "onError": [],
+            "options": {
+                "method": "POST",
+                "dataService": {
+                    "_id": "SRVC13520",
+                    "name": "Sample"
+                }
+            },
+            "dataStructure": {
+                "outgoing": {}
+            }
+        },
+        {
+            "_id": "SCGFFM",
+            "type": "MAPPING",
+            "onSuccess": [
+                {
+                    "_id": "SJBZBM"
+                }
+            ],
+            "onError": [],
+            "options": {
+                "method": "POST"
+            },
+            "dataStructure": {
+                "outgoing": {
+                    "_id": "SRVC13520",
+                    "name": "Sample"
+                }
+            },
+            "mappings": [
+                {
+                    "target": {
+                        "type": "String",
+                        "dataPath": "_id"
+                    },
+                    "source": [
+                        {
+                            "dataPath": "Id",
+                            "type": "String"
+                        }
+                    ]
+                },
+                {
+                    "target": {
+                        "type": "String",
+                        "dataPath": "xname"
+                    },
+                    "source": [
+                        {
+                            "dataPath": "name",
+                            "type": "String"
+                        }
+                    ]
+                },
+                {
+                    "target": {
+                        "type": "Number",
+                        "dataPath": "xage"
+                    },
+                    "source": [
+                        {
+                            "dataPath": "age",
+                            "type": "Number"
+                        }
+                    ]
+                },
+                {
+                    "target": {
+                        "type": "String",
+                        "dataPath": "xaddress"
+                    },
+                    "source": []
+                }
+            ]
+        }
+    ],
+    "description": null,
+    "isBinary": false,
+    "deploymentName": "b2b-testfds",
+    "namespace": "appveen-sushmitha",
+    "dataStructures": {
+        "DF0032": {
+            "_id": "DF0032",
+            "name": "samplecsv",
+            "attributeCount": 3,
+            "character": ",",
+            "definition": [
+                {
+                    "_fieldId": "ade81640-3652-11ed-a890-01ebffacc3c8",
+                    "type": "String",
+                    "key": "id",
+                    "properties": {
+                        "name": "ID",
+                        "fieldLength": 10,
+                        "_typeChanged": "String",
+                        "dataKey": "ID",
+                        "dataPath": "ID"
+                    }
+                },
+                {
+                    "_fieldId": "c198fb00-3652-11ed-a890-01ebffacc3c8",
+                    "type": "String",
+                    "key": "name",
+                    "properties": {
+                        "name": "Name",
+                        "fieldLength": 10,
+                        "_typeChanged": "String",
+                        "dataKey": "Name",
+                        "dataPath": "Name"
+                    }
+                },
+                {
+                    "_fieldId": "c5028bd0-3652-11ed-a890-01ebffacc3c8",
+                    "type": "Number",
+                    "key": "age",
+                    "properties": {
+                        "name": "Age",
+                        "fieldLength": 10,
+                        "_typeChanged": "Number",
+                        "precision": 2,
+                        "dataKey": "Age",
+                        "dataPath": "Age"
+                    }
+                }
+            ],
+            "type": "Object",
+            "excelType": "xls",
+            "formatType": "CSV",
+            "lineSeparator": "\\\\n",
+            "strictValidation": false,
+            "_selected": true
+        },
+        "SRVC13520": {
+            "_id": "SRVC13520",
+            "attributeCount": 4,
+            "name": "Sample",
+            "definition": [
+                {
+                    "key": "_id",
+                    "type": "String",
+                    "prefix": "SAM",
+                    "suffix": null,
+                    "padding": null,
+                    "counter": 1001,
+                    "properties": {
+                        "label": null,
+                        "readonly": false,
+                        "errorMessage": null,
+                        "name": "ID",
+                        "required": false,
+                        "fieldLength": 10,
+                        "_description": null,
+                        "_typeChanged": "id",
+                        "_isParrentArray": null,
+                        "_isGrpParentArray": null,
+                        "dataPath": "_id",
+                        "_detailedType": "",
+                        "dataKey": "_id"
+                    },
+                    "_id": "63260ee821817d6656cdb500"
+                },
+                {
+                    "key": "xname",
+                    "type": "String",
+                    "properties": {
+                        "name": "Xname",
+                        "fieldLength": 10,
+                        "_typeChanged": "String",
+                        "dataKey": "xname",
+                        "dataPath": "xname"
+                    },
+                    "_id": "63260ee821817d6656cdb501"
+                },
+                {
+                    "key": "xage",
+                    "type": "Number",
+                    "properties": {
+                        "name": "Xage",
+                        "fieldLength": 10,
+                        "_typeChanged": "Number",
+                        "precision": 2,
+                        "dataKey": "xage",
+                        "dataPath": "xage"
+                    },
+                    "_id": "63260ee821817d6656cdb502"
+                },
+                {
+                    "key": "xaddress",
+                    "type": "String",
+                    "properties": {
+                        "name": "Xaddress",
+                        "fieldLength": 10,
+                        "_typeChanged": "String",
+                        "dataKey": "xaddress",
+                        "dataPath": "xaddress"
+                    },
+                    "_id": "63260ee821817d6656cdb503"
+                }
+            ],
+            "_selected": true
+        }
+    }
+}
