@@ -1,4 +1,6 @@
 const log4js = require('log4js');
+const moment = require('moment');
+const { v4: uuid } = require('uuid');
 
 const config = require('./config');
 const httpClient = require('./http-client');
@@ -64,8 +66,36 @@ async function getFaaS(faasId) {
 }
 
 
+function convertToBoolean(value) {
+	if (typeof value === 'string' && ['true', 't', 'TRUE', 'yes'].indexOf(value) > -1) {
+		return true;
+	}
+	if (typeof value === 'boolean') {
+		return value;
+	}
+	if (typeof value === 'number') {
+		return value != 0;
+	}
+	return false;
+}
+
+
+function convertToDate(value, format) {
+	if (typeof value === 'string') {
+		try {
+			return moment(value, format, false).toISOString();
+		} catch (err) {
+			logger.error('unable to parse Date with format:', format);
+			logger.error(err);
+			return value;
+		}
+	}
+	return value;
+}
 
 
 module.exports.getDataService = getDataService;
 module.exports.getFlow = getFlow;
 module.exports.getFaaS = getFaaS;
+module.exports.convertToBoolean = convertToBoolean;
+module.exports.convertToDate = convertToDate;

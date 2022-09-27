@@ -5,7 +5,7 @@ const config = require('../config');
 
 // const logger = log4js.getLogger(global.loggerName);
 
-let visitedStages = [];
+let visitedNodes = [];
 let visitedValidation = [];
 
 function tab(len) {
@@ -22,10 +22,10 @@ function tab(len) {
  * @param {any} dataJson 
  */
 function parseFlow(dataJson) {
-	visitedStages = [];
-	const inputStage = dataJson.inputStage;
-	const stages = dataJson.stages;
-	let api = '/' + dataJson.app + inputStage.options.path;
+	visitedNodes = [];
+	const inputNode = dataJson.inputNode;
+	const nodes = dataJson.nodes;
+	let api = '/' + dataJson.app + inputNode.options.path;
 	let code = [];
 	code.push('const router = require(\'express\').Router();');
 	code.push('const log4js = require(\'log4js\');');
@@ -36,27 +36,32 @@ function parseFlow(dataJson) {
 	code.push('const XLSX = require(\'xlsx\');');
 	code.push('');
 	code.push('const stateUtils = require(\'./state.utils\');');
-	code.push('const stageUtils = require(\'./stage.utils\');');
+	code.push('const nodeUtils = require(\'./node.utils\');');
+	code.push('const fileUtils = require(\'./file.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('const xmlBuilder = new XMLBuilder();');
 	code.push('');
 	// TODO: Method to be fixed.
-	code.push(`router.${(inputStage.options.method || 'POST').toLowerCase()}('${api}', async function (req, res) {`);
+	code.push(`router.${(inputNode.options.method || 'POST').toLowerCase()}('${api}', async function (req, res) {`);
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
 	code.push(`${tab(1)}let response = req;`);
-	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputStage._id}');`);
-	code.push(`${tab(1)}let stage = {};`);
-	code.push(`${tab(1)}stage['${inputStage._id}'] = state;`);
+	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}');`);
+	code.push(`${tab(1)}let node = {};`);
+	code.push(`${tab(1)}node['${inputNode._id}'] = state;`);
 	code.push(`${tab(1)}let isResponseSent = false;`);
-	if (inputStage.type === 'FILE') {
+	if (inputNode.type === 'FILE') {
+		code.push(`${tab(2)}res.status(200).json({ message: 'File is being processed'});`);
 		code.push(`${tab(1)}if (!req.files || Object.keys(req.files).length === 0) {`);
-		code.push(`${tab(2)}return res.status(400).send('No files were uploaded');`);
+		code.push(`${tab(2)}state.status = "ERROR";`);
+		code.push(`${tab(2)}state.statusCode = 400;`);
+		code.push(`${tab(2)}state.body = { message: 'No files were uploaded' };`);
+		code.push(`${tab(2)}return;`);
 		code.push(`${tab(1)}}`);
 		code.push(`${tab(1)}const reqFile = req.files.file;`);
 		code.push(`${tab(1)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request file info - \`, reqFile);`);
-		const dataFormat = dataJson.dataStructures[inputStage.dataStructure.outgoing._id];
+		const dataFormat = dataJson.dataStructures[inputNode.dataStructure.outgoing._id];
 		if (!dataFormat.formatType) {
 			dataFormat.formatType = 'JSON';
 		}
@@ -66,7 +71,7 @@ function parseFlow(dataJson) {
 		}
 
 		if (dataFormat.formatType === 'CSV' || dataFormat.formatType == 'EXCEL') {
-			code.push(`${tab(1)}logger.debug('Parsing request file to ${inputStage.options.contentType}');`);
+			code.push(`${tab(1)}logger.debug('Parsing request file to ${inputNode.options.contentType}');`);
 			let rowDelimiter = '';
 			if (dataFormat.lineSeparator === '\\\\n') {
 				rowDelimiter = '\\n';
@@ -88,10 +93,6 @@ function parseFlow(dataJson) {
 			code.push(`${tab(3)}${dataFormat.strictValidation ? `strictColumnHandling: true` : `discardUnmappedColumns: true`}`);
 			code.push(`${tab(2)}}).transform(row => {`);
 			code.push(`${tab(3)}let schema = require(path.join(process.cwd(), 'schemas', '${dataFormat._id}.schema.json'));`);
-			code.push(`${tab(3)}for (property in schema.properties) {`);
-			code.push(`${tab(4)}if (schema.properties[property].type.includes('number') || schema.properties[property].type.includes('integer')) {`);
-			code.push(`${tab(5)}row[property] = Number(row[property]);`);
-			code.push(`${tab(4)}}`);
 			code.push(`${tab(3)}}`);
 			code.push(`${tab(3)}return row;`);
 			code.push(`${tab(2)}}).on('error', err => {`);
@@ -117,36 +118,36 @@ function parseFlow(dataJson) {
 		}
 	}
 
-	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input stage Request Body - \`, JSON.stringify(req.body));`);
-	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input stage Request Headers - \`, JSON.stringify(req.headers));`);
-	let tempStages = (inputStage.onSuccess || []);
-	for (let index = 0; index < tempStages.length; index++) {
-		const ss = tempStages[index];
-		const stage = stages.find(e => e._id === ss._id);
+	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(req.body));`);
+	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(req.headers));`);
+	let tempNodes = (inputNode.onSuccess || []);
+	for (let index = 0; index < tempNodes.length; index++) {
+		const ss = tempNodes[index];
+		const node = nodes.find(e => e._id === ss._id);
 		if (ss.condition) {
-			stage.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '');
+			node.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '');
 		}
-		if (visitedStages.indexOf(stage._id) > -1) {
+		if (visitedNodes.indexOf(node._id) > -1) {
 			return;
 		}
-		visitedStages.push(stage._id);
-		if (stage.condition) code.push(`${tab(1)}if (${stage.condition}) {`);
-		code = code.concat(generateCode(stage, stages));
-		if (stage.condition) code.push(`${tab(1)}}`);
+		visitedNodes.push(node._id);
+		if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
+		code = code.concat(generateCode(node, nodes));
+		if (node.condition) code.push(`${tab(1)}}`);
 	}
-	// (inputStage.onSuccess || []).map(ss => {
-	// 	const stageCondition = ss.condition;
-	// 	const temp = stages.find(e => e._id === ss._id);
-	// 	temp.condition = stageCondition;
+	// (inputNode.onSuccess || []).map(ss => {
+	// 	const nodeCondition = ss.condition;
+	// 	const temp = nodes.find(e => e._id === ss._id);
+	// 	temp.condition = nodeCondition;
 	// 	return temp;
-	// }).forEach((stage, i) => {
-	// 	if (visitedStages.indexOf(stage._id) > -1) {
+	// }).forEach((node, i) => {
+	// 	if (visitedNodes.indexOf(node._id) > -1) {
 	// 		return;
 	// 	}
-	// 	visitedStages.push(stage._id);
-	// 	if (stage.condition) code.push(`${tab(1)}if (${stage.condition}) {`);
-	// 	code = code.concat(generateCode(stage, stages));
-	// 	if (stage.condition) code.push(`${tab(1)}}`);
+	// 	visitedNodes.push(node._id);
+	// 	if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
+	// 	code = code.concat(generateCode(node, nodes));
+	// 	if (node.condition) code.push(`${tab(1)}}`);
 	// });
 	code.push(`${tab(1)}return isResponseSent ? true : res.status((response.statusCode || 200)).json(response.body)`);
 	code.push('});');
@@ -158,26 +159,26 @@ function parseFlow(dataJson) {
  * 
  * @param {any} dataJson 
  */
-function generateCode(stage, stages) {
+function generateCode(node, nodes) {
 	let code = [];
-	code.push(`${tab(1)}// ═══════════════════ ${stage._id} / ${stage.name} / ${stage.type} ══════════════════════`);
-	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking stage :: ${stage._id} / ${stage.name} / ${stage.type}\`)`);
+	code.push(`${tab(1)}// ═══════════════════ ${node._id} / ${node.name} / ${node.type} ══════════════════════`);
+	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking node :: ${node._id} / ${node.name} / ${node.type}\`)`);
 	code.push(`${tab(1)}try {`);
-	if (stage.type === 'RESPONSE') {
+	if (node.type === 'RESPONSE') {
 		code.push(`${tab(2)}isResponseSent = true;`);
 		code.push(`${tab(2)}let statusCode;`);
 		code.push(`${tab(2)}let responseBody;`);
-		if (stage.options && stage.options.statusCode) {
-			code.push(`${tab(2)}statusCode = ${stage.options.statusCode};`);
+		if (node.options && node.options.statusCode) {
+			code.push(`${tab(2)}statusCode = ${node.options.statusCode};`);
 		} else {
 			code.push(`${tab(2)}statusCode = response.statusCode;`);
 		}
-		if (stage.options && stage.options.body) {
-			code.push(`${tab(2)}responseBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
+		if (node.options && node.options.body) {
+			code.push(`${tab(2)}responseBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 		} else {
 			code.push(`${tab(2)}responseBody = response.body;`);
 		}
-		if (stage.options.responseType == 'xml') {
+		if (node.options.responseType == 'xml') {
 			code.push(`${tab(2)}const xmlContent = xmlBuilder.build(responseBody);`);
 			code.push(`${tab(2)}res.set('Content-Type','application/xml');`);
 			code.push(`${tab(2)}res.status(statusCode).write(xmlContent).end();`);
@@ -185,12 +186,12 @@ function generateCode(stage, stages) {
 			code.push(`${tab(2)}res.status(statusCode).json(responseBody);`);
 		}
 	} else {
-		code.push(`${tab(2)}state = stateUtils.getState(response, '${stage._id}');`);
-		code.push(`${tab(2)}response = await stageUtils.${_.camelCase(stage._id)}(req, state, stage);`);
+		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}');`);
+		code.push(`${tab(2)}response = await nodeUtils.${_.camelCase(node._id)}(req, state, node);`);
 		code.push(`${tab(2)}if (response.statusCode >= 400) {`);
-		if (stage.onError && stage.onError.length > 0) {
-			code.push(`${tab(3)}state = stateUtils.getState(response, '${stage.onError[0]._id}');`);
-			code.push(`${tab(3)}await stageUtils.${_.camelCase(stage.onError[0]._id)}(req, state, stage);`);
+		if (node.onError && node.onError.length > 0) {
+			code.push(`${tab(3)}state = stateUtils.getState(response, '${node.onError[0]._id}');`);
+			code.push(`${tab(3)}await nodeUtils.${_.camelCase(node.onError[0]._id)}(req, state, node);`);
 		} else {
 			code.push(`${tab(3)}return isResponseSent ? true : res.status((response.statusCode || 200)).json(response.body)`);
 		}
@@ -200,40 +201,40 @@ function generateCode(stage, stages) {
 	code.push(`${tab(2)}logger.error(err);`);
 	code.push(`${tab(2)}return isResponseSent ? true : res.status(500).json({ message: err.message });`);
 	code.push(`${tab(1)}}`);
-	let tempStages = (stage.onSuccess || []);
-	for (let index = 0; index < tempStages.length; index++) {
-		const ss = tempStages[index];
-		const nextStage = stages.find(e => e._id === ss._id);
+	let tempNodes = (node.onSuccess || []);
+	for (let index = 0; index < tempNodes.length; index++) {
+		const ss = tempNodes[index];
+		const nextNode = nodes.find(e => e._id === ss._id);
 		if (ss.condition) {
-			nextStage.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '');
+			nextNode.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '');
 		}
-		if (visitedStages.indexOf(nextStage._id) > -1) {
+		if (visitedNodes.indexOf(nextNode._id) > -1) {
 			return;
 		}
-		visitedStages.push(nextStage._id);
-		if (nextStage.condition) code.push(`${tab(1)}if (${nextStage.condition}) {`);
-		code = code.concat(generateCode(nextStage, stages));
-		if (nextStage.condition) code.push(`${tab(1)}}`);
+		visitedNodes.push(nextNode._id);
+		if (nextNode.condition) code.push(`${tab(1)}if (${nextNode.condition}) {`);
+		code = code.concat(generateCode(nextNode, nodes));
+		if (nextNode.condition) code.push(`${tab(1)}}`);
 	}
-	// (stage.onSuccess || []).map(ss => {
-	// 	const stageCondition = ss.condition;
-	// 	const temp = stages.find(e => e._id === ss._id);
-	// 	temp.condition = stageCondition;
+	// (node.onSuccess || []).map(ss => {
+	// 	const nodeCondition = ss.condition;
+	// 	const temp = nodes.find(e => e._id === ss._id);
+	// 	temp.condition = nodeCondition;
 	// 	return temp;
-	// }).forEach((stage, i) => {
-	// 	if (visitedStages.indexOf(stage._id) > -1) {
+	// }).forEach((node, i) => {
+	// 	if (visitedNodes.indexOf(node._id) > -1) {
 	// 		return;
 	// 	}
-	// 	visitedStages.push(stage._id);
-	// 	if (stage.condition) code.push(`${tab(1)}if (${stage.condition}) {`);
-	// 	code = code.concat(generateCode(stage, stages));
-	// 	if (stage.condition) code.push(`${tab(1)}}`);
+	// 	visitedNodes.push(node._id);
+	// 	if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
+	// 	code = code.concat(generateCode(node, nodes));
+	// 	if (node.condition) code.push(`${tab(1)}}`);
 	// });
 	return code;
 }
 
-function parseStages(dataJson) {
-	visitedStages = [];
+function parseNodes(dataJson) {
+	visitedNodes = [];
 	const code = [];
 	code.push('const log4js = require(\'log4js\');');
 	code.push('const _ = require(\'lodash\');');
@@ -244,80 +245,80 @@ function parseStages(dataJson) {
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('');
-	return _.concat(code, generateStages(dataJson)).join('\n');
+	return _.concat(code, generateNodes(dataJson)).join('\n');
 }
 
 
-function generateStages(stage) {
-	const stages = stage.stages;
+function generateNodes(node) {
+	const nodes = node.nodes;
 	let code = [];
 	const exportsCode = [];
 	let loopCode = [];
-	stages.forEach((stage) => {
-		exportsCode.push(`module.exports.${_.camelCase(stage._id)} = ${_.camelCase(stage._id)};`);
-		code.push(`async function ${_.camelCase(stage._id)}(req, state, stage) {`);
-		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${_.camelCase(stage._id)} Stage\`);`);
+	nodes.forEach((node) => {
+		exportsCode.push(`module.exports.${_.camelCase(node._id)} = ${_.camelCase(node._id)};`);
+		code.push(`async function ${_.camelCase(node._id)}(req, state, node) {`);
+		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${_.camelCase(node._id)} Node\`);`);
 		code.push(`${tab(1)}try {`);
-		let functionName = 'validate_structure_' + _.camelCase(stage._id);
-		if (stage.type === 'API' || stage.type === 'DATASERVICE' || stage.type === 'FAAS' || stage.type === 'FLOW' || stage.type === 'AUTH-DATASTACK') {
+		let functionName = 'validate_structure_' + _.camelCase(node._id);
+		if (node.type === 'API' || node.type === 'DATASERVICE' || node.type === 'FAAS' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
 			code.push(`${tab(2)}let customHeaders = {'Content-Type':'application/json', 'Authorization':'JWT ' + req.header('authorization')};`);
 			code.push(`${tab(2)}let customBody = state.body;`);
-			if (stage.type === 'API' && stage.options) {
-				code.push(`${tab(2)}state.url = \`${parseDynamicVariable(stage.options.host)}${parseDynamicVariable(stage.options.path)}\`;`);
-				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
+			if (node.type === 'API' && node.options) {
+				code.push(`${tab(2)}state.url = \`${parseDynamicVariable(node.options.host)}${parseDynamicVariable(node.options.path)}\`;`);
+				code.push(`${tab(2)}state.method = '${node.options.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				if (stage.options.headers && !_.isEmpty(stage.options.headers)) {
-					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				if (node.options.headers && !_.isEmpty(node.options.headers)) {
+					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
-				if (stage.options.body && !_.isEmpty(stage.options.body)) {
-					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
+				if (node.options.body && !_.isEmpty(node.options.body)) {
+					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 				}
-			} else if (stage.type === 'DATASERVICE' && stage.options.dataService && stage.options.dataService._id) {
-				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${stage.options.dataService._id}');`);
+			} else if (node.type === 'DATASERVICE' && node.options.dataService && node.options.dataService._id) {
+				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${node.options.dataService._id}');`);
 				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/' + (state.body && state.body._id ? state.body._id : '') + '?upsert=true'`);
 				code.push(`${tab(2)}state.method = state.body && state.body._id ? 'PUT' : 'POST';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				if (stage.options.headers && !_.isEmpty(stage.options.headers)) {
-					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				if (node.options.headers && !_.isEmpty(node.options.headers)) {
+					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
-				if (stage.options.body && !_.isEmpty(stage.options.body)) {
-					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
+				if (node.options.body && !_.isEmpty(node.options.body)) {
+					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 				}
-			} else if (stage.type === 'FAAS') {
-				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${stage.options.faas._id}');`);
+			} else if (node.type === 'FAAS') {
+				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${node.options.faas._id}');`);
 				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/\${faas.app}/faas/\${faas.api}\`;`);
-				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
+				code.push(`${tab(2)}state.method = '${node.options.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				if (stage.options.headers && !_.isEmpty(stage.options.headers)) {
-					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				if (node.options.headers && !_.isEmpty(node.options.headers)) {
+					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
-				if (stage.options.body && !_.isEmpty(stage.options.body)) {
-					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
+				if (node.options.body && !_.isEmpty(node.options.body)) {
+					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 				}
-			} else if (stage.type === 'FLOW') {
-				code.push(`${tab(2)}const flow = await commonUtils.getFlow('${stage.options._id}');`);
-				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/\${flow.app}/flow/\${flow.inputStage.options.path}\`;`);
-				code.push(`${tab(2)}state.method = '${stage.options.method}';`);
+			} else if (node.type === 'FLOW') {
+				code.push(`${tab(2)}const flow = await commonUtils.getFlow('${node.options._id}');`);
+				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/\${flow.app}/flow/\${flow.inputNode.options.path}\`;`);
+				code.push(`${tab(2)}state.method = '${node.options.method}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
-				if (stage.options.headers && !_.isEmpty(stage.options.headers)) {
-					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(stage.options.headers)}\`);`);
+				if (node.options.headers && !_.isEmpty(node.options.headers)) {
+					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
-				if (stage.options.body && !_.isEmpty(stage.options.body)) {
-					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(stage.options.body)}\`);`);
+				if (node.options.body && !_.isEmpty(node.options.body)) {
+					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 				}
-			} else if (stage.type === 'AUTH-DATASTACK') {
-				code.push(`${tab(2)}const password = '${stage.options.password}'`);
+			} else if (node.type === 'AUTH-DATASTACK') {
+				code.push(`${tab(2)}const password = '${node.options.password}'`);
 				code.push(`${tab(2)}state.url = '${config.baseUrlUSR}/auth/login'`);
 				code.push(`${tab(2)}state.method = 'POST';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
 				code.push(`${tab(2)}customHeaders = state.headers;`);
-				code.push(`${tab(2)}customBody = { username: '${stage.options.username}', password: '${stage.options.password}' };`);
+				code.push(`${tab(2)}customBody = { username: '${node.options.username}', password: '${node.options.password}' };`);
 			}
 			code.push(`${tab(2)}options.headers = _.merge(state.headers, customHeaders);`);
 			code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
@@ -328,36 +329,36 @@ function generateStages(stage) {
 			code.push(`${tab(2)}delete options.headers['connection'];`);
 			code.push(`${tab(2)}delete options.headers['user-agent'];`);
 			code.push(`${tab(2)}delete options.headers['content-length'];`);
-			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request Data of ${_.camelCase(stage._id)} \`, JSON.stringify(options));`);
+			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request Data of ${_.camelCase(node._id)} \`, JSON.stringify(options));`);
 			code.push(`${tab(2)}const response = await httpClient.request(options);`);
 			code.push(`${tab(2)}state.statusCode = response.statusCode;`);
 			code.push(`${tab(2)}state.body = response.body;`);
 			code.push(`${tab(2)}state.headers = response.headers;`);
-			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Response Data of ${_.camelCase(stage._id)} \`, JSON.stringify(state));`);
+			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Response Data of ${_.camelCase(node._id)} \`, JSON.stringify(state));`);
 			code.push(`${tab(2)}if (response && response.statusCode != 200) {`);
 			code.push(`${tab(3)}state.status = "ERROR";`);
 			code.push(`${tab(3)}state.statusCode = response && response.statusCode ? response.statusCode : 400;`);
 			code.push(`${tab(3)}state.body = response && response.body ? response.body : { message: 'Unable to reach the URL' };`);
-			code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with not 200\`, response.statusCode);`);
+			code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`, response.statusCode);`);
 			code.push(`${tab(3)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
 			code.push(`${tab(2)}}`);
-			if (stage.dataStructure && stage.dataStructure.outgoing && stage.dataStructure.outgoing._id) {
+			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
 				code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, response.body);`);
 				code.push(`${tab(2)}if (errors) {`);
 				code.push(`${tab(3)}state.status = "ERROR";`);
 				code.push(`${tab(3)}state.statusCode = 400;`);
 				code.push(`${tab(3)}state.body = { message: errors };`);
-				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with not 200\`);`);
+				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`);`);
 				code.push(`${tab(3)}return { statusCode: 400, body: { message: errors }, headers: response.headers };`);
 				code.push(`${tab(2)}}`);
 			}
 			code.push(`${tab(2)}state.status = "SUCCESS";`);
 			code.push(`${tab(3)}state.statusCode = 200;`);
-			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with 200\`);`);
+			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with 200\`);`);
 			code.push(`${tab(2)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
-		} else if ((stage.type === 'TRANSFORM' || stage.type === 'MAPPING') && stage.mappings) {
+		} else if ((node.type === 'TRANSFORM' || node.type === 'MAPPING') && node.mappings) {
 			code.push(`${tab(2)}let newBody = {};`);
-			stage.mappings.forEach(mappingData => {
+			node.mappings.forEach(mappingData => {
 				const formulaCode = [];
 				const formulaID = 'formula_' + _.camelCase(uuid());
 				mappingData.formulaID = formulaID;
@@ -377,42 +378,42 @@ function generateStages(stage) {
 			code.push(`${tab(2)}newBody = [];`);
 			code.push(`${tab(3)}state.body.forEach(item => {`);
 			code.push(`${tab(2)}let tempBody = {};`);
-			stage.mappings.forEach(mappingData => {
+			node.mappings.forEach(mappingData => {
 				code.push(`${tab(4)}_.set(tempBody, '${mappingData.target.dataPath}', ${mappingData.formulaID}(item));`);
 			});
 			code.push(`${tab(2)}newBody.push(tempBody);`);
 			code.push(`${tab(3)}});`);
 			code.push(`${tab(2)}} else {`);
-			stage.mappings.forEach(mappingData => {
+			node.mappings.forEach(mappingData => {
 				code.push(`${tab(3)}_.set(newBody, '${mappingData.target.dataPath}', ${mappingData.formulaID}(state.body));`);
 			});
 			code.push(`${tab(2)}}`);
 
-			if (stage.dataStructure && stage.dataStructure.outgoing && stage.dataStructure.outgoing._id) {
+			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
 				code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, newBody);`);
 				code.push(`${tab(2)}if (errors) {`);
 				code.push(`${tab(3)}state.status = "ERROR";`);
 				code.push(`${tab(3)}state.statusCode = 400;`);
 				code.push(`${tab(3)}state.body = { message: errors };`);
-				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(stage._id)} \`, errors);`);
-				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with not 200\`);`);
+				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
+				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`);`);
 				code.push(`${tab(3)}return { statusCode: 400, body: { message: errors }, headers: response.headers };`);
 				code.push(`${tab(2)}}`);
 			}
 
 			code.push(`${tab(2)}return { statusCode: 200, body: newBody, headers: state.headers };`);
-		} else if (stage.type === 'VALIDATION' && stage.validation) {
+		} else if (node.type === 'VALIDATION' && node.validation) {
 			code.push(`${tab(2)}let errors = {};`);
-			Object.keys(stage.validation).forEach(field => {
+			Object.keys(node.validation).forEach(field => {
 				const formulaID = 'formula_' + _.camelCase(uuid());
-				stage.validation[field] = {
-					code: stage.validation[field],
+				node.validation[field] = {
+					code: node.validation[field],
 					formulaID
 				};
 				const formulaCode = [];
 				formulaCode.push(`function ${formulaID}(data) {`);
 				formulaCode.push(`${tab(1)}try {`);
-				formulaCode.push(`${tab(2)}${stage.validation[field].code}`);
+				formulaCode.push(`${tab(2)}${node.validation[field].code}`);
 				formulaCode.push(`${tab(1)}} catch(err) {`);
 				formulaCode.push(`${tab(2)}logger.error(err);`);
 				formulaCode.push(`${tab(2)}throw err;`);
@@ -425,8 +426,8 @@ function generateStages(stage) {
 			code.push(`${tab(3)}state.body.forEach(item => {`);
 			code.push(`${tab(4)}let error;`);
 			code.push(`${tab(4)}let errorObj;`);
-			Object.keys(stage.validation).forEach(field => {
-				code.push(`${tab(4)}error = ${stage.validation[field].formulaID}(item);`);
+			Object.keys(node.validation).forEach(field => {
+				code.push(`${tab(4)}error = ${node.validation[field].formulaID}(item);`);
 				code.push(`${tab(4)}if (error) {`);
 				code.push(`${tab(5)}errorObj['${field}'] = error;`);
 				code.push(`${tab(4)}}`);
@@ -439,13 +440,13 @@ function generateStages(stage) {
 			code.push(`${tab(4)}state.status = 'ERROR'`);
 			code.push(`${tab(4)}state.statusCode = 400;`);
 			code.push(`${tab(4)}state.body = errors;`);
-			code.push(`${tab(4)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(stage._id)} \`, errors);`);
+			code.push(`${tab(4)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
 			code.push(`${tab(4)}return { statusCode: 400, body: errors, headers: state.headers };`);
 			code.push(`${tab(3)}}`);
 			code.push(`${tab(2)}} else {`);
 			code.push(`${tab(3)}let error;`);
-			Object.keys(stage.validation).forEach(field => {
-				code.push(`${tab(3)}error = ${stage.validation[field].formulaID}(state.body);`);
+			Object.keys(node.validation).forEach(field => {
+				code.push(`${tab(3)}error = ${node.validation[field].formulaID}(state.body);`);
 				code.push(`${tab(3)}if (error) {`);
 				code.push(`${tab(4)}errors['${field}'] = error;`);
 				code.push(`${tab(3)}}`);
@@ -454,35 +455,35 @@ function generateStages(stage) {
 			code.push(`${tab(4)}state.status = 'ERROR'`);
 			code.push(`${tab(4)}state.statusCode = 400;`);
 			code.push(`${tab(4)}state.body = errors;`);
-			code.push(`${tab(4)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(stage._id)} \`, errors);`);
+			code.push(`${tab(4)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
 			code.push(`${tab(4)}return { statusCode: 400, body: errors, headers: state.headers };`);
 			code.push(`${tab(3)}}`);
 			code.push(`${tab(2)}}`);
 			code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
-		} else if (stage.type === 'FOREACH' || stage.type === 'REDUCE') {
-			loopCode = generateStages(stage);
+		} else if (node.type === 'FOREACH' || node.type === 'REDUCE') {
+			loopCode = generateNodes(node);
 			code.push(`${tab(2)}let temp = JSON.parse(JSON.stringify(state.body));`);
 			code.push(`${tab(2)}if (!Array.isArray(temp)) {`);
 			code.push(`${tab(3)}temp = [temp]`);
 			code.push(`${tab(2)}}`);
-			if (stage.type === 'FOREACH') {
+			if (node.type === 'FOREACH') {
 				code.push(`${tab(2)}promises = temp.map(async(data) => {`);
 				code.push(`${tab(2)}let response = { headers: state.headers, body: data };`);
-				stage.stages.forEach((st, si) => {
+				node.nodes.forEach((st, si) => {
 					code.push(`${tab(2)}state = stateUtils.getState(response, '${st._id}', true);`);
-					code.push(`${tab(2)}response = await ${_.camelCase(st._id)}(req, state, stage);`);
+					code.push(`${tab(2)}response = await ${_.camelCase(st._id)}(req, state, node);`);
 					code.push(`${tab(2)}if (response.statusCode >= 400) {`);
 					code.push(`${tab(3)}state.status = 'ERROR'`);
 					code.push(`${tab(3)}state.statusCode = response.statusCode;`);
 					code.push(`${tab(3)}state.body = response.body;`);
 					if (st.onError && st.onError.length > 0) {
 						code.push(`${tab(3)}state = stateUtils.getState(response, '${st.onError[0]._id}', true);`);
-						code.push(`${tab(3)}await ${_.camelCase(st.onError[0]._id)}(req, state, stage);`);
+						code.push(`${tab(3)}await ${_.camelCase(st.onError[0]._id)}(req, state, node);`);
 					} else {
 						code.push(`${tab(3)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
 					}
 					code.push(`${tab(2)}}`);
-					if (stage.stages.length - 1 === si) {
+					if (node.nodes.length - 1 === si) {
 						code.push(`${tab(3)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
 					}
 				});
@@ -492,13 +493,13 @@ function generateStages(stage) {
 			} else {
 				// code.push(`${tab(2)}promises = await temp.reduce(async(response, data) => {`);
 				// code.push(`${tab(2)}let response = { headers: state.headers, body: data };`);
-				// stage.stages.forEach(st => {
+				// node.nodes.forEach(st => {
 				// 	code.push(`${tab(2)}state = stateUtils.getState(response, '${st._id}');`);
-				// 	code.push(`${tab(2)}response = await ${_.camelCase(st._id)}(req, state, stage);`);
+				// 	code.push(`${tab(2)}response = await ${_.camelCase(st._id)}(req, state, node);`);
 				// 	code.push(`${tab(2)}if (response.statusCode >= 400) {`);
 				// 	if (st.onError && st.onError.length > 0) {
 				// 		code.push(`${tab(3)}state = stateUtils.getState(response, '${st.onError[0]._id}');`);
-				// 		code.push(`${tab(3)}await ${_.camelCase(st.onError[0]._id)}(req, state, stage);`);
+				// 		code.push(`${tab(3)}await ${_.camelCase(st.onError[0]._id)}(req, state, node);`);
 				// 	} else {
 				// 		code.push(`${tab(3)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
 				// 	}
@@ -516,7 +517,7 @@ function generateStages(stage) {
 		code.push(`${tab(2)}} else {`);
 		code.push(`${tab(3)}state.statusCode = 500;`);
 		code.push(`${tab(2)}}`);
-		code.push(`${tab(2)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(stage._id)} Stage with\`,state.statusCode);`);
+		code.push(`${tab(2)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with\`,state.statusCode);`);
 		code.push(`${tab(2)}if (err.body) {`);
 		code.push(`${tab(3)}state.body = err.body;`);
 		code.push(`${tab(3)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}]\`,err.body);`);
@@ -530,7 +531,7 @@ function generateStages(stage) {
 		code.push(`${tab(2)}state.status = "ERROR";`);
 		code.push(`${tab(2)}return { statusCode: state.statusCode, body: err, headers: state.headers };`);
 		code.push(`${tab(1)}} finally {`);
-		code.push(`${tab(2)}stage['${stage._id}'] = state;`);
+		code.push(`${tab(2)}node['${node._id}'] = state;`);
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 		code.push(`${tab(1)}}`);
 		code.push('}');
@@ -596,42 +597,96 @@ function parseDataStructures(dataJson) {
 			code.push(`const validate_${schemaID} = ajv.compile(schema_${schemaID});`);
 		});
 	}
-	return _.concat(code, generateDataStructures(dataJson.inputStage, dataJson.stages)).join('\n');
+	return _.concat(code, generateDataStructures(dataJson.inputNode, dataJson.nodes)).join('\n');
 }
 
-function generateDataStructures(stage, stages) {
+function generateDataStructures(node, nodes) {
 	let code = [];
 	const exportsCode = [];
 	let schemaID;
-	if (stage.dataStructure && stage.dataStructure.outgoing && stage.dataStructure.outgoing._id) {
-		schemaID = (stage.dataStructure.outgoing._id);
+	if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
+		schemaID = (node.dataStructure.outgoing._id);
 	}
-	const functionName = 'validate_structure_' + _.camelCase(stage._id);
+	const functionName = 'validate_structure_' + _.camelCase(node._id);
 	exportsCode.push(`module.exports.${functionName} = ${functionName};`);
 	code.push(`function ${functionName}(req, data) {`);
 	if (schemaID) {
-		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Data Structure ${_.camelCase(stage._id)} Stage\`);`);
+		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Data Structure ${_.camelCase(node._id)} Node\`);`);
 		code.push(`${tab(1)}const valid = validate_${schemaID}(data);`);
 		code.push(`${tab(1)}if (!valid) throw Error(ajv.errorsText(validate_${schemaID}.errors));`);
 	} else {
-		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] No Data Structure found for ${_.camelCase(stage._id)} Stage\`);`);
+		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] No Data Structure found for ${_.camelCase(node._id)} Node\`);`);
 	}
 	code.push(`${tab(1)}return null;`);
 	code.push('}');
-	let tempStages = (stage.onSuccess || []);
-	for (let index = 0; index < tempStages.length; index++) {
-		const ss = tempStages[index];
-		const nextStage = stages.find(e => e._id === ss._id);
-		if (visitedValidation.indexOf(nextStage._id) > -1) {
+	let tempNodes = (node.onSuccess || []);
+	for (let index = 0; index < tempNodes.length; index++) {
+		const ss = tempNodes[index];
+		const nextNode = nodes.find(e => e._id === ss._id);
+		if (visitedValidation.indexOf(nextNode._id) > -1) {
 			return;
 		}
-		visitedValidation.push(nextStage._id);
-		code = code.concat(generateDataStructures(nextStage, stages));
+		visitedValidation.push(nextNode._id);
+		code = code.concat(generateDataStructures(nextNode, nodes));
 	}
 	return _.concat(code, exportsCode).join('\n');
 }
 
 
+function parseDataStructuresForFileUtils(dataJson) {
+	const code = [];
+	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
+		Object.keys(dataJson.dataStructures).forEach(schemaId => {
+			const definiton = dataJson.dataStructures[schemaId].definiton;
+			// Function to return array of values;
+			code.push(`function getValuesOf${schemaId} (data) {`);
+			code.push('\tconst values = [];')
+			definiton.forEach(def => {
+				const properties = def.properties;
+				code.push(`values.push(_.get(data, '${properties.dataPath}') || '');`);
+			});
+			code.push('\treturn values;')
+			code.push('}')
+			// Function to return array of headers;
+			code.push(`function getHeaderOf${schemaId} () {`);
+			code.push('\tconst headers = [];')
+			definiton.forEach(def => {
+				const properties = def.properties;
+				code.push(`headers.push('${properties.name}');`);
+			});
+			code.push('\treturn headers;')
+			code.push('}')
+
+
+			// Function to Convert Data from CSV to JSON;
+			code.push(`function convertData${schemaId} (rowData) {`);
+			code.push('\tconst tempData = {};')
+			definiton.forEach(def => {
+				const properties = def.properties;
+				if (def.type == 'Number') {
+					code.push(`_.set(tempData, '${properties.dataPath}', +(_.get(rowData, '${properties.dataPath}')));`);
+				} else if (def.type == 'Boolean') {
+					code.push(`_.set(tempData, '${properties.dataPath}', commonUtils.convertToBoolean(_.get(rowData, '${properties.dataPath}')));`);
+				} else if (def.type == 'Date') {
+					code.push(`_.set(tempData, '${properties.dataPath}', commonUtils.convertToDate(_.get(rowData, '${properties.dataPath}'), '${properties.dateFormat || 'yyyy-MM-dd'}'));`);
+				} else {
+					code.push(`_.set(tempData, '${properties.dataPath}', _.get(rowData, '${properties.dataPath}'));`);
+				}
+			});
+			code.push('\treturn tempData;')
+			code.push('}')
+
+			code.push(`module.exports.getValuesOf${schemaId} = getValuesOf${schemaId}`);
+			code.push(`module.exports.getHeaderOf${schemaId} = getHeaderOf${schemaId}`);
+		});
+	}
+	return code.join('\n');
+}
+
+
+
+
 module.exports.parseFlow = parseFlow;
-module.exports.parseStages = parseStages;
+module.exports.parseNodes = parseNodes;
 module.exports.parseDataStructures = parseDataStructures;
+module.exports.parseDataStructuresForFileUtils = parseDataStructuresForFileUtils;

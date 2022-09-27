@@ -28,7 +28,8 @@ async function createProject(flowJSON) {
 			});
 		}
 		fs.writeFileSync(path.join(folderPath, 'route.js'), codeGen.parseFlow(flowJSON));
-		fs.writeFileSync(path.join(folderPath, 'stage.utils.js'), codeGen.parseStages(flowJSON));
+		fs.writeFileSync(path.join(folderPath, 'node.utils.js'), codeGen.parseNodes(flowJSON));
+		fs.writeFileSync(path.join(folderPath, 'file.utils.js'), codeGen.parseDataStructuresForFileUtils(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'validation.utils.js'), codeGen.parseDataStructures(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'flow.json'), JSON.stringify(flowJSON));
 
