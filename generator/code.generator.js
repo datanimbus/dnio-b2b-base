@@ -34,6 +34,7 @@ function parseFlow(dataJson) {
 	code.push('const path = require(\'path\');');
 	code.push('const fastcsv = require(\'fast-csv\');');
 	code.push('const XLSX = require(\'xlsx\');');
+	code.push('const _ = require(\'lodash\');');
 	code.push('');
 	code.push('const stateUtils = require(\'./state.utils\');');
 	code.push('const nodeUtils = require(\'./node.utils\');');
@@ -51,12 +52,15 @@ function parseFlow(dataJson) {
 	code.push(`${tab(1)}let node = {};`);
 	code.push(`${tab(1)}node['${inputNode._id}'] = state;`);
 	code.push(`${tab(1)}let isResponseSent = false;`);
-	if (inputNode.type === 'FILE') {
-		code.push(`${tab(2)}res.status(200).json({ message: 'File is being processed'});`);
+	if (inputNode.options && inputNode.options.contentType === 'multipart/form-data') {
+		if (inputNode.type === 'FILE') {
+			code.push(`${tab(2)}res.status(200).json({ message: 'File is being processed'});`);
+		}
 		code.push(`${tab(1)}if (!req.files || Object.keys(req.files).length === 0) {`);
 		code.push(`${tab(2)}state.status = "ERROR";`);
 		code.push(`${tab(2)}state.statusCode = 400;`);
 		code.push(`${tab(2)}state.body = { message: 'No files were uploaded' };`);
+		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 		code.push(`${tab(2)}return;`);
 		code.push(`${tab(1)}}`);
 		code.push(`${tab(1)}const reqFile = req.files.file;`);
@@ -83,7 +87,7 @@ function parseFlow(dataJson) {
 				rowDelimiter = '\\n';
 			}
 			code.push(`${tab(1)}const pr = await new Promise((resolve, reject) => {`);
-			code.push(`${tab(2)}let reqData = [];`);
+			code.push(`${tab(2)}let records = [];`);
 			code.push(`${tab(2)}const fileStream = fs.createReadStream(reqFile.tempFilePath);`);
 			code.push(`${tab(2)}fastcsv.parseStream(fileStream, {`);
 			code.push(`${tab(3)}headers: true,`);
@@ -92,32 +96,41 @@ function parseFlow(dataJson) {
 			code.push(`${tab(3)}delimiter: '${dataFormat.character}',`);
 			code.push(`${tab(3)}${dataFormat.strictValidation ? `strictColumnHandling: true` : `discardUnmappedColumns: true`}`);
 			code.push(`${tab(2)}}).transform(row => {`);
-			code.push(`${tab(3)}let schema = require(path.join(process.cwd(), 'schemas', '${dataFormat._id}.schema.json'));`);
-			code.push(`${tab(3)}}`);
-			code.push(`${tab(3)}return row;`);
+			code.push(`${tab(3)}let temp = fileUtils.convertData${dataFormat._id}(row);`);
+			code.push(`${tab(3)}return temp;`);
 			code.push(`${tab(2)}}).on('error', err => {`);
+			code.push(`${tab(3)}state.status = "ERROR";`);
+			code.push(`${tab(3)}state.statusCode = 400;`);
+			code.push(`${tab(3)}state.body = err;`);
+			code.push(`${tab(3)}stateUtils.upsertState(req, state);`);
 			code.push(`${tab(3)}reject(err);`);
-			code.push(`${tab(3)}return res.status(400).json({message: err.message});`);
-			code.push(`${tab(2)}}).on('data', row => reqData.push(row))`);
+			code.push(`${tab(2)}}).on('data', row => records.push(row))`);
 			code.push(`${tab(2)}.on('end', rowCount => {`);
 			code.push(`${tab(3)}logger.debug('Parsed rows = ', rowCount);`);
-			code.push(`${tab(3)}req.body = reqData;`);
-			code.push(`${tab(3)}response = req;`);
-			code.push(`${tab(3)}logger.trace('Parsed Data - ', req.body);`);
-			code.push(`${tab(3)}resolve();`);
+			code.push(`${tab(3)}state.statusCode = 200;`);
+			code.push(`${tab(3)}state.body = records;`);
+			code.push(`${tab(3)}logger.trace('Parsed Data - ', state.body);`);
+			code.push(`${tab(3)}resolve(records);`);
 			code.push(`${tab(2)}});`);
 			code.push(`${tab(1)}});`);
+			code.push(`${tab(1)} `);
+		} else if (dataFormat.formatType === 'JSON') {
+			code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
+			code.push(`${tab(2)}state.status = "SUCCESS";`);
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.body = JSON.parse(contents);`);
 		} else if (dataFormat.formatType === 'XML') {
-			// code.push(`${tab(2)}}`);
-			// code.push(`${tab(2)}}`);
-			// code.push(`${tab(2)}}`);
+			code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
+			code.push(`${tab(2)}state.status = "SUCCESS";`);
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.body = parse(contents);`);
 		} else if (dataFormat.formatType === 'BINARY') {
 			// code.push(`${tab(2)}fs.copyFileSync(reqFile.tempFilePath, path.join(process.cwd(), 'downloads', req['local']['output-file-name']));`);
 			// code.push(`${tab(2)}}`);
 			// code.push(`${tab(2)}}`);
 		}
 	}
-
+	code.push(`${tab(1)}stateUtils.upsertState(req, state);`);
 	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(req.body));`);
 	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(req.headers));`);
 	let tempNodes = (inputNode.onSuccess || []);
@@ -637,47 +650,48 @@ function parseDataStructuresForFileUtils(dataJson) {
 	const code = [];
 	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
 		Object.keys(dataJson.dataStructures).forEach(schemaId => {
-			const definiton = dataJson.dataStructures[schemaId].definiton;
+			const definition = dataJson.dataStructures[schemaId].definition;
 			// Function to return array of values;
 			code.push(`function getValuesOf${schemaId} (data) {`);
-			code.push('\tconst values = [];')
-			definiton.forEach(def => {
+			code.push(`${tab(1)}const values = [];`)
+			definition.forEach(def => {
 				const properties = def.properties;
-				code.push(`values.push(_.get(data, '${properties.dataPath}') || '');`);
+				code.push(`${tab(1)}values.push(_.get(data, '${properties.dataKey}') || '');`);
 			});
-			code.push('\treturn values;')
+			code.push(`${tab(1)}return values;`)
 			code.push('}')
 			// Function to return array of headers;
 			code.push(`function getHeaderOf${schemaId} () {`);
-			code.push('\tconst headers = [];')
-			definiton.forEach(def => {
+			code.push(`${tab(1)}const headers = [];`)
+			definition.forEach(def => {
 				const properties = def.properties;
-				code.push(`headers.push('${properties.name}');`);
+				code.push(`${tab(1)}headers.push('${properties.name}');`);
 			});
-			code.push('\treturn headers;')
+			code.push(`${tab(1)}return headers;`)
 			code.push('}')
 
 
 			// Function to Convert Data from CSV to JSON;
 			code.push(`function convertData${schemaId} (rowData) {`);
-			code.push('\tconst tempData = {};')
-			definiton.forEach(def => {
+			code.push(`${tab(1)}const tempData = {};`)
+			definition.forEach(def => {
 				const properties = def.properties;
 				if (def.type == 'Number') {
-					code.push(`_.set(tempData, '${properties.dataPath}', +(_.get(rowData, '${properties.dataPath}')));`);
+					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', +(_.get(rowData, '${(properties.dataPath || properties.key)}')));`);
 				} else if (def.type == 'Boolean') {
-					code.push(`_.set(tempData, '${properties.dataPath}', commonUtils.convertToBoolean(_.get(rowData, '${properties.dataPath}')));`);
+					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', commonUtils.convertToBoolean(_.get(rowData, '${(properties.dataPath || properties.key)}')));`);
 				} else if (def.type == 'Date') {
-					code.push(`_.set(tempData, '${properties.dataPath}', commonUtils.convertToDate(_.get(rowData, '${properties.dataPath}'), '${properties.dateFormat || 'yyyy-MM-dd'}'));`);
+					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', commonUtils.convertToDate(_.get(rowData, '${(properties.dataPath || properties.key)}'), '${properties.dateFormat || 'yyyy-MM-dd'}'));`);
 				} else {
-					code.push(`_.set(tempData, '${properties.dataPath}', _.get(rowData, '${properties.dataPath}'));`);
+					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', _.get(rowData, '${(properties.dataPath || properties.key)}'));`);
 				}
 			});
-			code.push('\treturn tempData;')
+			code.push(`${tab(1)}return tempData;`)
 			code.push('}')
 
 			code.push(`module.exports.getValuesOf${schemaId} = getValuesOf${schemaId}`);
 			code.push(`module.exports.getHeaderOf${schemaId} = getHeaderOf${schemaId}`);
+			code.push(`module.exports.convertData${schemaId} = convertData${schemaId}`);
 		});
 	}
 	return code.join('\n');

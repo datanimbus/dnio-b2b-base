@@ -13,7 +13,8 @@
     "mkdirp": "^1.0.4",
     "moment": "^2.29.4",
     "mongodb": "^4.9.0",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "xlsx": "^0.18.5"
   },
   "name": "ds-b2b-base",
   "description": "Integration base image",
