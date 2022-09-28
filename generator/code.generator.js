@@ -45,7 +45,8 @@ function parseFlow(dataJson) {
 	code.push('const xmlParser = new XMLParser();');
 	code.push('');
 	// TODO: Method to be fixed.
-	code.push(`router.${(inputNode.options.method || 'POST').toLowerCase()}('${api}', async function (req, res) {`);
+	// code.push(`router.${(inputNode.options.method || 'POST').toLowerCase()}('${api}', async function (req, res) {`);
+	code.push(`router.post('${api}', async function (req, res) {`);
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
 	code.push(`${tab(1)}let response = req;`);
