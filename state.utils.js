@@ -21,7 +21,7 @@ async function upsertState(req, state) {
 	const remoteTxnId = state.remoteTxnId;
 	logger.trace(`[${txnId}] [${remoteTxnId}] Starting Upsert Stage: ${JSON.stringify(state._id)}`);
 	try {
-		await global.appcenterDB.collection('b2b.state').findOneAndUpdate(
+		await global.appcenterDB.collection('b2b.node.state').findOneAndUpdate(
 			{ stateId: state.stateId, txnId: state.txnId, remoteTxnId: state.remoteTxnId, parentTxnId: state.parentTxnId },
 			{ $set: state },
 			{ upsert: true }
