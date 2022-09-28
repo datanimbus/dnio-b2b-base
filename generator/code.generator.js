@@ -29,7 +29,7 @@ function parseFlow(dataJson) {
 	let code = [];
 	code.push('const router = require(\'express\').Router();');
 	code.push('const log4js = require(\'log4js\');');
-	code.push('const { XMLBuilder, J2XParser, parse } = require(\'fast-xml-parser\');');
+	code.push('const { XMLBuilder, J2XParser, parse, XMLParser } = require(\'fast-xml-parser\');');
 	code.push('const fs = require(\'fs\');');
 	code.push('const path = require(\'path\');');
 	code.push('const fastcsv = require(\'fast-csv\');');
@@ -42,6 +42,7 @@ function parseFlow(dataJson) {
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('const xmlBuilder = new XMLBuilder();');
+	code.push('const xmlParser = new XMLParser();');
 	code.push('');
 	// TODO: Method to be fixed.
 	code.push(`router.${(inputNode.options.method || 'POST').toLowerCase()}('${api}', async function (req, res) {`);
@@ -123,16 +124,17 @@ function parseFlow(dataJson) {
 			code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
 			code.push(`${tab(2)}state.status = "SUCCESS";`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
-			code.push(`${tab(2)}state.body = parse(contents);`);
+			code.push(`${tab(2)}state.body = xmlParser.parse(contents);`);
 		} else if (dataFormat.formatType === 'BINARY') {
 			// code.push(`${tab(2)}fs.copyFileSync(reqFile.tempFilePath, path.join(process.cwd(), 'downloads', req['local']['output-file-name']));`);
 			// code.push(`${tab(2)}}`);
 			// code.push(`${tab(2)}}`);
 		}
 	}
+	code.push(`${tab(2)}response = { statusCode: 200, body: state.body, headers: state.headers };`);
 	code.push(`${tab(1)}stateUtils.upsertState(req, state);`);
-	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(req.body));`);
-	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(req.headers));`);
+	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(state.body));`);
+	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(state.headers));`);
 	let tempNodes = (inputNode.onSuccess || []);
 	for (let index = 0; index < tempNodes.length; index++) {
 		const ss = tempNodes[index];
@@ -624,9 +626,21 @@ function generateDataStructures(node, nodes) {
 	exportsCode.push(`module.exports.${functionName} = ${functionName};`);
 	code.push(`function ${functionName}(req, data) {`);
 	if (schemaID) {
+		code.push(`${tab(1)}const errors = {};`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Data Structure ${_.camelCase(node._id)} Node\`);`);
-		code.push(`${tab(1)}const valid = validate_${schemaID}(data);`);
-		code.push(`${tab(1)}if (!valid) throw Error(ajv.errorsText(validate_${schemaID}.errors));`);
+		code.push(`${tab(1)}if (Array.isArray(data)) {`);
+		code.push(`${tab(2)}for (let i=0;i<data.length;i++) {`);
+		code.push(`${tab(3)}const item = data[i];`);
+		code.push(`${tab(3)}const valid = validate_${schemaID}(item);`);
+		code.push(`${tab(3)}if (!valid) errors[i] = ajv.errorsText(validate_${schemaID}.errors);`);
+		code.push(`${tab(2)}}`);
+		code.push(`${tab(1)}} else {`);
+		code.push(`${tab(2)}const valid = validate_${schemaID}(data);`);
+		code.push(`${tab(2)}if (!valid) errors['0'] = ajv.errorsText(validate_${schemaID}.errors);`);
+		code.push(`${tab(1)}}`);
+		code.push(`${tab(1)}if (!_.isEmpty(errors)) {`);
+		code.push(`${tab(2)}throw new Error(errors);`);
+		code.push(`${tab(1)}}`);
 	} else {
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] No Data Structure found for ${_.camelCase(node._id)} Node\`);`);
 	}
@@ -648,6 +662,8 @@ function generateDataStructures(node, nodes) {
 
 function parseDataStructuresForFileUtils(dataJson) {
 	const code = [];
+	code.push('const _ = require(\'lodash\');');
+	code.push('const commonUtils = require(\'./common.utils\');');
 	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
 		Object.keys(dataJson.dataStructures).forEach(schemaId => {
 			const definition = dataJson.dataStructures[schemaId].definition;
