@@ -27,7 +27,7 @@ function parseFlow(dataJson) {
 	const nodes = dataJson.nodes;
 	let api = '/' + dataJson.app + inputNode.options.path;
 	let code = [];
-	code.push('const router = require(\'express\').Router();');
+	code.push('const router = require(\'express\').Router({ mergeParams: true });');
 	code.push('const log4js = require(\'log4js\');');
 	code.push('const { XMLBuilder, J2XParser, parse, XMLParser } = require(\'fast-xml-parser\');');
 	code.push('const fs = require(\'fs\');');
