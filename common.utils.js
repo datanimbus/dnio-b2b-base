@@ -94,8 +94,28 @@ function convertToDate(value, format) {
 }
 
 
+function handleError(err, state, req, node) {
+	if (err.statusCode) {
+		state.statusCode = err.statusCode;
+	} else {
+		state.statusCode = 500;
+	}
+	if (err.body) {
+		state.body = err.body;
+		logger.error(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}]`, err.body);
+	} else if (err.message) {
+		state.body = { message: err.message };
+		logger.error(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}]`, err.message);
+	} else {
+		state.body = err;
+		logger.error(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}]`, err);
+	}
+	state.status = "ERROR";
+}
+
 module.exports.getDataService = getDataService;
 module.exports.getFlow = getFlow;
 module.exports.getFaaS = getFaaS;
 module.exports.convertToBoolean = convertToBoolean;
 module.exports.convertToDate = convertToDate;
+module.exports.handleError = handleError;
