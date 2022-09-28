@@ -58,7 +58,7 @@ function initialize() {
 	const middlewares = require('./lib.middlewares');
 
 	app.use(express.urlencoded({ extended: true }));
-	app.use(express.raw({ type: ['application/xml', 'text/xml', 'application/octet-stream'] }));
+	app.use(express.raw({ type: ['application/xml', 'text/xml'] }));
 	app.use(express.json({ inflate: true, limit: '100mb' }));
 	app.use(fileUpload({
 		useTempFiles: true,
