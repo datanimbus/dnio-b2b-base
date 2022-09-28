@@ -101,7 +101,7 @@ function initialize() {
 			}, 15000);
 			logger.info('Process Kill Request Recieved');
 			// Stopping CRON Job;
-			global.job.cancel();
+			// global.job.cancel();
 			// global.pullJob.cancel();
 			// clearInterval(global.pullJob)
 			const intVal = setInterval(() => {
