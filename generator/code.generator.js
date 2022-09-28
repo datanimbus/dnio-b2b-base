@@ -292,16 +292,17 @@ function generateNodes(node) {
 				}
 			} else if (node.type === 'DATASERVICE' && node.options.dataService && node.options.dataService._id) {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${node.options.dataService._id}');`);
-				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/' + (state.body && state.body._id ? state.body._id : '') + '?upsert=true'`);
-				code.push(`${tab(2)}state.method = state.body && state.body._id ? 'PUT' : 'POST';`);
+				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/utils/bulkUpsert'`);
+				code.push(`${tab(2)}state.method = 'POST';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
-				if (node.options.body && !_.isEmpty(node.options.body)) {
-					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-				}
+				// if (node.options.body && !_.isEmpty(node.options.body)) {
+				// 	code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+				// }
+				code.push(`${tab(2)}customBody = { docs: state.body };`);
 			} else if (node.type === 'FAAS') {
 				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${node.options.faas._id}');`);
 				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/\${faas.app}/faas/\${faas.api}\`;`);

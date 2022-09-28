@@ -10,11 +10,11 @@ const logger = log4js.getLogger(global.loggerName);
 async function getDataService(serviceId) {
 	try {
 		const options = {};
-		options.url = config.baseUrlSM + '/service/' + serviceId;
+		options.url = `${config.baseUrlSM}/${config.app}/service/${serviceId}`;
 		options.method = 'GET';
 		options.headers = {};
 		options.headers['Content-Type'] = 'application/json';
-		options.headers['Authorization'] = 'JWT' + global.BM_TOKEN;
+		options.headers['Authorization'] = 'JWT ' + global.BM_TOKEN;
 		const response = await httpClient.request(options);
 		if (response.statusCode !== 200) {
 			throw response.body;
@@ -30,11 +30,11 @@ async function getDataService(serviceId) {
 async function getFlow(flowId) {
 	try {
 		const options = {};
-		options.url = config.baseUrlBM + '/flow/' + flowId;
+		options.url = `${config.baseUrlBM}/${config.app}/flow/${flowId}`;
 		options.method = 'GET';
 		options.headers = {};
 		options.headers['Content-Type'] = 'application/json';
-		options.headers['Authorization'] = 'JWT' + global.BM_TOKEN;
+		options.headers['Authorization'] = 'JWT ' + global.BM_TOKEN;
 		const response = await httpClient.request(options);
 		if (response.statusCode !== 200) {
 			throw response.body;
