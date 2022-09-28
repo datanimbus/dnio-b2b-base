@@ -54,9 +54,17 @@ function parseFlow(dataJson) {
 	code.push(`${tab(1)}let node = {};`);
 	code.push(`${tab(1)}node['${inputNode._id}'] = state;`);
 	code.push(`${tab(1)}let isResponseSent = false;`);
+	if (inputNode.type === 'API') {
+		code.push(`${tab(1)}setTimeout(function() {`);
+		code.push(`${tab(2)}if (!isResponseSent) {`);
+		code.push(`${tab(3)}res.status(200).json({ message: 'Your requested process is taking more then expected time, Please check interactions for final status.' });`);
+		code.push(`${tab(3)}isResponseSent = true;`);
+		code.push(`${tab(2)}}`);
+		code.push(`${tab(1)}}, 40000);`);
+	}
 	if (inputNode.options && inputNode.options.contentType === 'multipart/form-data') {
 		if (inputNode.type === 'FILE') {
-			code.push(`${tab(2)}res.status(200).json({ message: 'File is being processed'});`);
+			code.push(`${tab(2)}res.status(200).json({ message: 'File is being processed' });`);
 		}
 		code.push(`${tab(1)}if (!req.files || Object.keys(req.files).length === 0) {`);
 		code.push(`${tab(2)}state.status = "ERROR";`);
@@ -165,7 +173,7 @@ function parseFlow(dataJson) {
 	// 	code = code.concat(generateCode(node, nodes));
 	// 	if (node.condition) code.push(`${tab(1)}}`);
 	// });
-	code.push(`${tab(1)}return isResponseSent ? true : res.status((response.statusCode || 200)).json(response.body)`);
+	code.push(`${tab(1)}return isResponseSent ? true : res.status((response.statusCode || 200)).json(response.body);`);
 	code.push('});');
 	code.push('module.exports = router;');
 	return code.join('\n');
