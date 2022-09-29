@@ -141,6 +141,7 @@ function parseFlow(dataJson) {
 		}
 	}
 	code.push(`${tab(2)}response = { statusCode: 200, body: state.body, headers: state.headers };`);
+	code.push(`${tab(1)}state.status = 'SUCCESS';`);
 	code.push(`${tab(1)}stateUtils.upsertState(req, state);`);
 	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(state.body));`);
 	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(state.headers));`);
@@ -514,6 +515,7 @@ function generateNodes(node) {
 				});
 				code.push(`${tab(2)}});`);
 				code.push(`${tab(2)}promises = await Promise.all(promises);`);
+				code.push(`${tab(2)}state.status = 'SUCCESS';`);
 				code.push(`${tab(2)}return { statusCode: 200, body: promises.map(e=>e.body), headers: state.headers };`);
 			} else {
 				// code.push(`${tab(2)}promises = await temp.reduce(async(response, data) => {`);

@@ -3,16 +3,16 @@ const { v4: uuid } = require('uuid');
 
 const logger = log4js.getLogger(global.loggerName);
 
-function getState(req, stateId, isChild) {
+function getState(req, nodeId, isChild) {
 	const data = {};
 	data._id = uuid();
-	data.stateId = stateId;
+	data.nodeId = nodeId;
 	data.txnId = isChild ? uuid() : req.headers['data-stack-txn-id'];
 	data.remoteTxnId = req.headers['data-stack-remote-txn-id'];
 	data.parentTxnId = isChild ? req.headers['data-stack-txn-id'] : null;
 	data.headers = req.headers;
 	data.body = req.body;
-	data.status = 'Init';
+	data.status = 'PENDING';
 	return data;
 }
 
@@ -22,7 +22,7 @@ async function upsertState(req, state) {
 	logger.trace(`[${txnId}] [${remoteTxnId}] Starting Upsert Stage: ${JSON.stringify(state._id)}`);
 	try {
 		await global.appcenterDB.collection('b2b.node.state').findOneAndUpdate(
-			{ stateId: state.stateId, txnId: state.txnId, remoteTxnId: state.remoteTxnId, parentTxnId: state.parentTxnId },
+			{ nodeId: state.nodeId, txnId: state.txnId, remoteTxnId: state.remoteTxnId, parentTxnId: state.parentTxnId },
 			{ $set: state },
 			{ upsert: true }
 		);
