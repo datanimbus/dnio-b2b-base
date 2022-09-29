@@ -278,6 +278,7 @@ function parseNodes(dataJson) {
 	code.push('const commonUtils = require(\'./common.utils\');');
 	code.push('const stateUtils = require(\'./state.utils\');');
 	code.push('const validationUtils = require(\'./validation.utils\');');
+	code.push('const { v4: uuid } = require(\'uuid\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('');
