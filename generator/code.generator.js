@@ -175,7 +175,10 @@ function parseFlow(dataJson) {
 	// 	code = code.concat(generateCode(node, nodes));
 	// 	if (node.condition) code.push(`${tab(1)}}`);
 	// });
-	code.push(`${tab(1)}return isResponseSent ? true : res.status((response.statusCode || 200)).json(response.body);`);
+	code.push(`${tab(1)}if (!isResponseSent) {`);
+	code.push(`${tab(2)}res.status((response.statusCode || 200)).json(response.body);`);
+	code.push(`${tab(2)}isResponseSent = true;`);
+	code.push(`${tab(1)}}`);
 	code.push('});');
 	code.push('module.exports = router;');
 	return code.join('\n');
@@ -219,13 +222,19 @@ function generateCode(node, nodes) {
 			code.push(`${tab(3)}state = stateUtils.getState(response, '${node.onError[0]._id}');`);
 			code.push(`${tab(3)}await nodeUtils.${_.camelCase(node.onError[0]._id)}(req, state, node);`);
 		} else {
-			code.push(`${tab(3)}return isResponseSent ? true : res.status((response.statusCode || 200)).json(response.body)`);
+			code.push(`${tab(3)}if (!isResponseSent) {`);
+			code.push(`${tab(4)}res.status((response.statusCode || 200)).json(response.body);`);
+			code.push(`${tab(4)}isResponseSent = true;`);
+			code.push(`${tab(3)}}`);
 		}
 		code.push(`${tab(2)}}`);
 	}
 	code.push(`${tab(1)}} catch (err) {`);
 	code.push(`${tab(2)}logger.error(err);`);
-	code.push(`${tab(2)}return isResponseSent ? true : res.status(500).json({ message: err.message });`);
+	code.push(`${tab(2)}if (!isResponseSent) {`);
+	code.push(`${tab(3)}res.status(500).json({ message: err.message });`);
+	code.push(`${tab(3)}isResponseSent = true;`);
+	code.push(`${tab(2)}}`);
 	code.push(`${tab(1)}}`);
 	let tempNodes = (node.onSuccess || []);
 	for (let index = 0; index < tempNodes.length; index++) {
