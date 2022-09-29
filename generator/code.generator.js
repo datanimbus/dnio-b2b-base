@@ -60,7 +60,7 @@ function parseFlow(dataJson) {
 		code.push(`${tab(3)}res.status(202).json({ message: 'Your requested process is taking more then expected time, Please check interactions for final status.' });`);
 		code.push(`${tab(3)}isResponseSent = true;`);
 		code.push(`${tab(2)}}`);
-		code.push(`${tab(1)}}, 40000);`);
+		code.push(`${tab(1)}}, 30000);`);
 	}
 	if (inputNode.options && inputNode.options.contentType === 'multipart/form-data') {
 		if (inputNode.type === 'FILE') {
@@ -74,7 +74,7 @@ function parseFlow(dataJson) {
 		code.push(`${tab(2)}return;`);
 		code.push(`${tab(1)}}`);
 		code.push(`${tab(1)}const reqFile = req.files.file;`);
-		code.push(`${tab(1)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request file info - \`, reqFile);`);
+		code.push(`${tab(1)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request file info - \`, reqFile);`);
 		const dataFormat = dataJson.dataStructures[inputNode.dataStructure.outgoing._id];
 		if (!dataFormat.formatType) {
 			dataFormat.formatType = 'JSON';
@@ -120,7 +120,7 @@ function parseFlow(dataJson) {
 			code.push(`${tab(3)}state.totalRecords = rowCount;`);
 			code.push(`${tab(3)}state.statusCode = 200;`);
 			code.push(`${tab(3)}state.body = records;`);
-			code.push(`${tab(3)}logger.trace('Parsed Data - ', state.body);`);
+			// code.push(`${tab(3)}logger.trace('Parsed Data - ', state.body);`);
 			code.push(`${tab(3)}resolve(records);`);
 			code.push(`${tab(2)}});`);
 			code.push(`${tab(1)}});`);
@@ -144,8 +144,8 @@ function parseFlow(dataJson) {
 	code.push(`${tab(2)}response = { statusCode: 200, body: state.body, headers: state.headers };`);
 	code.push(`${tab(1)}state.status = 'SUCCESS';`);
 	code.push(`${tab(1)}stateUtils.upsertState(req, state);`);
-	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(state.body));`);
-	code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(state.headers));`);
+	// code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(state.body));`);
+	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(state.headers));`);
 	let tempNodes = (inputNode.onSuccess || []);
 	for (let index = 0; index < tempNodes.length; index++) {
 		const ss = tempNodes[index];
