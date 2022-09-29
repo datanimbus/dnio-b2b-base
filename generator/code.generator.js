@@ -34,6 +34,7 @@ function parseFlow(dataJson) {
 	code.push('const path = require(\'path\');');
 	code.push('const fastcsv = require(\'fast-csv\');');
 	code.push('const XLSX = require(\'xlsx\');');
+	code.push('const { v4: uuid } = require(\'uuid\');');
 	code.push('const _ = require(\'lodash\');');
 	code.push('');
 	code.push('const stateUtils = require(\'./state.utils\');');
