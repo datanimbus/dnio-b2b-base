@@ -301,12 +301,6 @@ function generateNodes(node) {
 			code.push(`${tab(2)}if (req.header('authorization')) {`);
 			code.push(`${tab(3)}customHeaders['authorization'] = req.header('authorization');`);
 			code.push(`${tab(2)}}`);
-			code.push(`${tab(2)}let iterator = [];`);
-			code.push(`${tab(2)}if (!Array.isArray(state.body)) {`);
-			code.push(`${tab(3)}iterator = _.chunk([state.body], 500);`);
-			code.push(`${tab(2)}} else {`);
-			code.push(`${tab(3)}iterator = _.chunk(state.body, 500);`);
-			code.push(`${tab(2)}}`);
 			code.push(`${tab(2)}let customBody = state.body;`);
 			if (node.type === 'API' && node.options) {
 				code.push(`${tab(2)}state.url = \`${parseDynamicVariable(node.options.host)}${parseDynamicVariable(node.options.path)}\`;`);
@@ -332,6 +326,18 @@ function generateNodes(node) {
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
+
+				code.push(`${tab(2)}let iterator = [];`);
+				code.push(`${tab(2)}if (!Array.isArray(state.body)) {`);
+				code.push(`${tab(3)}iterator = _.chunk([state.body], 500);`);
+				code.push(`${tab(2)}} else {`);
+				code.push(`${tab(3)}iterator = _.chunk(state.body, 500);`);
+				code.push(`${tab(2)}}`);
+				code.push(`${tab(2)}let batchList = iterator.map((e,i) => {`);
+				code.push(`${tab(3)}return {_id: uuid(), seqNo: (i + 1), rows: e, status: 'PENDING' };`);
+				code.push(`${tab(2)}});`);
+				code.push(`${tab(2)}state.batchList = batchList;`);
+				code.push(`${tab(2)}delete state.body;`);
 				// if (node.options.body && !_.isEmpty(node.options.body)) {
 				// 	code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 				// }
@@ -379,18 +385,28 @@ function generateNodes(node) {
 
 
 			code.push(`${tab(2)}let results = [];`);
-			code.push(`${tab(2)}await iterator.reduce(async (prev, curr) => {`);
+			code.push(`${tab(2)}await state.batchList.reduce(async (prev, curr) => {`);
 			code.push(`${tab(3)}await prev;`);
 			code.push(`${tab(3)}if (!curr) { return; };`);
 			code.push(`${tab(3)}if (options.method == 'POST' || options.method == 'PUT') {`);
 			if (node.type === 'DATASERVICE') {
-				code.push(`${tab(4)}options.json = { docs: curr };`);
+				code.push(`${tab(4)}options.json = { docs: curr.rows };`);
 			} else {
-				code.push(`${tab(3)}options.json = customBody;`);
+				code.push(`${tab(3)}options.json = curr.rows;`);
 			}
 			code.push(`${tab(3)}}`);
-			code.push(`${tab(3)}const response = await httpClient.request(options);`);
-			code.push(`${tab(3)}results.push(response);`);
+			code.push(`${tab(3)}try {`);
+			code.push(`${tab(4)}const response = await httpClient.request(options);`);
+			code.push(`${tab(4)}results.push(response);`);
+			code.push(`${tab(4)}curr.statusCode = response.statusCode;`);
+			code.push(`${tab(4)}curr.headers = response.headers;`);
+			code.push(`${tab(4)}curr.responseBody = response.body;`);
+			code.push(`${tab(3)}} catch(err) {`);
+			code.push(`${tab(4)}results.push(err);`);
+			code.push(`${tab(4)}curr.statusCode = err.statusCode;`);
+			code.push(`${tab(4)}curr.headers = err.headers;`);
+			code.push(`${tab(4)}curr.responseBody = err.body;`);
+			code.push(`${tab(3)}}`);
 			code.push(`${tab(2)}}, Promise.resolve());`);
 			// code.push(`${tab(2)}logger.trace(results);`);
 			code.push(`${tab(2)}const finalRecords = _.flatten(results.map(e => e.body));`);
