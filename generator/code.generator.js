@@ -293,10 +293,10 @@ function generateNodes(node) {
 			code.push(`${tab(3)}customHeaders['authorization'] = 'JWT ' + req.header('authorization');`);
 			code.push(`${tab(2)}}`);
 			code.push(`${tab(2)}let iterator = [];`);
-			code.push(`${tab(2)}if (Array.isArray(state.body) && state.body.length > 750) {`);
-			code.push(`${tab(3)}iterator = _.chunk(state.body, 500);`);
+			code.push(`${tab(2)}if (!Array.isArray(state.body)) {`);
+			code.push(`${tab(3)}iterator = _.chunk([state.body], 500);`);
 			code.push(`${tab(2)}} else {`);
-			code.push(`${tab(3)}iterator = [state.body];`);
+			code.push(`${tab(3)}iterator = _.chunk(state.body, 500);`);
 			code.push(`${tab(2)}}`);
 			code.push(`${tab(2)}let customBody = state.body;`);
 			if (node.type === 'API' && node.options) {
