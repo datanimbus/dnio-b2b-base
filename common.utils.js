@@ -113,9 +113,33 @@ function handleError(err, state, req, node) {
 	state.status = "ERROR";
 }
 
+function handleResponse(response, state, req, node) {
+	state.statusCode = response.statusCode;
+	state.body = response.body;
+	state.headers = response.headers;
+	if (response && response.statusCode != 200) {
+		state.status = "ERROR";
+		state.statusCode = response && response.statusCode ? response.statusCode : 400;
+		state.body = response && response.body ? response.body : { message: 'Unable to reach the URL' };
+	} else {
+		state.status = "SUCCESS";
+		state.statusCode = 200;
+	}
+}
+
+function handleValidation(errors, state, req, node) {
+	if (errors && !_.isEmpty(errors)) {
+		state.status = "ERROR";
+		state.statusCode = 400;
+		state.body = { message: errors };
+	}
+}
+
 module.exports.getDataService = getDataService;
 module.exports.getFlow = getFlow;
 module.exports.getFaaS = getFaaS;
 module.exports.convertToBoolean = convertToBoolean;
 module.exports.convertToDate = convertToDate;
 module.exports.handleError = handleError;
+module.exports.handleResponse = handleResponse;
+module.exports.handleValidation = handleValidation;

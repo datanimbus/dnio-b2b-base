@@ -117,6 +117,7 @@ function parseFlow(dataJson) {
 			code.push(`${tab(2)}}).on('data', row => records.push(row))`);
 			code.push(`${tab(2)}.on('end', rowCount => {`);
 			code.push(`${tab(3)}logger.debug('Parsed rows = ', rowCount);`);
+			code.push(`${tab(3)}state.totalRecords = rowCount;`);
 			code.push(`${tab(3)}state.statusCode = 200;`);
 			code.push(`${tab(3)}state.body = records;`);
 			code.push(`${tab(3)}logger.trace('Parsed Data - ', state.body);`);
@@ -287,7 +288,16 @@ function generateNodes(node) {
 		let functionName = 'validate_structure_' + _.camelCase(node._id);
 		if (node.type === 'API' || node.type === 'DATASERVICE' || node.type === 'FAAS' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
-			code.push(`${tab(2)}let customHeaders = {'Content-Type':'application/json', 'Authorization':'JWT ' + req.header('authorization')};`);
+			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
+			code.push(`${tab(2)}if (req.header('authorization')) {`);
+			code.push(`${tab(3)}customHeaders['authorization'] = 'JWT ' + req.header('authorization');`);
+			code.push(`${tab(2)}}`);
+			code.push(`${tab(2)}let iterator = [];`);
+			code.push(`${tab(2)}if (Array.isArray(state.body) && state.body.length > 750) {`);
+			code.push(`${tab(3)}iterator = _.chunk(state.body, 500);`);
+			code.push(`${tab(2)}} else {`);
+			code.push(`${tab(3)}iterator = [state.body];`);
+			code.push(`${tab(2)}}`);
 			code.push(`${tab(2)}let customBody = state.body;`);
 			if (node.type === 'API' && node.options) {
 				code.push(`${tab(2)}state.url = \`${parseDynamicVariable(node.options.host)}${parseDynamicVariable(node.options.path)}\`;`);
@@ -302,7 +312,11 @@ function generateNodes(node) {
 				}
 			} else if (node.type === 'DATASERVICE' && node.options.dataService && node.options.dataService._id) {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${node.options.dataService._id}');`);
-				code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/utils/bulkUpsert'`);
+				if (config.isK8sEnv()) {
+					code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/utils/bulkUpsert'`);
+				} else {
+					code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/utils/bulkUpsert'`);
+				}
 				code.push(`${tab(2)}state.method = 'POST';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
@@ -312,7 +326,7 @@ function generateNodes(node) {
 				// if (node.options.body && !_.isEmpty(node.options.body)) {
 				// 	code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 				// }
-				code.push(`${tab(2)}customBody = { docs: state.body };`);
+				// code.push(`${tab(2)}customBody = { docs: state.body };`);
 			} else if (node.type === 'FAAS') {
 				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${node.options.faas._id}');`);
 				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/\${faas.app}/faas/\${faas.api}\`;`);
@@ -347,41 +361,57 @@ function generateNodes(node) {
 				code.push(`${tab(2)}customBody = { username: '${node.options.username}', password: '${node.options.password}' };`);
 			}
 			code.push(`${tab(2)}options.headers = _.merge(state.headers, customHeaders);`);
-			code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
-			code.push(`${tab(3)}options.json = customBody;`);
-			code.push(`${tab(2)}}`);
 			code.push(`${tab(2)}delete options.headers['cookie'];`);
 			code.push(`${tab(2)}delete options.headers['host'];`);
 			code.push(`${tab(2)}delete options.headers['connection'];`);
 			code.push(`${tab(2)}delete options.headers['user-agent'];`);
 			code.push(`${tab(2)}delete options.headers['content-length'];`);
-			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request Data of ${_.camelCase(node._id)} \`, JSON.stringify(options));`);
-			code.push(`${tab(2)}const response = await httpClient.request(options);`);
-			code.push(`${tab(2)}state.statusCode = response.statusCode;`);
-			code.push(`${tab(2)}state.body = response.body;`);
-			code.push(`${tab(2)}state.headers = response.headers;`);
+
+
+
+			code.push(`${tab(2)}let results = [];`);
+			code.push(`${tab(2)}await iterator.reduce(async (prev, curr) => {`);
+			code.push(`${tab(3)}await prev;`);
+			code.push(`${tab(3)}if (!curr) { return; };`);
+			code.push(`${tab(3)}if (options.method == 'POST' || options.method == 'PUT') {`);
+			if (node.type === 'DATASERVICE') {
+				code.push(`${tab(4)}options.json = { docs: curr };`);
+			} else {
+				code.push(`${tab(3)}options.json = customBody;`);
+			}
+			code.push(`${tab(3)}}`);
+			code.push(`${tab(3)}const response = await httpClient.request(options);`);
+			code.push(`${tab(3)}results.push(response);`);
+			code.push(`${tab(2)}}, Promise.resolve());`);
+			// code.push(`${tab(2)}logger.trace(results);`);
+			code.push(`${tab(2)}const finalRecords = _.flatten(results.map(e => e.body));`);
+			code.push(`${tab(2)}const finalHeader = Object.assign.prototype.apply({}, _.flatten(results.map(e => e.headers)));`);
+			code.push(`${tab(2)}response = { statusCode: 200, body: finalRecords, headers: finalHeader }`);
+
+			// code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
+			// code.push(`${tab(3)}options.json = customBody;`);
+			// code.push(`${tab(2)}}`);
+
+			// code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request URL of ${_.camelCase(node._id)} \`, options.url);`);
+			// code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request Data of ${_.camelCase(node._id)} \`, JSON.stringify(options));`);
+			// code.push(`${tab(2)}const response = await httpClient.request(options);`);
+
+
+			code.push(`${tab(2)}commonUtils.handleResponse(response, state, req, node);`);
+			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Response Status Code of ${_.camelCase(node._id)} \`, state.statusCode);`);
 			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Response Data of ${_.camelCase(node._id)} \`, JSON.stringify(state));`);
-			code.push(`${tab(2)}if (response && response.statusCode != 200) {`);
-			code.push(`${tab(3)}state.status = "ERROR";`);
-			code.push(`${tab(3)}state.statusCode = response && response.statusCode ? response.statusCode : 400;`);
-			code.push(`${tab(3)}state.body = response && response.body ? response.body : { message: 'Unable to reach the URL' };`);
-			code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`, response.statusCode);`);
-			code.push(`${tab(3)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
-			code.push(`${tab(2)}}`);
 			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
-				code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, response.body);`);
-				code.push(`${tab(2)}if (errors) {`);
-				code.push(`${tab(3)}state.status = "ERROR";`);
-				code.push(`${tab(3)}state.statusCode = 400;`);
-				code.push(`${tab(3)}state.body = { message: errors };`);
-				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`);`);
-				code.push(`${tab(3)}return { statusCode: 400, body: { message: errors }, headers: response.headers };`);
+				code.push(`${tab(2)}if (state.statusCode == 200) {`);
+				code.push(`${tab(3)}const errors = validationUtils.${functionName}(req, response.body);`);
+				code.push(`${tab(3)}commonUtils.handleValidation(errors, state, req, node);`);
 				code.push(`${tab(2)}}`);
 			}
-			code.push(`${tab(2)}state.status = "SUCCESS";`);
-			code.push(`${tab(3)}state.statusCode = 200;`);
+			code.push(`${tab(2)}if (state.statusCode != 200) {`);
+			code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`, response.statusCode);`);
+			code.push(`${tab(2)}} else {`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with 200\`);`);
-			code.push(`${tab(2)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
+			code.push(`${tab(2)}}`);
+			code.push(`${tab(2)}return { statusCode: state.statusCode, body: state.body, headers: state.headers };`);
 		} else if ((node.type === 'TRANSFORM' || node.type === 'MAPPING') && node.mappings) {
 			code.push(`${tab(2)}let newBody = {};`);
 			node.mappings.forEach(mappingData => {
@@ -539,23 +569,6 @@ function generateNodes(node) {
 			code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
 		}
 		code.push(`${tab(1)}} catch (err) {`);
-		// code.push(`${tab(2)}if (err.statusCode) {`);
-		// code.push(`${tab(3)}state.statusCode = err.statusCode;`);
-		// code.push(`${tab(2)}} else {`);
-		// code.push(`${tab(3)}state.statusCode = 500;`);
-		// code.push(`${tab(2)}}`);
-		// code.push(`${tab(2)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with\`,state.statusCode);`);
-		// code.push(`${tab(2)}if (err.body) {`);
-		// code.push(`${tab(3)}state.body = err.body;`);
-		// code.push(`${tab(3)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}]\`,err.body);`);
-		// code.push(`${tab(2)}} else if (err.message) {`);
-		// code.push(`${tab(3)}state.body = { message: err.message };`);
-		// code.push(`${tab(3)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}]\`,err.message);`);
-		// code.push(`${tab(2)}} else {`);
-		// code.push(`${tab(3)}state.body = err;`);
-		// code.push(`${tab(3)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}]\`,err);`);
-		// code.push(`${tab(2)}}`);
-		// code.push(`${tab(2)}state.status = "ERROR";`);
 		code.push(`${tab(2)}commonUtils.handleError(err, state, req, node);`);
 		code.push(`${tab(2)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with\`,state.statusCode);`);
 		code.push(`${tab(2)}return { statusCode: state.statusCode, body: err, headers: state.headers };`);
