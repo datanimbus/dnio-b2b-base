@@ -208,6 +208,8 @@ function generateCode(node, nodes) {
 		} else {
 			code.push(`${tab(2)}responseBody = response.body;`);
 		}
+		code.push(`${tab(2)}if (!isResponseSent) {`);
+		code.push(`${tab(2)}isResponseSent = true;`);
 		if (node.options.responseType == 'xml') {
 			code.push(`${tab(2)}const xmlContent = xmlBuilder.build(responseBody);`);
 			code.push(`${tab(2)}res.set('Content-Type','application/xml');`);
@@ -215,6 +217,7 @@ function generateCode(node, nodes) {
 		} else {
 			code.push(`${tab(2)}res.status(statusCode).json(responseBody);`);
 		}
+		code.push(`${tab(2)}}`);
 	} else {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}');`);
 		code.push(`${tab(2)}response = await nodeUtils.${_.camelCase(node._id)}(req, state, node);`);
@@ -412,7 +415,7 @@ function generateNodes(node) {
 			code.push(`${tab(2)}}, Promise.resolve());`);
 			// code.push(`${tab(2)}logger.trace(results);`);
 			code.push(`${tab(2)}const finalRecords = _.flatten(results.map(e => e.body));`);
-			code.push(`${tab(2)}const finalHeader = Object.assign.prototype.apply({}, _.flatten(results.map(e => e.headers)));`);
+			code.push(`${tab(2)}const finalHeader = Object.assign.apply({}, _.flatten(results.map(e => e.headers)));`);
 			code.push(`${tab(2)}response = { statusCode: 200, body: finalRecords, headers: finalHeader }`);
 
 			// code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
