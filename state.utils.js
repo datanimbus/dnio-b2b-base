@@ -16,7 +16,7 @@ function getState(req, nodeId, isChild) {
 	data.parentTxnId = isChild ? req.headers['data-stack-txn-id'] : null;
 	data.headers = req.headers;
 	data.body = req.body;
-	data.interactionId = req.query.intrId;
+	data.interactionId = req.query.interactionId;
 	data.status = 'PENDING';
 	return data;
 }
@@ -24,7 +24,7 @@ function getState(req, nodeId, isChild) {
 async function upsertState(req, state) {
 	const txnId = state.txnId;
 	const remoteTxnId = state.remoteTxnId;
-	const interactionId = req.query.intrId;
+	const interactionId = req.query.interactionId;
 	logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Stage: ${JSON.stringify(state._id)}`);
 	try {
 		await global.appcenterDB.collection('b2b.node.state').findOneAndUpdate(
@@ -50,7 +50,7 @@ async function updateInteraction(req, data) {
 async function processInteraction(task, callback) {
 	const req = task.req;
 	const data = task.data;
-	const interactionId = req.query.intrId;
+	const interactionId = req.query.interactionId;
 	const b2bURL = `${config.baseUrlBM}/${config.app}/interaction/${interactionId}`;
 	logger.debug(`[${txnId}] [${remoteTxnId}] Starting Update Interaction: ${interactionId}`);
 	try {
