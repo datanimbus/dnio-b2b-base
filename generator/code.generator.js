@@ -197,7 +197,7 @@ function parseFlow(dataJson) {
  */
 function generateCode(node, nodes) {
 	let code = [];
-	code.push(`${tab(1)}// ═══════════════════ ${node._id} / ${node.name} / ${node.type} ══════════════════════`);
+	code.push(`${tab(1)}\n\n// ═══════════════════ ${node._id} / ${node.name} / ${node.type} ══════════════════════`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking node :: ${node._id} / ${node.name} / ${node.type}\`)`);
 	code.push(`${tab(1)}try {`);
 	if (node.type === 'RESPONSE') {
