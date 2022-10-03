@@ -75,6 +75,7 @@ function parseFlow(dataJson) {
 		code.push(`${tab(2)}return;`);
 		code.push(`${tab(1)}}`);
 		code.push(`${tab(1)}const reqFile = req.files.file;`);
+		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: reqFile });`);
 		code.push(`${tab(1)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request file info - \`, reqFile);`);
 		const dataFormat = dataJson.dataStructures[inputNode.dataStructure.outgoing._id];
 		if (!dataFormat.formatType) {
@@ -141,10 +142,13 @@ function parseFlow(dataJson) {
 			// code.push(`${tab(2)}}`);
 			// code.push(`${tab(2)}}`);
 		}
+	} else if (inputNode.options && inputNode.options.contentType === 'application/json') {
+		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: { attributeCount: Object.keys(req.body).length } });`);
 	}
 	code.push(`${tab(2)}response = { statusCode: 200, body: state.body, headers: state.headers };`);
 	code.push(`${tab(1)}state.status = 'SUCCESS';`);
 	code.push(`${tab(1)}stateUtils.upsertState(req, state);`);
+	code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: state.status });`);
 	// code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(state.body));`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(state.headers));`);
 	let tempNodes = (inputNode.onSuccess || []);
