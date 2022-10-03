@@ -1,11 +1,12 @@
 const log4js = require('log4js');
 const { v4: uuid } = require('uuid');
-const { queue } = require('async');
+const Async = require('async');
 
 const httpClient = require('./http-client');
+const config = require('./config');
 
 const logger = log4js.getLogger(global.loggerName);
-const interactionQueue = queue(processInteraction, 1);
+const interactionQueue = Async.priorityQueue(processInteraction);
 
 function getState(req, nodeId, isChild) {
 	const data = {};
@@ -45,17 +46,23 @@ async function upsertState(req, state) {
 }
 
 async function updateInteraction(req, data) {
-	interactionQueue.push({ req, data });
+	try {
+		interactionQueue.push({ req, data });
+	} catch (err) {
+		logger.error(err);
+	}
 }
 
 async function processInteraction(task, callback) {
 	const req = task.req;
 	const data = task.data;
+	const txnId = req.headers['data-stack-txn-id'];
+	const remoteTxnId = req.headers['data-stack-remote-txn-id'];
 	const interactionId = req.query.interactionId;
 	const b2bURL = `${config.baseUrlBM}/${config.app}/interaction/${interactionId}`;
 	logger.debug(`[${txnId}] [${remoteTxnId}] Starting Update Interaction: ${interactionId}`);
 	try {
-		httpClient.request({
+		const status = await httpClient.request({
 			method: 'PUT',
 			url: b2bURL,
 			json: data,
@@ -64,6 +71,7 @@ async function processInteraction(task, callback) {
 			}
 		})
 		logger.debug(`[${txnId}] [${remoteTxnId}] Ending Update Interaction: ${interactionId}`);
+		logger.trace(`[${txnId}] [${remoteTxnId}] ${status.statusCode} ${status.body}`);
 	} catch (err) {
 		logger.debug(`[${txnId}] [${remoteTxnId}] Ending Update Interaction With Error: ${interactionId}`);
 		logger.error(err);

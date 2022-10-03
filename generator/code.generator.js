@@ -214,6 +214,7 @@ function generateCode(node, nodes) {
 		} else {
 			code.push(`${tab(2)}responseBody = response.body;`);
 		}
+		code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
 		code.push(`${tab(2)}if (!isResponseSent) {`);
 		code.push(`${tab(2)}isResponseSent = true;`);
 		if (node.options.responseType == 'xml') {
