@@ -145,8 +145,10 @@ function parseFlow(dataJson) {
 	} else if (inputNode.options && inputNode.options.contentType === 'application/json') {
 		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: { attributeCount: Object.keys(req.body).length } });`);
 	}
-	code.push(`${tab(2)}response = { statusCode: 200, body: state.body, headers: state.headers };`);
+	// code.push(`${tab(2)}response = { statusCode: 200, body: state.body, headers: state.headers };`);
+	code.push(`${tab(1)}state.statusCode = 200;`);
 	code.push(`${tab(1)}state.status = 'SUCCESS';`);
+	code.push(`${tab(1)}response = _.cloneDeep(state);`);
 	code.push(`${tab(1)}stateUtils.upsertState(req, state);`);
 	code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: state.status });`);
 	// code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(state.body));`);
@@ -420,7 +422,11 @@ function generateNodes(node) {
 			// code.push(`${tab(2)}logger.trace(results);`);
 			code.push(`${tab(2)}const finalRecords = _.flatten(results.map(e => e.body));`);
 			code.push(`${tab(2)}const finalHeader = Object.assign.apply({}, _.flatten(results.map(e => e.headers)));`);
-			code.push(`${tab(2)}response = { statusCode: 200, body: finalRecords, headers: finalHeader }`);
+			// code.push(`${tab(2)}response = { statusCode: 200, body: finalRecords, headers: finalHeader }`);
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}response = _.cloneDeep(state);`);
+			code.push(`${tab(2)}response.body = finalRecords;`);
+			code.push(`${tab(2)}response.headers = finalHeader;`);
 
 			// code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
 			// code.push(`${tab(3)}options.json = customBody;`);
@@ -445,7 +451,8 @@ function generateNodes(node) {
 			code.push(`${tab(2)}} else {`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with 200\`);`);
 			code.push(`${tab(2)}}`);
-			code.push(`${tab(2)}return { statusCode: state.statusCode, body: state.body, headers: state.headers };`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
+			// code.push(`${tab(2)}return { statusCode: state.statusCode, body: state.body, headers: state.headers };`);
 		} else if ((node.type === 'TRANSFORM' || node.type === 'MAPPING') && node.mappings) {
 			code.push(`${tab(2)}let newBody = {};`);
 			node.mappings.forEach(mappingData => {
@@ -487,11 +494,14 @@ function generateNodes(node) {
 				code.push(`${tab(3)}state.body = { message: errors };`);
 				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
 				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`);`);
-				code.push(`${tab(3)}return { statusCode: 400, body: { message: errors }, headers: response.headers };`);
+				code.push(`${tab(3)}return _.cloneDeep(state);`);
+				// code.push(`${tab(3)}return { statusCode: 400, body: { message: errors }, headers: response.headers };`);
 				code.push(`${tab(2)}}`);
 			}
-
-			code.push(`${tab(2)}return { statusCode: 200, body: newBody, headers: state.headers };`);
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.body = newBody;`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
+			// code.push(`${tab(2)}return { statusCode: 200, body: newBody, headers: state.headers };`);
 		} else if (node.type === 'VALIDATION' && node.validation) {
 			code.push(`${tab(2)}let errors = {};`);
 			Object.keys(node.validation).forEach(field => {
@@ -531,7 +541,8 @@ function generateNodes(node) {
 			code.push(`${tab(4)}state.statusCode = 400;`);
 			code.push(`${tab(4)}state.body = errors;`);
 			code.push(`${tab(4)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
-			code.push(`${tab(4)}return { statusCode: 400, body: errors, headers: state.headers };`);
+			// code.push(`${tab(4)}return { statusCode: 400, body: errors, headers: state.headers };`);
+			code.push(`${tab(4)}return _.cloneDeep(state);`);
 			code.push(`${tab(3)}}`);
 			code.push(`${tab(2)}} else {`);
 			code.push(`${tab(3)}let error;`);
@@ -546,10 +557,13 @@ function generateNodes(node) {
 			code.push(`${tab(4)}state.statusCode = 400;`);
 			code.push(`${tab(4)}state.body = errors;`);
 			code.push(`${tab(4)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
-			code.push(`${tab(4)}return { statusCode: 400, body: errors, headers: state.headers };`);
+			// code.push(`${tab(4)}return { statusCode: 400, body: errors, headers: state.headers };`);
+			code.push(`${tab(4)}return _.cloneDeep(state);`);
 			code.push(`${tab(3)}}`);
 			code.push(`${tab(2)}}`);
-			code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
+			// code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FOREACH' || node.type === 'REDUCE') {
 			loopCode = generateNodes(node);
 			code.push(`${tab(2)}let temp = JSON.parse(JSON.stringify(state.body));`);
@@ -580,7 +594,10 @@ function generateNodes(node) {
 				code.push(`${tab(2)}});`);
 				code.push(`${tab(2)}promises = await Promise.all(promises);`);
 				code.push(`${tab(2)}state.status = 'SUCCESS';`);
-				code.push(`${tab(2)}return { statusCode: 200, body: promises.map(e=>e.body), headers: state.headers };`);
+				code.push(`${tab(2)}state.statusCode = 200;`);
+				code.push(`${tab(2)}state.body = promises.map(e => e.body);`);
+				code.push(`${tab(2)}return _.cloneDeep(state);`);
+				// code.push(`${tab(2)}return { statusCode: 200, body: promises.map(e=>e.body), headers: state.headers };`);
 			} else {
 				// code.push(`${tab(2)}promises = await temp.reduce(async(response, data) => {`);
 				// code.push(`${tab(2)}let response = { headers: state.headers, body: data };`);
@@ -600,12 +617,15 @@ function generateNodes(node) {
 				// code.push(`${tab(2)}return { statusCode: 200, body: promises.body, headers: state.headers };`);
 			}
 		} else {
-			code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
+			// code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
 		}
 		code.push(`${tab(1)}} catch (err) {`);
 		code.push(`${tab(2)}commonUtils.handleError(err, state, req, node);`);
 		code.push(`${tab(2)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with\`,state.statusCode);`);
-		code.push(`${tab(2)}return { statusCode: state.statusCode, body: err, headers: state.headers };`);
+		code.push(`${tab(2)}return _.cloneDeep(state);`);
+		// code.push(`${tab(2)}return { statusCode: state.statusCode, body: err, headers: state.headers };`);
 		code.push(`${tab(1)}} finally {`);
 		code.push(`${tab(2)}node['${node._id}'] = state;`);
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
