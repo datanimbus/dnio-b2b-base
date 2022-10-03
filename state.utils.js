@@ -12,6 +12,7 @@ function getState(req, nodeId, isChild) {
 	data.parentTxnId = isChild ? req.headers['data-stack-txn-id'] : null;
 	data.headers = req.headers;
 	data.body = req.body;
+	data.interactionId = req.quert.intrId;
 	data.status = 'PENDING';
 	return data;
 }
