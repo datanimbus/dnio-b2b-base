@@ -201,28 +201,24 @@ function generateCode(node, nodes) {
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking node :: ${node._id} / ${node.name} / ${node.type}\`)`);
 	code.push(`${tab(1)}try {`);
 	if (node.type === 'RESPONSE') {
+		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}');`);
 		code.push(`${tab(2)}isResponseSent = true;`);
-		code.push(`${tab(2)}let statusCode;`);
-		code.push(`${tab(2)}let responseBody;`);
 		if (node.options && node.options.statusCode) {
-			code.push(`${tab(2)}statusCode = ${node.options.statusCode};`);
-		} else {
-			code.push(`${tab(2)}statusCode = response.statusCode;`);
+			code.push(`${tab(2)}state.statusCode = ${node.options.statusCode};`);
 		}
 		if (node.options && node.options.body) {
-			code.push(`${tab(2)}responseBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-		} else {
-			code.push(`${tab(2)}responseBody = response.body;`);
+			code.push(`${tab(2)}state.body = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 		}
+		code.push(`${tab(1)}stateUtils.upsertState(req, state);`);
 		code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
 		code.push(`${tab(2)}if (!isResponseSent) {`);
 		code.push(`${tab(2)}isResponseSent = true;`);
 		if (node.options.responseType == 'xml') {
-			code.push(`${tab(2)}const xmlContent = xmlBuilder.build(responseBody);`);
+			code.push(`${tab(2)}const state.xmlContent = xmlBuilder.build(state.body);`);
 			code.push(`${tab(2)}res.set('Content-Type','application/xml');`);
-			code.push(`${tab(2)}res.status(statusCode).write(xmlContent).end();`);
+			code.push(`${tab(2)}res.status(state.statusCode).write(state.xmlContent).end();`);
 		} else {
-			code.push(`${tab(2)}res.status(statusCode).json(responseBody);`);
+			code.push(`${tab(2)}res.status(state.statusCode).json(state.body);`);
 		}
 		code.push(`${tab(2)}}`);
 	} else {
@@ -500,6 +496,7 @@ function generateNodes(node) {
 				code.push(`${tab(2)}}`);
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.body = newBody;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 			// code.push(`${tab(2)}return { statusCode: 200, body: newBody, headers: state.headers };`);
