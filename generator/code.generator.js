@@ -51,7 +51,7 @@ function parseFlow(dataJson) {
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
 	code.push(`${tab(1)}let response = req;`);
-	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}');`);
+	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}', false, '${(inputNode.options.contentType || '')}');`);
 	code.push(`${tab(1)}let node = {};`);
 	code.push(`${tab(1)}node['${inputNode._id}'] = state;`);
 	code.push(`${tab(1)}let isResponseSent = false;`);
@@ -150,7 +150,6 @@ function parseFlow(dataJson) {
 	code.push(`${tab(1)}state.status = 'SUCCESS';`);
 	code.push(`${tab(1)}response = _.cloneDeep(state);`);
 	code.push(`${tab(1)}stateUtils.upsertState(req, state);`);
-	code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: state.status });`);
 	// code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(state.body));`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(state.headers));`);
 	let tempNodes = (inputNode.onSuccess || []);
@@ -167,6 +166,9 @@ function parseFlow(dataJson) {
 		if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
 		code = code.concat(generateCode(node, nodes));
 		if (node.condition) code.push(`${tab(1)}}`);
+	}
+	if (!tempNodes || tempNodes.length == 0) {
+		code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
 	}
 	// (inputNode.onSuccess || []).map(ss => {
 	// 	const nodeCondition = ss.condition;
@@ -201,7 +203,7 @@ function generateCode(node, nodes) {
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking node :: ${node._id} / ${node.name} / ${node.type}\`)`);
 	code.push(`${tab(1)}try {`);
 	if (node.type === 'RESPONSE') {
-		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}');`);
+		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
 		code.push(`${tab(2)}isResponseSent = true;`);
 		if (node.options && node.options.statusCode) {
 			code.push(`${tab(2)}state.statusCode = ${node.options.statusCode};`);
@@ -210,7 +212,6 @@ function generateCode(node, nodes) {
 			code.push(`${tab(2)}state.body = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 		}
 		code.push(`${tab(1)}stateUtils.upsertState(req, state);`);
-		code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
 		code.push(`${tab(2)}if (!isResponseSent) {`);
 		code.push(`${tab(2)}isResponseSent = true;`);
 		if (node.options.responseType == 'xml') {
@@ -222,7 +223,7 @@ function generateCode(node, nodes) {
 		}
 		code.push(`${tab(2)}}`);
 	} else {
-		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}');`);
+		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
 		code.push(`${tab(2)}response = await nodeUtils.${_.camelCase(node._id)}(req, state, node);`);
 		code.push(`${tab(2)}if (response.statusCode >= 400) {`);
 		if (node.onError && node.onError.length > 0) {
@@ -235,6 +236,9 @@ function generateCode(node, nodes) {
 			code.push(`${tab(3)}}`);
 		}
 		code.push(`${tab(2)}}`);
+	}
+	if (!node.onSuccess || node.onSuccess.length == 0) {
+		code.push(`${tab(2)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
 	}
 	code.push(`${tab(1)}} catch (err) {`);
 	code.push(`${tab(2)}logger.error(err);`);
