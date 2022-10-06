@@ -212,6 +212,7 @@ function generateCode(node, nodes) {
 			code.push(`${tab(2)}state.body = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 		}
 		code.push(`${tab(1)}stateUtils.upsertState(req, state);`);
+		code.push(`${tab(2)}state.status = 'SUCCESS';`);
 		code.push(`${tab(2)}if (!isResponseSent) {`);
 		code.push(`${tab(2)}isResponseSent = true;`);
 		if (node.options.responseType == 'xml') {
