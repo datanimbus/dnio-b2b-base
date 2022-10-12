@@ -210,7 +210,6 @@ function generateCode(node, nodes) {
 	code.push(`${tab(1)}try {`);
 	if (node.type === 'RESPONSE') {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
-		code.push(`${tab(2)}isResponseSent = true;`);
 		if (node.options && node.options.statusCode) {
 			code.push(`${tab(2)}state.statusCode = ${node.options.statusCode};`);
 		}
