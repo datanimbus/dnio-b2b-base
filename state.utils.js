@@ -22,6 +22,10 @@ function getState(req, nodeId, isChild, contentType) {
 	data.interactionId = req.query.interactionId;
 	data.status = 'PENDING';
 	data.contentType = contentType || 'application/json';
+	data._metadata = {
+		createdAt: new Date(),
+		deleted: false
+	};
 	return data;
 }
 
@@ -60,6 +64,7 @@ async function upsertState(req, state) {
 	delete clonedState._id;
 	delete clonedState.body;
 	delete clonedState.batchList;
+	clonedState._metadata.lastUpdated = new Date();
 	logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Stage: ${JSON.stringify(state._id)}`);
 	try {
 		let status = await global.appcenterDB.collection('b2b.node.state').findOneAndUpdate(
