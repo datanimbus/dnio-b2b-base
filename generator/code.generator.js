@@ -106,7 +106,11 @@ function parseFlow(dataJson) {
 			code.push(`${tab(3)}skipLines: 0,`);
 			code.push(`${tab(3)}rowDelimiter: '${rowDelimiter}',`);
 			code.push(`${tab(3)}delimiter: '${dataFormat.character}',`);
-			code.push(`${tab(3)}${dataFormat.strictValidation ? `strictColumnHandling: true` : `discardUnmappedColumns: true`}`);
+			if (dataFormat.strictValidation) {
+				code.push(`${tab(3)}strictColumnHandling: true,`);
+			} else {
+				code.push(`${tab(3)}discardUnmappedColumns: true,`);
+			}
 			code.push(`${tab(2)}}).transform(row => {`);
 			code.push(`${tab(3)}let temp = fileUtils.convertData${dataFormat._id}(row);`);
 			code.push(`${tab(3)}return temp;`);
@@ -305,6 +309,14 @@ function generateNodes(node) {
 	const exportsCode = [];
 	let loopCode = [];
 	nodes.forEach((node) => {
+		if (node.options) {
+			if (node.options.update == undefined || node.options.update == null) {
+				node.options.update = true;
+			}
+			if (node.options.insert == undefined || node.options.insert == null) {
+				node.options.insert = true;
+			}
+		}
 		exportsCode.push(`module.exports.${_.camelCase(node._id)} = ${_.camelCase(node._id)};`);
 		code.push(`async function ${_.camelCase(node._id)}(req, state, node) {`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${_.camelCase(node._id)} Node\`);`);
@@ -331,9 +343,9 @@ function generateNodes(node) {
 			} else if (node.type === 'DATASERVICE' && node.options.dataService && node.options.dataService._id) {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${node.options.dataService._id}');`);
 				if (config.isK8sEnv()) {
-					code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/utils/bulkUpsert'`);
+					code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}'`);
 				} else {
-					code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/utils/bulkUpsert'`);
+					code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}'`);
 				}
 				code.push(`${tab(2)}state.method = 'POST';`);
 				code.push(`${tab(2)}options.url = state.url;`);
@@ -782,27 +794,27 @@ function parseDataStructuresForFileUtils(dataJson) {
 			const definition = dataJson.dataStructures[schemaId].definition;
 			// Function to return array of values;
 			code.push(`function getValuesOf${schemaId} (data) {`);
-			code.push(`${tab(1)}const values = [];`)
+			code.push(`${tab(1)}const values = [];`);
 			definition.forEach(def => {
 				const properties = def.properties;
 				code.push(`${tab(1)}values.push(_.get(data, '${properties.dataKey}') || '');`);
 			});
-			code.push(`${tab(1)}return values;`)
-			code.push('}')
+			code.push(`${tab(1)}return values;`);
+			code.push('}');
 			// Function to return array of headers;
 			code.push(`function getHeaderOf${schemaId} () {`);
-			code.push(`${tab(1)}const headers = [];`)
+			code.push(`${tab(1)}const headers = [];`);
 			definition.forEach(def => {
 				const properties = def.properties;
 				code.push(`${tab(1)}headers.push('${properties.name}');`);
 			});
-			code.push(`${tab(1)}return headers;`)
-			code.push('}')
+			code.push(`${tab(1)}return headers;`);
+			code.push('}');
 
 
 			// Function to Convert Data from CSV to JSON;
 			code.push(`function convertData${schemaId} (rowData) {`);
-			code.push(`${tab(1)}const tempData = {};`)
+			code.push(`${tab(1)}const tempData = {};`);
 			definition.forEach(def => {
 				const properties = def.properties;
 				if (def.type == 'Number') {
@@ -815,8 +827,8 @@ function parseDataStructuresForFileUtils(dataJson) {
 					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', _.get(rowData, '${(properties.dataPath || properties.key)}'));`);
 				}
 			});
-			code.push(`${tab(1)}return tempData;`)
-			code.push('}')
+			code.push(`${tab(1)}return tempData;`);
+			code.push('}');
 
 			code.push(`module.exports.getValuesOf${schemaId} = getValuesOf${schemaId}`);
 			code.push(`module.exports.getHeaderOf${schemaId} = getHeaderOf${schemaId}`);
