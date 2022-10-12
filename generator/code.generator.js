@@ -227,6 +227,8 @@ function generateCode(node, nodes) {
 			code.push(`${tab(2)}res.status(state.statusCode).write(state.xmlContent).end();`);
 		} else {
 			code.push(`${tab(2)}res.status(state.statusCode).json(state.body);`);
+			code.push(`${tab(2)}node['${node._id}'] = state;`);
+			code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 		}
 		code.push(`${tab(2)}}`);
 	} else {
@@ -726,8 +728,8 @@ function parseDataStructures(dataJson) {
 	code.push('const log4js = require(\'log4js\');');
 	code.push('const Ajv = require(\'ajv\');');
 	code.push('const _ = require(\'lodash\');');
-	code.push('const ajv = new Ajv();');
 	code.push('');
+	code.push('const ajv = new Ajv();');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('');
 	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
