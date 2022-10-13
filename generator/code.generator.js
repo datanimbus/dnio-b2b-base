@@ -416,8 +416,8 @@ function generateNodes(node) {
 			} else if (node.type === 'FUNCTION') {
 				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${node.options.faas._id}');`);
 				code.push(`${tab(2)}logger.trace({ faas });`);
-				// code.push(`${tab(2)}state.url = \`${config.baseUrlGW}\${faas.url}\`;`);
-				code.push(`${tab(2)}state.url = \`http://\${faas.deploymentName}.\${faas.namespace}\${faas.url}\`;`);
+				code.push(`${tab(2)}state.url = \`${config.baseUrlGW}\${faas.url}\`;`);
+				// code.push(`${tab(2)}state.url = \`http://\${faas.deploymentName}.\${faas.namespace}\${faas.url}\`;`);
 				code.push(`${tab(2)}state.method = '${node.options.method || 'POST'}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
