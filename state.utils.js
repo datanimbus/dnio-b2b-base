@@ -114,7 +114,7 @@ async function processInteraction(task, callback) {
 			headers: {
 				'authorization': 'JWT ' + global.BM_TOKEN
 			}
-		})
+		});
 		logger.debug(`[${txnId}] [${remoteTxnId}] Ending Update Interaction: ${interactionId}`);
 		logger.trace(`[${txnId}] [${remoteTxnId}] ${status.statusCode} ${status.body}`);
 		return true;
