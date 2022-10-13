@@ -147,9 +147,29 @@ function parseFlow(dataJson) {
 			// code.push(`${tab(2)}}`);
 		}
 	} else if (inputNode.options && inputNode.options.contentType === 'application/json') {
-		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: { attributeCount: Object.keys(state.body).length } });`);
+		code.push(`${tab(1)}const metaData = {};`);
+		code.push(`${tab(1)}if (Array.isArray(state.body)) {`);
+		code.push(`${tab(2)}metaData.type = 'Array';`);
+		code.push(`${tab(2)}metaData.attributeCount = state.body && state.body[0] ? Object.keys(state.body[0]).length : 0;`);
+		code.push(`${tab(2)}metaData.totalRecords = state.body ? state.body.length : 0;`);
+		code.push(`${tab(1)}} else {`);
+		code.push(`${tab(2)}metaData.type = 'Object';`);
+		code.push(`${tab(2)}metaData.attributeCount = state.body ? Object.keys(state.body).length : 0;`);
+		code.push(`${tab(2)}metaData.totalRecords = 1;`);
+		code.push(`${tab(1)}}`);
+		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: metaData });`);
 	} else if (inputNode.options && inputNode.options.contentType === 'application/xml') {
-		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: { attributeCount: Object.keys(state.body).length } });`);
+		code.push(`${tab(1)}const metaData = {};`);
+		code.push(`${tab(1)}if (Array.isArray(state.body)) {`);
+		code.push(`${tab(2)}metaData.type = 'Array';`);
+		code.push(`${tab(2)}metaData.attributeCount = state.body && state.body[0] ? Object.keys(state.body[0]).length : 0;`);
+		code.push(`${tab(2)}metaData.totalRecords = state.body ? state.body.length : 0;`);
+		code.push(`${tab(1)}} else {`);
+		code.push(`${tab(2)}metaData.type = 'Object';`);
+		code.push(`${tab(2)}metaData.attributeCount = state.body ? Object.keys(state.body).length : 0;`);
+		code.push(`${tab(2)}metaData.totalRecords = 1;`);
+		code.push(`${tab(1)}}`);
+		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: metaData });`);
 	}
 	// code.push(`${tab(2)}response = { statusCode: 200, body: state.body, headers: state.headers };`);
 	code.push(`${tab(1)}state.statusCode = 200;`);
