@@ -218,6 +218,7 @@ function generateCode(node, nodes) {
 		}
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 		code.push(`${tab(2)}state.status = 'SUCCESS';`);
+		code.push(`${tab(2)}state.statusCode = 200;`);
 		code.push(`${tab(2)}if (!isResponseSent) {`);
 		code.push(`${tab(2)}isResponseSent = true;`);
 		if (node.options.responseType == 'xml') {
