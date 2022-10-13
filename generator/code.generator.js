@@ -419,6 +419,7 @@ function generateNodes(node) {
 				code.push(`${tab(2)}state.url = \`${config.baseUrlGW}\${faas.url}\`;`);
 				// code.push(`${tab(2)}state.url = \`http://\${faas.deploymentName}.\${faas.namespace}\${faas.url}\`;`);
 				code.push(`${tab(2)}state.method = '${node.options.method || 'POST'}';`);
+				code.push(`${tab(2)}logger.debug({ url: state.url });`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
@@ -486,6 +487,7 @@ function generateNodes(node) {
 				code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
 				code.push(`${tab(3)}options.json = customBody;`);
 				code.push(`${tab(2)}}`);
+				code.push(`${tab(2)}logger.trace({ options });`);
 				code.push(`${tab(2)}let response = await httpClient.request(options);`);
 				code.push(`${tab(2)}const finalRecords = response.body;`);
 				code.push(`${tab(2)}const finalHeader = response.headers;`);
