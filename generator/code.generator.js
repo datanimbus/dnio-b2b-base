@@ -366,7 +366,7 @@ function generateNodes(node) {
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${_.camelCase(node._id)} Node\`);`);
 		code.push(`${tab(1)}try {`);
 		let functionName = 'validate_structure_' + _.camelCase(node._id);
-		if (node.type === 'API' || node.type === 'DATASERVICE' || node.type === 'FAAS' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
+		if (node.type === 'API' || node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
 			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
 			code.push(`${tab(2)}if (req.header('authorization')) {`);
@@ -413,9 +413,9 @@ function generateNodes(node) {
 				// 	code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 				// }
 				// code.push(`${tab(2)}customBody = { docs: state.body };`);
-			} else if (node.type === 'FAAS') {
+			} else if (node.type === 'FUNCTION') {
 				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${node.options.faas._id}');`);
-				code.push(`${tab(2)}state.url = \`${config.baseUrlGW}/api/a/faas\${faas.app}\${faas.api}\`;`);
+				code.push(`${tab(2)}state.url = \`${config.baseUrlGW}/api/a/faas/\${faas.app}\${faas.api}\`;`);
 				code.push(`${tab(2)}state.method = '${node.options.method || 'POST'}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
@@ -464,7 +464,7 @@ function generateNodes(node) {
 				code.push(`${tab(4)}options.json = { docs: curr.rows };`);
 				code.push(`${tab(3)}}`);
 				code.push(`${tab(3)}try {`);
-				code.push(`${tab(4)}const response = await httpClient.request(options);`);
+				code.push(`${tab(4)}let response = await httpClient.request(options);`);
 				code.push(`${tab(4)}results.push(response);`);
 				code.push(`${tab(4)}curr.statusCode = response.statusCode;`);
 				code.push(`${tab(4)}curr.headers = response.headers;`);
@@ -483,7 +483,7 @@ function generateNodes(node) {
 				code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
 				code.push(`${tab(3)}options.json = customBody;`);
 				code.push(`${tab(2)}}`);
-				code.push(`${tab(2)}const response = await httpClient.request(options);`);
+				code.push(`${tab(2)}let response = await httpClient.request(options);`);
 				code.push(`${tab(2)}const finalRecords = response.body;`);
 				code.push(`${tab(2)}const finalHeader = response.headers;`);
 			}
@@ -499,7 +499,7 @@ function generateNodes(node) {
 
 			// code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request URL of ${_.camelCase(node._id)} \`, options.url);`);
 			// code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request Data of ${_.camelCase(node._id)} \`, JSON.stringify(options));`);
-			// code.push(`${tab(2)}const response = await httpClient.request(options);`);
+			// code.push(`${tab(2)}let response = await httpClient.request(options);`);
 
 
 			code.push(`${tab(2)}commonUtils.handleResponse(response, state, req, node);`);
