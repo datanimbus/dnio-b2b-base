@@ -1,6 +1,7 @@
 const log4js = require('log4js');
 const moment = require('moment');
 const { v4: uuid } = require('uuid');
+const _ = require('lodash');
 
 const config = require('./config');
 const httpClient = require('./http-client');
@@ -53,7 +54,7 @@ async function getFaaS(faasId) {
 		options.method = 'GET';
 		options.headers = {};
 		options.headers['Content-Type'] = 'application/json';
-		options.headers['Authorization'] = 'JWT' + global.BM_TOKEN;
+		options.headers['Authorization'] = 'JWT ' + global.BM_TOKEN;
 		const response = await httpClient.request(options);
 		if (response.statusCode !== 200) {
 			throw response.body;
@@ -110,7 +111,7 @@ function handleError(err, state, req, node) {
 		state.body = err;
 		logger.error(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}]`, err);
 	}
-	state.status = "ERROR";
+	state.status = 'ERROR';
 }
 
 function handleResponse(response, state, req, node) {
@@ -118,18 +119,18 @@ function handleResponse(response, state, req, node) {
 	state.body = response.body;
 	state.headers = response.headers;
 	if (response && response.statusCode != 200) {
-		state.status = "ERROR";
+		state.status = 'ERROR';
 		state.statusCode = response && response.statusCode ? response.statusCode : 400;
 		state.body = response && response.body ? response.body : { message: 'Unable to reach the URL' };
 	} else {
-		state.status = "SUCCESS";
+		state.status = 'SUCCESS';
 		state.statusCode = 200;
 	}
 }
 
 function handleValidation(errors, state, req, node) {
 	if (errors && !_.isEmpty(errors)) {
-		state.status = "ERROR";
+		state.status = 'ERROR';
 		state.statusCode = 400;
 		state.body = { message: errors };
 	}
