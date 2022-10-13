@@ -415,7 +415,9 @@ function generateNodes(node) {
 				// code.push(`${tab(2)}customBody = { docs: state.body };`);
 			} else if (node.type === 'FUNCTION') {
 				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${node.options.faas._id}');`);
-				code.push(`${tab(2)}state.url = \`${config.baseUrlGW}\${faas.url}\`;`);
+				code.push(`${tab(2)}logger.trace({ faas });`);
+				// code.push(`${tab(2)}state.url = \`${config.baseUrlGW}\${faas.url}\`;`);
+				code.push(`${tab(2)}state.url = \`http://\${faas.deploymentName}.\${faas.namespace}\${faas.url}\`;`);
 				code.push(`${tab(2)}state.method = '${node.options.method || 'POST'}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
@@ -427,6 +429,7 @@ function generateNodes(node) {
 				}
 			} else if (node.type === 'FLOW') {
 				code.push(`${tab(2)}const flow = await commonUtils.getFlow('${node.options._id}');`);
+				code.push(`${tab(2)}logger.trace({ flow });`);
 				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/b2b/pipes/\${flow.app}/\${flow.inputNode.options.path}\`;`);
 				code.push(`${tab(2)}state.method = \`\${flow.inputNode.options.method || 'POST'}\`;`);
 				code.push(`${tab(2)}options.url = state.url;`);
