@@ -50,7 +50,7 @@ async function getFlow(flowId) {
 async function getFaaS(faasId) {
 	try {
 		const options = {};
-		options.url = config.baseUrlBM + '/faas/' + faasId;
+		options.url = `${config.baseUrlBM}/${config.app}/faas/${faasId}`;
 		options.method = 'GET';
 		options.headers = {};
 		options.headers['Content-Type'] = 'application/json';
