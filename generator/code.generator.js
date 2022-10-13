@@ -27,11 +27,13 @@ function parseFlow(dataJson) {
 	const nodes = dataJson.nodes;
 	let api = '/' + dataJson.app + inputNode.options.path;
 	let code = [];
-	code.push('const router = require(\'express\').Router({ mergeParams: true });');
-	code.push('const log4js = require(\'log4js\');');
-	code.push('const { XMLBuilder, J2XParser, parse, XMLParser } = require(\'fast-xml-parser\');');
 	code.push('const fs = require(\'fs\');');
 	code.push('const path = require(\'path\');');
+	code.push('const express = require(\'express\');');
+	code.push('const router = express.Router({ mergeParams: true });');
+	code.push('const log4js = require(\'log4js\');');
+	code.push('const fileUpload = require(\'express-fileupload\');');
+	code.push('const { XMLBuilder, J2XParser, parse, XMLParser } = require(\'fast-xml-parser\');');
 	code.push('const fastcsv = require(\'fast-csv\');');
 	code.push('const XLSX = require(\'xlsx\');');
 	code.push('const { v4: uuid } = require(\'uuid\');');
@@ -47,6 +49,26 @@ function parseFlow(dataJson) {
 	code.push('');
 	// TODO: Method to be fixed.
 	// code.push(`router.${(inputNode.options.method || 'POST').toLowerCase()}('${api}', async function (req, res) {`);
+
+	if (inputNode.options && inputNode.options.contentType === 'multipart/form-data') {
+		code.push(`${tab(0)}router.use(fileUpload({`);
+		code.push(`${tab(1)}useTempFiles: true,`);
+		code.push(`${tab(1)}tempFileDir: './uploads'`);
+		code.push(`${tab(0)}}));`);
+	} else if (inputNode.options && inputNode.options.contentType === 'application/json') {
+		code.push(`${tab(0)}router.use(express.json({ inflate: true, limit: '100mb' }));`);
+	} else if (inputNode.options && inputNode.options.contentType === 'application/xml') {
+		code.push(`${tab(0)}router.use(express.raw({ type: ['application/xml'] }));`);
+		code.push(`${tab(0)}router.use((req, res, next) => {`);
+		code.push(`${tab(1)}if (req.get('content-type') === 'application/xml') {`);
+		code.push(`${tab(2)}req.body = xmlParser.parse(req.body);`);
+		code.push(`${tab(1)}}`);
+		code.push(`${tab(1)}next();`);
+		code.push(`${tab(0)}});`);
+	} else {
+		code.push(`${tab(0)}router.use(express.raw());`);
+	}
+
 	code.push(`router.post('${api}', async function (req, res) {`);
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
@@ -77,7 +99,7 @@ function parseFlow(dataJson) {
 		code.push(`${tab(1)}const reqFile = req.files.file;`);
 		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: reqFile });`);
 		code.push(`${tab(1)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request file info - \`, reqFile);`);
-		const dataFormat = dataJson.dataStructures[inputNode.dataStructure.outgoing._id];
+		const dataFormat = dataJson.dataStructures[inputNode.dataStructure.outgoing._id] || {};
 		if (!dataFormat.formatType) {
 			dataFormat.formatType = 'JSON';
 		}
