@@ -332,8 +332,8 @@ function generateNodes(node) {
 			code.push(`${tab(2)}}`);
 			code.push(`${tab(2)}let customBody = state.body;`);
 			if (node.type === 'API' && node.options) {
-				code.push(`${tab(2)}state.url = \`${parseDynamicVariable(node.options.host)}${parseDynamicVariable(node.options.path)}\`;`);
-				code.push(`${tab(2)}state.method = '${node.options.method}';`);
+				code.push(`${tab(2)}state.url = \`${parseDynamicVariable(node.options.url)}\`;`);
+				code.push(`${tab(2)}state.method = '${node.options.method || 'POST'}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
@@ -413,33 +413,38 @@ function generateNodes(node) {
 
 
 
-			code.push(`${tab(2)}let results = [];`);
-			code.push(`${tab(2)}await state.batchList.reduce(async (prev, curr) => {`);
-			code.push(`${tab(3)}await prev;`);
-			code.push(`${tab(3)}if (!curr) { return; };`);
-			code.push(`${tab(3)}if (options.method == 'POST' || options.method == 'PUT') {`);
 			if (node.type === 'DATASERVICE') {
+				code.push(`${tab(2)}let results = [];`);
+				code.push(`${tab(2)}await state.batchList.reduce(async (prev, curr) => {`);
+				code.push(`${tab(3)}await prev;`);
+				code.push(`${tab(3)}if (!curr) { return; };`);
+				code.push(`${tab(3)}if (options.method == 'POST' || options.method == 'PUT') {`);
 				code.push(`${tab(4)}options.json = { docs: curr.rows };`);
+				code.push(`${tab(3)}}`);
+				code.push(`${tab(3)}try {`);
+				code.push(`${tab(4)}const response = await httpClient.request(options);`);
+				code.push(`${tab(4)}results.push(response);`);
+				code.push(`${tab(4)}curr.statusCode = response.statusCode;`);
+				code.push(`${tab(4)}curr.headers = response.headers;`);
+				code.push(`${tab(4)}curr.responseBody = response.body;`);
+				code.push(`${tab(3)}} catch(err) {`);
+				code.push(`${tab(4)}results.push(err);`);
+				code.push(`${tab(4)}curr.statusCode = err.statusCode;`);
+				code.push(`${tab(4)}curr.headers = err.headers;`);
+				code.push(`${tab(4)}curr.responseBody = err.body;`);
+				code.push(`${tab(3)}}`);
+				code.push(`${tab(2)}}, Promise.resolve());`);
+				// code.push(`${tab(2)}logger.trace(results);`);
+				code.push(`${tab(2)}const finalRecords = _.flatten(results.map(e => e.body));`);
+				code.push(`${tab(2)}const finalHeader = Object.assign.apply({}, _.flatten(results.map(e => e.headers)));`);
 			} else {
-				code.push(`${tab(3)}options.json = curr.rows;`);
+				code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
+				code.push(`${tab(3)}options.json = state.body;`);
+				code.push(`${tab(2)}}`);
+				code.push(`${tab(2)}const response = await httpClient.request(options);`);
+				code.push(`${tab(2)}const finalRecords = response.body;`);
+				code.push(`${tab(2)}const finalHeader = response.headers;`);
 			}
-			code.push(`${tab(3)}}`);
-			code.push(`${tab(3)}try {`);
-			code.push(`${tab(4)}const response = await httpClient.request(options);`);
-			code.push(`${tab(4)}results.push(response);`);
-			code.push(`${tab(4)}curr.statusCode = response.statusCode;`);
-			code.push(`${tab(4)}curr.headers = response.headers;`);
-			code.push(`${tab(4)}curr.responseBody = response.body;`);
-			code.push(`${tab(3)}} catch(err) {`);
-			code.push(`${tab(4)}results.push(err);`);
-			code.push(`${tab(4)}curr.statusCode = err.statusCode;`);
-			code.push(`${tab(4)}curr.headers = err.headers;`);
-			code.push(`${tab(4)}curr.responseBody = err.body;`);
-			code.push(`${tab(3)}}`);
-			code.push(`${tab(2)}}, Promise.resolve());`);
-			// code.push(`${tab(2)}logger.trace(results);`);
-			code.push(`${tab(2)}const finalRecords = _.flatten(results.map(e => e.body));`);
-			code.push(`${tab(2)}const finalHeader = Object.assign.apply({}, _.flatten(results.map(e => e.headers)));`);
 			// code.push(`${tab(2)}response = { statusCode: 200, body: finalRecords, headers: finalHeader }`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}response = _.cloneDeep(state);`);
