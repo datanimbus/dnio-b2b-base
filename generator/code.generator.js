@@ -366,7 +366,7 @@ function generateNodes(node) {
 				code.push(`${tab(3)}return {_id: uuid(), seqNo: (i + 1), rows: e, status: 'PENDING' };`);
 				code.push(`${tab(2)}});`);
 				code.push(`${tab(2)}state.batchList = batchList;`);
-				code.push(`${tab(2)}delete state.body;`);
+				// code.push(`${tab(2)}delete state.body;`);
 				// if (node.options.body && !_.isEmpty(node.options.body)) {
 				// 	code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 				// }
