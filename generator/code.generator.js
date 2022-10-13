@@ -373,8 +373,8 @@ function generateNodes(node) {
 				// code.push(`${tab(2)}customBody = { docs: state.body };`);
 			} else if (node.type === 'FAAS') {
 				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${node.options.faas._id}');`);
-				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/\${faas.app}/faas/\${faas.api}\`;`);
-				code.push(`${tab(2)}state.method = '${node.options.method}';`);
+				code.push(`${tab(2)}state.url = \`${config.baseUrlGW}/api/a/faas\${faas.app}\${faas.api}\`;`);
+				code.push(`${tab(2)}state.method = '${node.options.method || 'POST'}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
@@ -385,8 +385,8 @@ function generateNodes(node) {
 				}
 			} else if (node.type === 'FLOW') {
 				code.push(`${tab(2)}const flow = await commonUtils.getFlow('${node.options._id}');`);
-				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/\${flow.app}/flow/\${flow.inputNode.options.path}\`;`);
-				code.push(`${tab(2)}state.method = '${node.options.method}';`);
+				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/b2b/pipes/\${flow.app}/\${flow.inputNode.options.path}\`;`);
+				code.push(`${tab(2)}state.method = \`\${flow.inputNode.options.method || 'POST'}\`;`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
@@ -439,7 +439,7 @@ function generateNodes(node) {
 				code.push(`${tab(2)}const finalHeader = Object.assign.apply({}, _.flatten(results.map(e => e.headers)));`);
 			} else {
 				code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
-				code.push(`${tab(3)}options.json = state.body;`);
+				code.push(`${tab(3)}options.json = customBody;`);
 				code.push(`${tab(2)}}`);
 				code.push(`${tab(2)}const response = await httpClient.request(options);`);
 				code.push(`${tab(2)}const finalRecords = response.body;`);

@@ -64,6 +64,7 @@ const e = {
 	baseUrlBM: get('bm') + '/bm',
 	baseUrlSEC: get('sec') + '/sec',
 	baseUrlDM: get('dm') + '/dm',
+	baseUrlGW: get('gw') + '/gw',
 	isK8sEnv,
 	imageTag: process.env.IMAGE_TAG || 'dev',
 	hostname: process.env.HOSTNAME,
