@@ -30,8 +30,8 @@ function getState(req, nodeId, isChild, contentType) {
 }
 
 async function upsertState(req, state) {
-	const txnId = state.txnId;
-	const remoteTxnId = state.remoteTxnId;
+	const txnId = req.headers['data-stack-txn-id'];
+	const remoteTxnId = req.headers['data-stack-remote-txn-id'];
 	const interactionId = req.query.interactionId;
 	const clonedState = JSON.parse(JSON.stringify(state));
 	const dataPayload = {};
