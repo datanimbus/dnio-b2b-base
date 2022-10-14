@@ -282,8 +282,8 @@ function generateCode(node, nodes) {
 			code.push(`${tab(3)}await nodeUtils.${_.camelCase(node.onError[0]._id)}(req, state, node);`);
 		} else {
 			code.push(`${tab(3)}if (!isResponseSent) {`);
-			code.push(`${tab(4)}res.status((response.statusCode || 200)).json(response.body);`);
 			code.push(`${tab(4)}isResponseSent = true;`);
+			code.push(`${tab(4)}return res.status((response.statusCode || 200)).json(response.body);`);
 			code.push(`${tab(3)}}`);
 		}
 		code.push(`${tab(2)}}`);
