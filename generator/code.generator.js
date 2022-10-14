@@ -514,7 +514,7 @@ function generateNodes(node) {
 			code.push(`${tab(2)}commonUtils.handleResponse(response, state, req, node);`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Response Status Code of ${_.camelCase(node._id)} \`, state.statusCode);`);
 			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Response Data of ${_.camelCase(node._id)} \`, JSON.stringify(state));`);
-			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
+			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id && node.dataStructure.outgoing.strictValidation) {
 				code.push(`${tab(2)}if (state.statusCode == 200) {`);
 				code.push(`${tab(3)}const errors = validationUtils.${functionName}(req, response.body);`);
 				code.push(`${tab(3)}commonUtils.handleValidation(errors, state, req, node);`);
@@ -560,13 +560,13 @@ function generateNodes(node) {
 			});
 			code.push(`${tab(2)}}`);
 
-			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
+			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id && node.dataStructure.outgoing.strictValidation) {
 				code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, newBody);`);
 				code.push(`${tab(2)}if (errors) {`);
 				code.push(`${tab(3)}state.status = "ERROR";`);
 				code.push(`${tab(3)}state.statusCode = 400;`);
 				code.push(`${tab(3)}state.body = { message: errors };`);
-				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
+				code.push(`${tab(3)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
 				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`);`);
 				code.push(`${tab(3)}return _.cloneDeep(state);`);
 				// code.push(`${tab(3)}return { statusCode: 400, body: { message: errors }, headers: response.headers };`);
@@ -589,7 +589,7 @@ function generateNodes(node) {
 			code.push(`${tab(3)}newBody = _.get(state.body, '${node.options.unwindPath}');`);
 			code.push(`${tab(2)}}`);
 
-			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
+			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id && node.dataStructure.outgoing.strictValidation) {
 				code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, newBody);`);
 				code.push(`${tab(2)}if (errors) {`);
 				code.push(`${tab(3)}state.status = "ERROR";`);
@@ -822,7 +822,7 @@ function generateDataStructures(node, nodes) {
 		code.push(`${tab(2)}if (!valid) errors['0'] = ajv.errorsText(validate_${schemaID}.errors);`);
 		code.push(`${tab(1)}}`);
 		code.push(`${tab(1)}if (!_.isEmpty(errors)) {`);
-		code.push(`${tab(2)}throw new Error(errors);`);
+		code.push(`${tab(2)}throw errors;`);
 		code.push(`${tab(1)}}`);
 	} else {
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] No Data Structure found for ${_.camelCase(node._id)} Node\`);`);
