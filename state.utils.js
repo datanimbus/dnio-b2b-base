@@ -116,7 +116,7 @@ async function processInteraction(task, callback) {
 			}
 		});
 		logger.debug(`[${txnId}] [${remoteTxnId}] Ending Update Interaction: ${interactionId}`);
-		logger.trace(`[${txnId}] [${remoteTxnId}] ${status.statusCode} ${status.body}`);
+		logger.trace(`[${txnId}] [${remoteTxnId}] ${status.statusCode} `, status.body);
 		return true;
 	} catch (err) {
 		logger.debug(`[${txnId}] [${remoteTxnId}] Ending Update Interaction With Error: ${interactionId}`);

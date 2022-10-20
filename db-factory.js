@@ -42,7 +42,7 @@ global.BM_TOKEN = token;
 				}
 			});
 			logger.debug(`BM API Call status :: ${resp.statusCode}`);
-			logger.trace(`BM API Call response body :: ${resp.body}`);
+			logger.trace('BM API Call response body :: ',resp.body);
 		} catch (err) {
 			logger.error('Unable to inform B2B Manager');
 			logger.error(err);
