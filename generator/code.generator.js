@@ -339,11 +339,13 @@ function parseNodes(dataJson) {
 	const code = [];
 	code.push('const log4js = require(\'log4js\');');
 	code.push('const _ = require(\'lodash\');');
+	code.push('const { v4: uuid } = require(\'uuid\');');
+	code.push('const moment = require(\'moment\');');
+	code.push('');
 	code.push('const httpClient = require(\'./http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
 	code.push('const stateUtils = require(\'./state.utils\');');
 	code.push('const validationUtils = require(\'./validation.utils\');');
-	code.push('const { v4: uuid } = require(\'uuid\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('');
@@ -358,10 +360,10 @@ function generateNodes(node) {
 	let loopCode = [];
 	nodes.forEach((node) => {
 		if (node.options) {
-			if (node.options.update == undefined || node.options.update == null) {
-				node.options.update = true;
-			}
-			if (node.options.insert == undefined || node.options.insert == null) {
+			if (!node.options.get &&
+				!node.options.update &&
+				!node.options.insert &&
+				!node.options.delete) {
 				node.options.insert = true;
 			}
 		}
@@ -407,14 +409,35 @@ function generateNodes(node) {
 						if (!node.options.filter) {
 							node.options.filter = '{}';
 						}
-						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/?select=${node.options.select}&sort=${node.options.sort}&count=${node.options.count}&page=${node.options.page}&filter=${parseDynamicVariable(node.options.filter)}'`);
+						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/?select=${node.options.select}&sort=${node.options.sort}&count=${node.options.count}&page=${node.options.page}&filter=${parseDynamicVariable(node.options.filter)}';`);
 					} else if (node.options.delete) {
-						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/${parseDynamicVariable(node.options.documentId)}'`);
+						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/${parseDynamicVariable(node.options.documentId)}';`);
 					} else {
-						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}'`);
+						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}';`);
 					}
 				} else {
-					code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}'`);
+					if (node.options.get) {
+						if (!node.options.select || node.options.select == '*') {
+							node.options.select = '';
+						}
+						if (!node.options.count) {
+							node.options.count = 10;
+						}
+						if (!node.options.page) {
+							node.options.page = 1;
+						}
+						if (!node.options.sort) {
+							node.options.sort = '_metadata.lastUpdated';
+						}
+						if (!node.options.filter) {
+							node.options.filter = '{}';
+						}
+						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/?select=${node.options.select}&sort=${node.options.sort}&count=${node.options.count}&page=${node.options.page}&filter=${parseDynamicVariable(node.options.filter)}';`);
+					} else if (node.options.delete) {
+						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/${parseDynamicVariable(node.options.documentId)}';`);
+					} else {
+						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}';`);
+					}
 				}
 				if (node.options.get) {
 					code.push(`${tab(2)}state.method = 'GET';`);
@@ -496,7 +519,7 @@ function generateNodes(node) {
 				code.push(`${tab(2)}let results = [];`);
 				code.push(`${tab(2)}await state.batchList.reduce(async (prev, curr) => {`);
 				code.push(`${tab(3)}await prev;`);
-				code.push(`${tab(3)}if (!curr) { return; };`);
+				code.push(`${tab(3)}if (!curr) { return; }`);
 				code.push(`${tab(3)}if (options.method == 'POST' || options.method == 'PUT') {`);
 				code.push(`${tab(4)}options.json = { docs: curr.rows };`);
 				code.push(`${tab(3)}}`);
@@ -516,6 +539,7 @@ function generateNodes(node) {
 				// code.push(`${tab(2)}logger.trace(results);`);
 				code.push(`${tab(2)}const finalRecords = _.flatten(results.map(e => e.body));`);
 				code.push(`${tab(2)}const finalHeader = Object.assign.apply({}, _.flatten(results.map(e => e.headers)));`);
+				code.push(`${tab(2)}let response = _.cloneDeep(state);`);
 			} else {
 				code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
 				code.push(`${tab(3)}options.json = customBody;`);
@@ -527,7 +551,6 @@ function generateNodes(node) {
 			}
 			// code.push(`${tab(2)}response = { statusCode: 200, body: finalRecords, headers: finalHeader }`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
-			code.push(`${tab(2)}response = _.cloneDeep(state);`);
 			code.push(`${tab(2)}response.body = finalRecords;`);
 			code.push(`${tab(2)}response.headers = finalHeader;`);
 
