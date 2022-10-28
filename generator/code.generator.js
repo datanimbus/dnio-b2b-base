@@ -391,27 +391,56 @@ function generateNodes(node) {
 			} else if (node.type === 'DATASERVICE' && node.options.dataService && node.options.dataService._id) {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${node.options.dataService._id}');`);
 				if (config.isK8sEnv()) {
-					code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}'`);
+					if (node.options.get) {
+						if (!node.options.select || node.options.select == '*') {
+							node.options.select = '';
+						}
+						if (!node.options.count) {
+							node.options.count = 10;
+						}
+						if (!node.options.page) {
+							node.options.page = 1;
+						}
+						if (!node.options.sort) {
+							node.options.sort = '_metadata.lastUpdated';
+						}
+						if (!node.options.filter) {
+							node.options.filter = '{}';
+						}
+						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/?select=${node.options.select}&sort=${node.options.sort}&count=${node.options.count}&page=${node.options.page}&filter=${parseDynamicVariable(node.options.filter)}'`);
+					} else if (node.options.delete) {
+						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/${parseDynamicVariable(node.options.documentId)}'`);
+					} else {
+						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}'`);
+					}
 				} else {
 					code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}'`);
 				}
-				code.push(`${tab(2)}state.method = 'POST';`);
+				if (node.options.get) {
+					code.push(`${tab(2)}state.method = 'GET';`);
+				} else if (node.options.delete) {
+					code.push(`${tab(2)}state.method = 'DELETE';`);
+				} else {
+					code.push(`${tab(2)}state.method = 'POST';`);
+				}
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
 
-				code.push(`${tab(2)}let iterator = [];`);
-				code.push(`${tab(2)}if (!Array.isArray(state.body)) {`);
-				code.push(`${tab(3)}iterator = _.chunk([state.body], 500);`);
-				code.push(`${tab(2)}} else {`);
-				code.push(`${tab(3)}iterator = _.chunk(state.body, 500);`);
-				code.push(`${tab(2)}}`);
-				code.push(`${tab(2)}let batchList = iterator.map((e,i) => {`);
-				code.push(`${tab(3)}return {_id: uuid(), seqNo: (i + 1), rows: e, status: 'PENDING' };`);
-				code.push(`${tab(2)}});`);
-				code.push(`${tab(2)}state.batchList = batchList;`);
+				if (node.options.update || node.options.insert) {
+					code.push(`${tab(2)}let iterator = [];`);
+					code.push(`${tab(2)}if (!Array.isArray(state.body)) {`);
+					code.push(`${tab(3)}iterator = _.chunk([state.body], 500);`);
+					code.push(`${tab(2)}} else {`);
+					code.push(`${tab(3)}iterator = _.chunk(state.body, 500);`);
+					code.push(`${tab(2)}}`);
+					code.push(`${tab(2)}let batchList = iterator.map((e,i) => {`);
+					code.push(`${tab(3)}return {_id: uuid(), seqNo: (i + 1), rows: e, status: 'PENDING' };`);
+					code.push(`${tab(2)}});`);
+					code.push(`${tab(2)}state.batchList = batchList;`);
+				}
 				// code.push(`${tab(2)}delete state.body;`);
 				// if (node.options.body && !_.isEmpty(node.options.body)) {
 				// 	code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
@@ -463,7 +492,7 @@ function generateNodes(node) {
 
 
 
-			if (node.type === 'DATASERVICE') {
+			if (node.type === 'DATASERVICE' && (node.options.update || node.options.insert)) {
 				code.push(`${tab(2)}let results = [];`);
 				code.push(`${tab(2)}await state.batchList.reduce(async (prev, curr) => {`);
 				code.push(`${tab(3)}await prev;`);
