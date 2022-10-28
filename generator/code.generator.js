@@ -604,67 +604,12 @@ function generateNodes(node) {
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.body = newBody;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
-		} else if (node.type === 'VALIDATION' && node.validation) {
-			code.push(`${tab(2)}let errors = {};`);
-			Object.keys(node.validation).forEach(field => {
-				const formulaID = 'formula_' + _.camelCase(uuid());
-				node.validation[field] = {
-					code: node.validation[field],
-					formulaID
-				};
-				const formulaCode = [];
-				formulaCode.push(`function ${formulaID}(data) {`);
-				formulaCode.push(`${tab(1)}try {`);
-				formulaCode.push(`${tab(2)}${node.validation[field].code}`);
-				formulaCode.push(`${tab(1)}} catch(err) {`);
-				formulaCode.push(`${tab(2)}logger.error(err);`);
-				formulaCode.push(`${tab(2)}throw err;`);
-				formulaCode.push(`${tab(1)}}`);
-				formulaCode.push('}');
-				code.push(formulaCode.join('\n'));
-			});
-			code.push(`${tab(2)}if (Array.isArray(state.body)) {`);
-			code.push(`${tab(3)}errors = [];`);
-			code.push(`${tab(3)}state.body.forEach(item => {`);
-			code.push(`${tab(4)}let error;`);
-			code.push(`${tab(4)}let errorObj;`);
-			Object.keys(node.validation).forEach(field => {
-				code.push(`${tab(4)}error = ${node.validation[field].formulaID}(item);`);
-				code.push(`${tab(4)}if (error) {`);
-				code.push(`${tab(5)}errorObj['${field}'] = error;`);
-				code.push(`${tab(4)}}`);
-			});
-			code.push(`${tab(3)}if (Object.keys(errorObj).length > 0) {`);
-			code.push(`${tab(4)}errors.push(errorObj);`);
-			code.push(`${tab(3)}}`);
-			code.push(`${tab(3)}});`);
-			code.push(`${tab(3)}if (errors && errors.length > 0) {`);
-			code.push(`${tab(4)}state.status = 'ERROR'`);
-			code.push(`${tab(4)}state.statusCode = 400;`);
-			code.push(`${tab(4)}state.body = errors;`);
-			code.push(`${tab(4)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
-			// code.push(`${tab(4)}return { statusCode: 400, body: errors, headers: state.headers };`);
-			code.push(`${tab(4)}return _.cloneDeep(state);`);
-			code.push(`${tab(3)}}`);
-			code.push(`${tab(2)}} else {`);
-			code.push(`${tab(3)}let error;`);
-			Object.keys(node.validation).forEach(field => {
-				code.push(`${tab(3)}error = ${node.validation[field].formulaID}(state.body);`);
-				code.push(`${tab(3)}if (error) {`);
-				code.push(`${tab(4)}errors['${field}'] = error;`);
-				code.push(`${tab(3)}}`);
-			});
-			code.push(`${tab(3)}if (Object.keys(errors).length > 0) {`);
-			code.push(`${tab(4)}state.status = 'ERROR'`);
-			code.push(`${tab(4)}state.statusCode = 400;`);
-			code.push(`${tab(4)}state.body = errors;`);
-			code.push(`${tab(4)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
-			// code.push(`${tab(4)}return { statusCode: 400, body: errors, headers: state.headers };`);
-			code.push(`${tab(4)}return _.cloneDeep(state);`);
-			code.push(`${tab(3)}}`);
-			code.push(`${tab(2)}}`);
-			// code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
+		} else if (node.type === 'CODEBLOCK' && node.options.code) {
+			code.push(`${tab(2)}${node.options.code}`);
+			code.push(`${tab(2)}let response = await execute(state, node);`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.body = response.body;`);
+			code.push(`${tab(2)}state.headers = response.headers;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FOREACH' || node.type === 'REDUCE') {
 			loopCode = generateNodes(node);
