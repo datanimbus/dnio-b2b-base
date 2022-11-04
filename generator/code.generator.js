@@ -2,6 +2,7 @@
 const _ = require('lodash');
 const { v4: uuid } = require('uuid');
 const config = require('../config');
+const commonUtils = require('../common.utils');
 
 // const logger = log4js.getLogger(global.loggerName);
 
@@ -334,7 +335,7 @@ function generateCode(node, nodes) {
 	return code;
 }
 
-function parseNodes(dataJson) {
+async function parseNodes(dataJson) {
 	visitedNodes = [];
 	const code = [];
 	code.push('const log4js = require(\'log4js\');');
@@ -349,16 +350,17 @@ function parseNodes(dataJson) {
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('');
-	return _.concat(code, generateNodes(dataJson)).join('\n');
+	const tempCode = await generateNodes(dataJson);
+	return _.concat(code, tempCode).join('\n');
 }
 
 
-function generateNodes(node) {
+async function generateNodes(node) {
 	const nodes = node.nodes;
 	let code = [];
 	const exportsCode = [];
 	let loopCode = [];
-	nodes.forEach((node) => {
+	let promises = nodes.map(async (node) => {
 		if (node.options) {
 			if (!node.options.get &&
 				!node.options.update &&
@@ -663,6 +665,16 @@ function generateNodes(node) {
 			code.push(`${tab(2)}state.body = response.body;`);
 			code.push(`${tab(2)}state.headers = response.headers;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
+		} else if (node.type === 'CONNECTOR' && node.options.connector && node.options.connector._id) {
+			const connector = await commonUtils.getConnector(node.options.connector._id);
+			if (connector.type == 'SFTP') {
+				connector.directoryPath = node.options.directoryPath;
+				connector.filePattern = node.options.filePattern;
+				code.push(`${tab(2)}const tempFilePath = await commonUtils.sftpPutFile('${JSON.stringify(connector)}');`);
+				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Path \${tempFilePath} \`);`);
+			}
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FOREACH' || node.type === 'REDUCE') {
 			loopCode = generateNodes(node);
 			code.push(`${tab(2)}let temp = JSON.parse(JSON.stringify(state.body));`);
@@ -730,7 +742,9 @@ function generateNodes(node) {
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 		code.push(`${tab(1)}}`);
 		code.push('}');
+		return;
 	});
+	await Promise.all(promises);
 	return _.concat(code, loopCode, exportsCode).join('\n');
 }
 
