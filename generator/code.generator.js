@@ -668,9 +668,10 @@ async function generateNodes(node) {
 		} else if (node.type === 'CONNECTOR' && node.options.connector && node.options.connector._id) {
 			const connector = await commonUtils.getConnector(node.options.connector._id);
 			if (connector.type == 'SFTP') {
-				connector.directoryPath = node.options.directoryPath;
-				connector.filePattern = node.options.filePattern;
-				code.push(`${tab(2)}const tempFilePath = await commonUtils.sftpPutFile('${JSON.stringify(connector)}');`);
+				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector)};`);
+				code.push(`${tab(2)}connectorConfig.directoryPath = '${parseDynamicVariable(node.options.directoryPath)}';`);
+				code.push(`${tab(2)}connectorConfig.filePattern = '${parseDynamicVariable(node.options.filePattern)}';`);
+				code.push(`${tab(2)}const tempFilePath = await commonUtils.sftpPutFile(connectorConfig);`);
 				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Path \${tempFilePath} \`);`);
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
