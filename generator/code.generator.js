@@ -919,6 +919,7 @@ function parseDataStructuresForFileUtils(dataJson) {
 	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
 		Object.keys(dataJson.dataStructures).forEach(schemaId => {
 			const definition = dataJson.dataStructures[schemaId].definition;
+			const formatType = dataJson.dataStructures[schemaId].formatType || 'JSON';
 			// Function to return array of values;
 			code.push(`function getValuesOf${schemaId} (data) {`);
 			code.push(`${tab(1)}const values = [];`);
@@ -944,22 +945,23 @@ function parseDataStructuresForFileUtils(dataJson) {
 			code.push(`${tab(1)}const tempData = {};`);
 			definition.forEach(def => {
 				const properties = def.properties;
+				const sourceKey = formatType == 'JSON' ? (properties.dataPath || properties.key) : properties.name;
 				if (def.type == 'Number') {
-					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', +(_.get(rowData, '${(properties.dataPath || properties.key)}')));`);
+					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', +(_.get(rowData, '${sourceKey}')));`);
 				} else if (def.type == 'Boolean') {
-					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', commonUtils.convertToBoolean(_.get(rowData, '${(properties.dataPath || properties.key)}')));`);
+					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', commonUtils.convertToBoolean(_.get(rowData, '${sourceKey}')));`);
 				} else if (def.type == 'Date') {
-					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', commonUtils.convertToDate(_.get(rowData, '${(properties.dataPath || properties.key)}'), '${properties.dateFormat || 'yyyy-MM-dd'}'));`);
+					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', commonUtils.convertToDate(_.get(rowData, '${sourceKey}'), '${properties.dateFormat || 'yyyy-MM-dd'}'));`);
 				} else {
-					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', _.get(rowData, '${(properties.dataPath || properties.key)}'));`);
+					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', _.get(rowData, '${sourceKey}'));`);
 				}
 			});
 			code.push(`${tab(1)}return tempData;`);
 			code.push('}');
 
-			code.push(`module.exports.getValuesOf${schemaId} = getValuesOf${schemaId}`);
-			code.push(`module.exports.getHeaderOf${schemaId} = getHeaderOf${schemaId}`);
-			code.push(`module.exports.convertData${schemaId} = convertData${schemaId}`);
+			code.push(`module.exports.getValuesOf${schemaId} = getValuesOf${schemaId};`);
+			code.push(`module.exports.getHeaderOf${schemaId} = getHeaderOf${schemaId};`);
+			code.push(`module.exports.convertData${schemaId} = convertData${schemaId};`);
 		});
 	}
 	return code.join('\n');
