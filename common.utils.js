@@ -222,9 +222,10 @@ function handleError(err, state, req, node) {
 }
 
 function handleResponse(response, state, req, node) {
-	if (response.statusCode) {
-		state.statusCode = response.statusCode;
+	if (!response.statusCode) {
+		response.statusCode = 200;
 	}
+	state.statusCode = response.statusCode;
 	state.body = response.body;
 	state.headers = response.headers;
 	if (response && response.statusCode != 200) {
