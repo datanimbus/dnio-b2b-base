@@ -39,6 +39,7 @@ function parseFlow(dataJson) {
 	code.push('const XLSX = require(\'xlsx\');');
 	code.push('const { v4: uuid } = require(\'uuid\');');
 	code.push('const _ = require(\'lodash\');');
+	code.push('const cron = require(\'node-cron\');');
 	code.push('');
 	code.push('const stateUtils = require(\'./state.utils\');');
 	code.push('const nodeUtils = require(\'./node.utils\');');
@@ -70,7 +71,20 @@ function parseFlow(dataJson) {
 		code.push(`${tab(0)}router.use(express.raw());`);
 	}
 
-	code.push(`router.post('${api}', async function (req, res) {`);
+	code.push(`router.post('${api}', handleRequest);`);
+
+	if (inputNode.type === 'TIMER') {
+		code.push(`${tab(0)}cron.schedule('${(inputNode.options.cron || '1 * * * *')}', () => {`);
+		code.push(`${tab(1)}const date = new Date();`);
+		code.push(`${tab(1)}const options = {};`);
+		code.push(`${tab(1)}options.method = 'POST';`);
+		code.push(`${tab(1)}options.url = 'http://localhost:8080${api}';`);
+		code.push(`${tab(1)}options.json = { triggerTime: date.toISOString() };`);
+		code.push(`${tab(1)}let response = await httpClient.request(options);`);
+		code.push(`${tab(0)}});`);
+	}
+
+	code.push('async function handleRequest(req, res) {');
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
 	code.push(`${tab(1)}let response = req;`);
@@ -194,6 +208,7 @@ function parseFlow(dataJson) {
 		code.push(`${tab(1)}}`);
 		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: metaData });`);
 	}
+
 	// code.push(`${tab(2)}response = { statusCode: 200, body: state.body, headers: state.headers };`);
 	code.push(`${tab(1)}state.statusCode = 200;`);
 	code.push(`${tab(1)}state.status = 'SUCCESS';`);
@@ -237,7 +252,7 @@ function parseFlow(dataJson) {
 	code.push(`${tab(2)}res.status((response.statusCode || 200)).json(response.body);`);
 	code.push(`${tab(2)}isResponseSent = true;`);
 	code.push(`${tab(1)}}`);
-	code.push('});');
+	code.push('}');
 	code.push('module.exports = router;');
 	return code.join('\n');
 }
