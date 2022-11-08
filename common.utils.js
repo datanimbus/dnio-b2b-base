@@ -182,9 +182,9 @@ function convertToDate(value, format) {
 }
 
 
-function writeDataToCSV(filepath, data) {
+function writeDataToCSV(filepath, data, headers) {
 	return new Promise((resolve, reject) => {
-		writeToPath(filepath, data).on('error', err => {
+		writeToPath(filepath, data, { headers }).on('error', err => {
 			logger.error(err);
 			reject(err);
 		})
@@ -192,9 +192,9 @@ function writeDataToCSV(filepath, data) {
 	});
 }
 
-function writeDataToXLS(filepath, data) {
+function writeDataToXLS(filepath, data, headers) {
 	return new Promise((resolve, reject) => {
-		writeToPath(filepath, data).on('error', err => {
+		writeToPath(filepath, data, { headers }).on('error', err => {
 			logger.error(err);
 			reject(err);
 		})

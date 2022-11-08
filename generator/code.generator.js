@@ -370,6 +370,7 @@ async function parseNodes(dataJson) {
 	code.push('const commonUtils = require(\'./common.utils\');');
 	code.push('const stateUtils = require(\'./state.utils\');');
 	code.push('const validationUtils = require(\'./validation.utils\');');
+	code.push('const fileUtils = require(\'./file.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('const xmlBuilder = new XMLBuilder();');
@@ -381,10 +382,16 @@ async function parseNodes(dataJson) {
 
 async function generateNodes(node) {
 	const nodes = node.nodes;
+	const dataStructures = node.dataStructures;
 	let code = [];
 	const exportsCode = [];
 	let loopCode = [];
 	let promises = nodes.map(async (node) => {
+		const dataFormat = dataStructures[node.dataStructure.outgoing._id] || { _id: node.dataStructure.outgoing._id };
+		if (!dataFormat.formatType) {
+			dataFormat.formatType = 'JSON';
+		}
+		node.dataStructure.outgoing = dataFormat;
 		if (node.options) {
 			if (!node.options.get &&
 				!node.options.update &&
@@ -694,27 +701,24 @@ async function generateNodes(node) {
 			if (connector.type == 'SFTP') {
 				code.push(`${tab(2)}const body = state.body;`);
 				code.push(`${tab(2)}state.body = {};`);
-				let filename = uuid();
+				let ext = '.json';
 				if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
 					if (node.dataStructure.outgoing.formatType) {
-						filename += '.' + _.lowerCase(node.dataStructure.outgoing.formatType);
-					} else {
-						filename += '.json';
+						ext = '.' + _.lowerCase(node.dataStructure.outgoing.formatType);
 					}
-				} else {
-					filename += '.json';
 				}
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
 				code.push(`${tab(2)}connectorConfig.directoryPath = \`${parseDynamicVariable(node.options.directoryPath)}\`;`);
-				code.push(`${tab(2)}connectorConfig.fileName = \`${parseDynamicVariable(node.options.fileName) || ''}\` || '${filename}';`);
+				code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}') + '${ext}';`);
 				code.push(`${tab(2)}state.body.sourceFilePath = path.join(__dirname, 'SFTP-Files', connectorConfig.fileName);`);
-				code.push(`${tab(2)}state.body.targetFilePath = path.join(configData.directoryPath, configData.fileName);`);
+				code.push(`${tab(2)}state.body.targetFilePath = path.join(connectorConfig.directoryPath, connectorConfig.fileName);`);
 				let fileCreated = false;
 				if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
 					if (node.dataStructure.outgoing.formatType) {
 						if (node.dataStructure.outgoing.formatType == 'CSV') {
 							fileCreated = true;
-							code.push(`${tab(2)}await commonUtils.writeDataToCSV(state.body.sourceFilePath, body);`);
+							code.push(`${tab(2)}const headers = fileUtils.getHeaderOf${node.dataStructure.outgoing._id}();`);
+							code.push(`${tab(2)}await commonUtils.writeDataToCSV(state.body.sourceFilePath, body, headers);`);
 						} else if (node.dataStructure.outgoing.formatType == 'XML') {
 							fileCreated = true;
 							code.push(`${tab(2)}state.xmlContent = xmlBuilder.build(body);`);
