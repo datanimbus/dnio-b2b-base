@@ -736,6 +736,7 @@ async function generateNodes(node) {
 				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Path \${state.body.sourceFilePath} \`);`);
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FOREACH' || node.type === 'REDUCE') {
 			loopCode = generateNodes(node);
