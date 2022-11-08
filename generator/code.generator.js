@@ -74,13 +74,17 @@ function parseFlow(dataJson) {
 	code.push(`router.post('${api}', handleRequest);`);
 
 	if (inputNode.type === 'TIMER') {
-		code.push(`${tab(0)}cron.schedule('${(inputNode.options.cron || '1 * * * *')}', () => {`);
-		code.push(`${tab(1)}const date = new Date();`);
-		code.push(`${tab(1)}const options = {};`);
-		code.push(`${tab(1)}options.method = 'POST';`);
-		code.push(`${tab(1)}options.url = 'http://localhost:8080${api}';`);
-		code.push(`${tab(1)}options.json = { triggerTime: date.toISOString() };`);
-		code.push(`${tab(1)}let response = await httpClient.request(options);`);
+		code.push(`${tab(0)}cron.schedule('${(inputNode.options.cron || '1 * * * *')}', async () => {`);
+		code.push(`${tab(1)}try {`);
+		code.push(`${tab(2)}const date = new Date();`);
+		code.push(`${tab(2)}const options = {};`);
+		code.push(`${tab(2)}options.method = 'POST';`);
+		code.push(`${tab(2)}options.url = 'http://localhost:8080${api}';`);
+		code.push(`${tab(2)}options.json = { triggerTime: date.toISOString() };`);
+		code.push(`${tab(2)}let response = await httpClient.request(options);`);
+		code.push(`${tab(1)}} catch (err) {`);
+		code.push(`${tab(2)}logger.error(err);`);
+		code.push(`${tab(1)}}`);
 		code.push(`${tab(0)}});`);
 	}
 
