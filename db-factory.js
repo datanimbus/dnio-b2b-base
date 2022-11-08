@@ -15,7 +15,6 @@ global.txnIdHeader = 'txnid';
 global.loggerName = LOGGER_NAME;
 global.trueBooleanValues = ['y', 'yes', 'true', '1'];
 global.falseBooleanValues = ['n', 'no', 'false', '0'];
-global.BM_TOKEN = token;
 
 (async () => {
 	try {

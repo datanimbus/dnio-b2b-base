@@ -118,10 +118,11 @@ function parseFlow(dataJson) {
 		code.push(`${tab(1)}const reqFile = req.files.file;`);
 		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: reqFile });`);
 		code.push(`${tab(1)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request file info - \`, reqFile);`);
-		const dataFormat = dataJson.dataStructures[inputNode.dataStructure.outgoing._id] || {};
+		const dataFormat = dataJson.dataStructures[inputNode.dataStructure.outgoing._id] || { _id: inputNode.dataStructure.outgoing._id };
 		if (!dataFormat.formatType) {
 			dataFormat.formatType = 'JSON';
 		}
+		inputNode.dataStructure.outgoing = dataFormat;
 		if (dataFormat.formatType == 'EXCEL') {
 			code.push(`${tab(1)}const workBook = XLSX.readFile(reqFile.tempFilePath);`);
 			code.push(`${tab(1)}XLSX.writeFile(workBook, reqFile.tempFilePath, { bookType: "csv" });`);
@@ -284,7 +285,7 @@ function generateCode(node, nodes) {
 		code.push(`${tab(2)}if (!isResponseSent) {`);
 		code.push(`${tab(2)}isResponseSent = true;`);
 		if (node.options.contentType == 'application/xml') {
-			code.push(`${tab(2)}const state.xmlContent = xmlBuilder.build(state.body);`);
+			code.push(`${tab(2)}state.xmlContent = xmlBuilder.build(state.body);`);
 			code.push(`${tab(2)}res.set('Content-Type','application/xml');`);
 			code.push(`${tab(2)}res.status(state.statusCode).write(state.xmlContent).end();`);
 		} else if (node.options.contentType == 'multipart/form-data') {
@@ -357,10 +358,13 @@ function generateCode(node, nodes) {
 async function parseNodes(dataJson) {
 	visitedNodes = [];
 	const code = [];
+	code.push('const fs = require(\'fs\');');
+	code.push('const path = require(\'path\');');
 	code.push('const log4js = require(\'log4js\');');
 	code.push('const _ = require(\'lodash\');');
 	code.push('const { v4: uuid } = require(\'uuid\');');
 	code.push('const moment = require(\'moment\');');
+	code.push('const { XMLBuilder } = require(\'fast-xml-parser\');');
 	code.push('');
 	code.push('const httpClient = require(\'./http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
@@ -368,6 +372,7 @@ async function parseNodes(dataJson) {
 	code.push('const validationUtils = require(\'./validation.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
+	code.push('const xmlBuilder = new XMLBuilder();');
 	code.push('');
 	const tempCode = await generateNodes(dataJson);
 	return _.concat(code, tempCode).join('\n');
@@ -432,7 +437,7 @@ async function generateNodes(node) {
 						}
 						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/?select=${node.options.select}&sort=${node.options.sort}&count=${node.options.count}&page=${node.options.page}&filter=${parseDynamicVariable(node.options.filter)}';`);
 					} else if (node.options.delete) {
-						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/${parseDynamicVariable(node.options.documentId)}';`);
+						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/${parseDynamicVariable(node.options.documentId)}\`;`);
 					} else {
 						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}';`);
 					}
@@ -455,7 +460,7 @@ async function generateNodes(node) {
 						}
 						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/?select=${node.options.select}&sort=${node.options.sort}&count=${node.options.count}&page=${node.options.page}&filter=${parseDynamicVariable(node.options.filter)}';`);
 					} else if (node.options.delete) {
-						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/${parseDynamicVariable(node.options.documentId)}';`);
+						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + \`/${parseDynamicVariable(node.options.documentId)}\`;`);
 					} else {
 						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}';`);
 					}
@@ -687,11 +692,44 @@ async function generateNodes(node) {
 		} else if (node.type === 'CONNECTOR' && node.options.connector && node.options.connector._id) {
 			const connector = await commonUtils.getConnector(node.options.connector._id);
 			if (connector.type == 'SFTP') {
-				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector)};`);
-				code.push(`${tab(2)}connectorConfig.directoryPath = '${parseDynamicVariable(node.options.directoryPath)}';`);
-				code.push(`${tab(2)}connectorConfig.filePattern = '${parseDynamicVariable(node.options.filePattern)}';`);
-				code.push(`${tab(2)}const tempFilePath = await commonUtils.sftpPutFile(connectorConfig);`);
-				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Path \${tempFilePath} \`);`);
+				code.push(`${tab(2)}const body = state.body;`);
+				code.push(`${tab(2)}state.body = {};`);
+				let filename = uuid();
+				if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
+					if (node.dataStructure.outgoing.formatType) {
+						filename += '.' + _.lowerCase(node.dataStructure.outgoing.formatType);
+					} else {
+						filename += '.json';
+					}
+				} else {
+					filename += '.json';
+				}
+				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
+				code.push(`${tab(2)}connectorConfig.directoryPath = \`${parseDynamicVariable(node.options.directoryPath)}\`;`);
+				code.push(`${tab(2)}connectorConfig.fileName = \`${parseDynamicVariable(node.options.fileName) || ''}\` || '${filename}';`);
+				code.push(`${tab(2)}state.body.sourceFilePath = path.join(__dirname, 'SFTP-Files', connectorConfig.fileName);`);
+				code.push(`${tab(2)}state.body.targetFilePath = path.join(configData.directoryPath, configData.fileName);`);
+				let fileCreated = false;
+				if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
+					if (node.dataStructure.outgoing.formatType) {
+						if (node.dataStructure.outgoing.formatType == 'CSV') {
+							fileCreated = true;
+							code.push(`${tab(2)}await commonUtils.writeDataToCSV(state.body.sourceFilePath, body);`);
+						} else if (node.dataStructure.outgoing.formatType == 'XML') {
+							fileCreated = true;
+							code.push(`${tab(2)}state.xmlContent = xmlBuilder.build(body);`);
+							code.push(`${tab(2)}fs.writeFileSync(state.body.sourceFilePath, state.xmlContent);`);
+						} else if (node.dataStructure.outgoing.formatType == 'EXCEL') {
+							fileCreated = true;
+							code.push(`${tab(2)}await commonUtils.writeDataToXLS(state.body.sourceFilePath, body);`);
+						}
+					}
+				}
+				if (!fileCreated) {
+					code.push(`${tab(2)}fs.writeFileSync(state.body.sourceFilePath, JSON.stringify(body));`);
+				}
+				code.push(`${tab(2)}await commonUtils.sftpPutFile(connectorConfig, state.body.sourceFilePath);`);
+				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Path \${state.body.sourceFilePath} \`);`);
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);

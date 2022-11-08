@@ -12,6 +12,7 @@ const codeGen = require('./generator/index');
 const httpClient = require('./http-client');
 
 const token = JWT.sign({ name: 'DS_BM', _id: 'admin', isSuperAdmin: true }, config.RBAC_JWT_KEY);
+global.BM_TOKEN = token;
 
 httpClient.request({
 	url: config.baseUrlBM + '/' + config.app + '/flow/' + config.flowId,

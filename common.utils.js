@@ -4,6 +4,7 @@ const moment = require('moment');
 const Client = require('ssh2-sftp-client');
 const { v4: uuid } = require('uuid');
 const _ = require('lodash');
+const { writeToPath } = require('fast-csv');
 
 const config = require('./config');
 const httpClient = require('./http-client');
@@ -121,30 +122,28 @@ async function sftpFetchFile(configData) {
 	}
 }
 
-async function sftpPutFile(configData) {
+async function sftpPutFile(configData, filePath) {
 	let sftp = new Client();
 	try {
 		const options = {};
 		options.host = configData.host;
 		options.port = configData.port;
-		options.username = configData.username;
+		options.username = configData.user;
 		if (configData.authType == 'password') {
 			options.password = configData.password;
 		} else if (configData.authType == 'publickey') {
 			options.privateKey = configData.privateKey;
 			options.passphrase = configData.passphrase;
 		}
-		let filePath;
 		await sftp.connect(options);
 		if (!configData.directoryPath) {
 			throw new Error('No Directory Path provided');
 		}
-		if (!configData.filePattern) {
+		if (!configData.fileName) {
 			throw new Error('No File Name provided');
 		}
-		const fileName = configData.filePattern;
-		filePath = path.join(__dirname, 'SFTP-Files', fileName);
-		await sftp.fastPut(filePath, configData.directoryPath + '/' + configData.filePattern);
+		const temp = await sftp.fastPut(filePath, configData.directoryPath + '/' + configData.fileName);
+		logger.info(temp);
 		return filePath;
 	} catch (err) {
 		logger.error(err);
@@ -182,6 +181,26 @@ function convertToDate(value, format) {
 	return value;
 }
 
+
+function writeDataToCSV(filepath, data) {
+	return new Promise((resolve, reject) => {
+		writeToPath(filepath, data).on('error', err => {
+			logger.error(err);
+			reject(err);
+		})
+			.on('finish', resolve);
+	});
+}
+
+function writeDataToXLS(filepath, data) {
+	return new Promise((resolve, reject) => {
+		writeToPath(filepath, data).on('error', err => {
+			logger.error(err);
+			reject(err);
+		})
+			.on('finish', resolve);
+	});
+}
 
 function handleError(err, state, req, node) {
 	if (err.statusCode) {
@@ -235,3 +254,5 @@ module.exports.handleResponse = handleResponse;
 module.exports.handleValidation = handleValidation;
 module.exports.sftpFetchFile = sftpFetchFile;
 module.exports.sftpPutFile = sftpPutFile;
+module.exports.writeDataToCSV = writeDataToCSV;
+module.exports.writeDataToXLS = writeDataToXLS;
