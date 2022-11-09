@@ -427,22 +427,25 @@ async function generateNodes(node) {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${node.options.dataService._id}');`);
 				if (config.isK8sEnv()) {
 					if (node.options.get) {
-						if (!node.options.select || node.options.select == '*') {
-							node.options.select = '';
+						const params = [];
+						if (node.options.select && node.options.select != '*') {
+							params.push(`select=${parseDynamicVariable(node.options.select)}`);
 						}
-						if (!node.options.count) {
-							node.options.count = 10;
+						if (node.options.count) {
+							params.push(`count=${parseDynamicVariable(node.options.count)}`);
 						}
-						if (!node.options.page) {
-							node.options.page = 1;
+						if (node.options.page) {
+							params.push(`page=${parseDynamicVariable(node.options.page)}`);
 						}
 						if (!node.options.sort) {
 							node.options.sort = '_metadata.lastUpdated';
 						}
+						params.push(`sort=${parseDynamicVariable(node.options.sort)}`);
 						if (!node.options.filter) {
 							node.options.filter = '{}';
 						}
-						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/?select=${parseDynamicVariable(node.options.select)}&sort=${parseDynamicVariable(node.options.sort)}&count=${parseDynamicVariable(node.options.count + '')}&page=${parseDynamicVariable(node.options.page + '')}&filter=${parseDynamicVariable(node.options.filter)}\`;`);
+						params.push(`filter=${parseDynamicVariable(node.options.filter)}`);
+						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/?${params.join('&')}\`;`);
 					} else if (node.options.delete) {
 						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/${parseDynamicVariable(node.options.documentId)}\`;`);
 					} else {
@@ -812,6 +815,9 @@ async function generateNodes(node) {
 }
 
 function parseDynamicVariable(value) {
+	if (typeof value != 'string') {
+		return value;
+	}
 	if (value) {
 		return value.replace('{{', '${').replace('}}', '}');
 	}
