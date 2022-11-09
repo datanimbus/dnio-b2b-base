@@ -107,8 +107,9 @@ function parseFlow(dataJson) {
 	if (inputNode.type === 'FILE' || (inputNode.options && inputNode.options.contentType === 'multipart/form-data')) {
 		if (inputNode.type === 'FILE') {
 			code.push(`${tab(1)}res.status(202).json({ message: 'File is being processed' });`);
+			code.push(`${tab(1)}isResponseSent = true;`);
 		}
-		code.push(`${tab(1)}const reqFile = req.form.file;`);
+		code.push(`${tab(1)}const reqFile = req.files.file;`);
 		code.push(`${tab(1)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request file info - \`, reqFile);`);
 		code.push(`${tab(1)}if (!req.files || Object.keys(req.files).length === 0) {`);
 		code.push(`${tab(2)}state.status = "ERROR";`);
