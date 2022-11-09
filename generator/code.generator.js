@@ -52,7 +52,7 @@ function parseFlow(dataJson) {
 	// TODO: Method to be fixed.
 	// code.push(`router.${(inputNode.options.method || 'POST').toLowerCase()}('${api}', async function (req, res) {`);
 
-	if (inputNode.options && inputNode.options.contentType === 'multipart/form-data') {
+	if (inputNode.type === 'FILE' || (inputNode.options && inputNode.options.contentType === 'multipart/form-data')) {
 		code.push(`${tab(0)}router.use(fileUpload({`);
 		code.push(`${tab(1)}useTempFiles: true,`);
 		code.push(`${tab(1)}tempFileDir: './uploads'`);
@@ -104,10 +104,12 @@ function parseFlow(dataJson) {
 		code.push(`${tab(2)}}`);
 		code.push(`${tab(1)}}, 30000);`);
 	}
-	if (inputNode.options && inputNode.options.contentType === 'multipart/form-data') {
+	if (inputNode.type === 'FILE' || (inputNode.options && inputNode.options.contentType === 'multipart/form-data')) {
 		if (inputNode.type === 'FILE') {
-			code.push(`${tab(2)}res.status(202).json({ message: 'File is being processed' });`);
+			code.push(`${tab(1)}res.status(202).json({ message: 'File is being processed' });`);
 		}
+		code.push(`${tab(1)}const reqFile = req.form.file;`);
+		code.push(`${tab(1)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request file info - \`, reqFile);`);
 		code.push(`${tab(1)}if (!req.files || Object.keys(req.files).length === 0) {`);
 		code.push(`${tab(2)}state.status = "ERROR";`);
 		code.push(`${tab(2)}state.statusCode = 400;`);
@@ -115,9 +117,7 @@ function parseFlow(dataJson) {
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 		code.push(`${tab(2)}return;`);
 		code.push(`${tab(1)}}`);
-		code.push(`${tab(1)}const reqFile = req.files.file;`);
 		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: reqFile });`);
-		code.push(`${tab(1)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request file info - \`, reqFile);`);
 		const dataFormat = dataJson.dataStructures[inputNode.dataStructure.outgoing._id] || { _id: inputNode.dataStructure.outgoing._id };
 		if (!dataFormat.formatType) {
 			dataFormat.formatType = 'JSON';
