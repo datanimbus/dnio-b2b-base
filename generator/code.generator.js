@@ -634,8 +634,6 @@ async function generateNodes(node) {
 					formulaCode.push(mappingData.formula);
 				} else if (mappingData.source && mappingData.source.length > 0) {
 					formulaCode.push('return input1;');
-				} else {
-					formulaCode.push('return null;');
 				}
 				formulaCode.push('}');
 				code.push(formulaCode.join('\n'));
