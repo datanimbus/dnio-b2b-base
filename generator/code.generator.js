@@ -111,7 +111,7 @@ function parseFlow(dataJson) {
 		}
 		code.push(`${tab(1)}const reqFile = req.files.file;`);
 		code.push(`${tab(1)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request file info - \`, reqFile);`);
-		code.push(`${tab(1)}if (!req.files || Object.keys(req.files).length === 0) {`);
+		code.push(`${tab(1)}if (!req.files || _.isEmpty(req.files)) {`);
 		code.push(`${tab(2)}state.status = "ERROR";`);
 		code.push(`${tab(2)}state.statusCode = 400;`);
 		code.push(`${tab(2)}state.body = { message: 'No files were uploaded' };`);
@@ -634,6 +634,8 @@ async function generateNodes(node) {
 					formulaCode.push(mappingData.formula);
 				} else if (mappingData.source && mappingData.source.length > 0) {
 					formulaCode.push('return input1;');
+				} else {
+					formulaCode.push('return null;');
 				}
 				formulaCode.push('}');
 				code.push(formulaCode.join('\n'));
@@ -667,7 +669,7 @@ async function generateNodes(node) {
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
-			code.push(`${tab(2)}state.body = newBody;`);
+			code.push(`${tab(2)}state.body = _.cloneDeep(newBody);`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 			// code.push(`${tab(2)}return { statusCode: 200, body: newBody, headers: state.headers };`);
 		} else if (node.type === 'UNWIND') {
