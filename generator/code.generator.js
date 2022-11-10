@@ -411,9 +411,11 @@ async function generateNodes(node) {
 		if (node.type === 'API' || node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
 			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
-			code.push(`${tab(2)}if (req.header('authorization')) {`);
-			code.push(`${tab(3)}customHeaders['authorization'] = req.header('authorization');`);
-			code.push(`${tab(2)}}`);
+			if (node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
+				code.push(`${tab(2)}if (req.header('authorization')) {`);
+				code.push(`${tab(3)}customHeaders['authorization'] = req.header('authorization');`);
+				code.push(`${tab(2)}}`);
+			}
 			code.push(`${tab(2)}let customBody = state.body;`);
 			if (node.type === 'API' && node.options) {
 				code.push(`${tab(2)}state.url = \`${parseDynamicVariable(node.options.url)}\`;`);
