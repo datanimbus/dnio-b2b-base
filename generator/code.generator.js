@@ -330,13 +330,15 @@ function generateCode(node, nodes) {
 		if (ss.condition) {
 			nextNode.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '');
 		}
-		if (visitedNodes.indexOf(nextNode._id) > -1) {
-			return;
+		if (nextNode) {
+			if (visitedNodes.indexOf(nextNode._id) > -1) {
+				return;
+			}
+			visitedNodes.push(nextNode._id);
+			if (nextNode.condition) code.push(`${tab(1)}if (${nextNode.condition}) {`);
+			code = code.concat(generateCode(nextNode, nodes));
+			if (nextNode.condition) code.push(`${tab(1)}}`);
 		}
-		visitedNodes.push(nextNode._id);
-		if (nextNode.condition) code.push(`${tab(1)}if (${nextNode.condition}) {`);
-		code = code.concat(generateCode(nextNode, nodes));
-		if (nextNode.condition) code.push(`${tab(1)}}`);
 	}
 	// (node.onSuccess || []).map(ss => {
 	// 	const nodeCondition = ss.condition;
