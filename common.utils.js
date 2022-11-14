@@ -266,7 +266,7 @@ async function uploadFileToDB(req, uploadFilePath, targetAgentId, targetAgentNam
 
 		logger.info(`Uploading file ${outputFileName} from flow ${config.flowId} to DB`);
 
-		const downloadFilePath = path.join(process.cwd(), 'downloads', outputFileName);
+		const downloadFilePath = path.join(__dirname, 'downloads', outputFileName);
 		let writeStream = fs.createWriteStream(downloadFilePath);
 
 		const fileData = fs.readFileSync(uploadFilePath);
