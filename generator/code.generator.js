@@ -394,7 +394,9 @@ async function generateNodes(pNode) {
 	let code = [];
 	const exportsCode = [];
 	let loopCode = [];
-	let promises = nodes.map(async (node) => {
+	// let promises = nodes.map(async (node) => {
+	await nodes.reduce(async (prev, node) => {
+		await prev;
 		const dataFormat = dataStructures[node.dataStructure.outgoing._id] || { _id: node.dataStructure.outgoing._id };
 		if (!dataFormat.formatType) {
 			dataFormat.formatType = 'JSON';
@@ -749,11 +751,11 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Path \${state.body.sourceFilePath} \`);`);
 			} else if (connector.category == 'DB') {
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
-				if(connector.type == 'MSSQL'){
+				if (connector.type == 'MSSQL') {
 					code.push(`${tab(2)}const crud = new mssql({ connectionString: connectorConfig.connectionString});`);
-				} else if(connector.type == 'MYSQL'){
+				} else if (connector.type == 'MYSQL') {
 					code.push(`${tab(2)}const crud = new mysql({ connectionString: connectorConfig.connectionString});`);
-				} else if(connector.type == 'PGSQL'){
+				} else if (connector.type == 'PGSQL') {
 					code.push(`${tab(2)}const crud = new psql({ connectionString: connectorConfig.connectionString});`);
 				} else {
 					code.push(`${tab(2)}const crud = new mdb({ connectionString: connectorConfig.connectionString});`);
@@ -766,7 +768,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Query Executed\`);`);
 				code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Query Result\`, result);`);
 				code.push(`${tab(2)}state.body = result.recordset;`);
-				code.push(`${tab(2)}await crud.disconnect();`);
+				// code.push(`${tab(2)}await crud.disconnect();`);
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
@@ -916,8 +918,9 @@ async function generateNodes(pNode) {
 		code.push(`${tab(1)}}`);
 		code.push('}');
 		return;
-	});
-	await Promise.all(promises);
+		// });
+	}, Promise.resolve());
+	// await Promise.all(promises);
 	return _.concat(code, loopCode, exportsCode).join('\n');
 }
 
