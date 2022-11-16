@@ -368,6 +368,7 @@ async function parseNodes(dataJson) {
 	code.push('const { v4: uuid } = require(\'uuid\');');
 	code.push('const moment = require(\'moment\');');
 	code.push('const { XMLBuilder } = require(\'fast-xml-parser\');');
+	code.push('const { mssql, mysql, psql } = require(\'@appveen/rest-crud\');');
 	code.push('');
 	code.push('const httpClient = require(\'./http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
@@ -742,6 +743,26 @@ async function generateNodes(node) {
 				}
 				code.push(`${tab(2)}await commonUtils.sftpPutFile(connectorConfig, state.body.sourceFilePath);`);
 				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Path \${state.body.sourceFilePath} \`);`);
+			} else if (connector.category == 'DB') {
+				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
+				if(connector.type == 'MSSQL'){
+					code.push(`${tab(2)}const crud = new mssql({ connectionString: connectorConfig.connectionString});`);
+				} else if(connector.type == 'MYSQL'){
+					code.push(`${tab(2)}const crud = new mysql({ connectionString: connectorConfig.connectionString});`);
+				} else if(connector.type == 'PGSQL'){
+					code.push(`${tab(2)}const crud = new psql({ connectionString: connectorConfig.connectionString});`);
+				} else {
+					code.push(`${tab(2)}const crud = new mdb({ connectionString: connectorConfig.connectionString});`);
+				}
+				code.push(`${tab(2)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Connecting to ${connector.type} Database\`);`);
+				code.push(`${tab(2)}await crud.connect();`);
+				code.push(`${tab(2)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Database Connected\`);`);
+				code.push(`${tab(2)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Executing ${connector.type} Query\`);`);
+				code.push(`${tab(2)}const result = await crud.sqlQuery(\`${parseDynamicVariable(node.options.query)}\`);`);
+				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Query Executed\`);`);
+				code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Query Result\`, result);`);
+				code.push(`${tab(2)}state.body = result.recordset;`);
+				code.push(`${tab(2)}await crud.disconnect();`);
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
