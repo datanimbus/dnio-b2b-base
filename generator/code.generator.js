@@ -367,7 +367,11 @@ async function parseNodes(dataJson) {
 	code.push('const _ = require(\'lodash\');');
 	code.push('const { v4: uuid } = require(\'uuid\');');
 	code.push('const moment = require(\'moment\');');
-	code.push('const { XMLBuilder } = require(\'fast-xml-parser\');');
+	code.push('const { XMLBuilder, parse } = require(\'fast-xml-parser\');');
+	code.push('const fastcsv = require(\'fast-csv\');');
+	code.push('const XLSX = require(\'xlsx\');');
+	code.push('const xlsxPopulate = require(\'xlsx-populate\');');
+	code.push('const J2XParser = require(\'fast-xml-parser\').j2xParser;');
 	code.push('const { mssql, mysql, psql } = require(\'@appveen/rest-crud\');');
 	code.push('');
 	code.push('const httpClient = require(\'./http-client\');');
@@ -384,9 +388,9 @@ async function parseNodes(dataJson) {
 }
 
 
-async function generateNodes(node) {
-	const nodes = node.nodes;
-	const dataStructures = node.dataStructures;
+async function generateNodes(pNode) {
+	const nodes = pNode.nodes;
+	const dataStructures = pNode.dataStructures;
 	let code = [];
 	const exportsCode = [];
 	let loopCode = [];
@@ -819,6 +823,83 @@ async function generateNodes(node) {
 				// code.push(`${tab(2)}});`);
 				// code.push(`${tab(2)}return { statusCode: 200, body: promises.body, headers: state.headers };`);
 			}
+		} else if (node.type === 'FILE') {
+			code.push(`${tab(2)}let customBody = state.body;`);
+			let ext = '.json';
+			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
+				if (dataFormat.formatType) {
+					ext = '.' + _.lowerCase(dataFormat.formatType);
+				}
+			}
+			code.push(`${tab(2)}let ext = '${ext}';`);
+			code.push(`${tab(2)}let outputFileName;`);
+			code.push(`${tab(2)}if (req.header('output-file-name') != null && req.header('output-file-name') != '') {`);
+			code.push(`${tab(3)}outputFileName = req.header('output-file-name');`);
+			code.push(`${tab(2)}} else {`);
+			code.push(`${tab(3)}const remoteTxnId = req.header('data-stack-remote-txn-id');`);
+			code.push(`${tab(3)}const temp = remoteTxnId.split(".");`);
+			code.push(`${tab(3)}if (ext === temp[1]) {`);
+			code.push(`${tab(4)}outputFileName = req.header('data-stack-remote-txn-id').toString();`);
+			code.push(`${tab(3)}} else {`);
+			code.push(`${tab(4)} outputFileName = temp[0] + ext;`);
+			code.push(`${tab(3)}}`);
+			code.push(`${tab(2)}}`);
+			code.push(`${tab(2)}const uploadFilePath = path.join(process.cwd(), 'uploads', outputFileName);`);
+			code.push(`${tab(2)}let fileDetails;`);
+
+			if (dataFormat.formatType === 'CSV' || dataFormat.formatType === 'DELIMITER' || dataFormat.formatType === 'EXCEL') {
+				let delimiter = ',';
+				if (dataFormat.formatType === 'DELIMITER') {
+					delimiter = dataFormat.character;
+				}
+
+				let rowDelimiter = dataFormat.lineSeparator;
+				if (rowDelimiter === '\\\\n') {
+					rowDelimiter = '\\n';
+				} else if (rowDelimiter === '\\\\r\\\\n') {
+					rowDelimiter = '\\r\\n';
+				} else if (rowDelimiter === '\\\\r') {
+					rowDelimiter = '\\r';
+				} else {
+					rowDelimiter = '\\n';
+				}
+
+				if (dataFormat.formatType === 'EXCEL') {
+					code.push(`${tab(2)}const wb = XLSX.readFile(uploadFilePath, { raw: true });`);
+					code.push(`${tab(2)}XLSX.writeFile(wb, uploadFilePath, { bookType: '${dataFormat.excelType.toLowerCase()}', type: 'string' });`);
+					code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, uploadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
+				} else {
+					code.push(`${tab(2)}const csvOutputStream = fs.createWriteStream(uploadFilePath);`);
+					code.push(`${tab(2)}const stream = fastcsv.format({ rowDelimiter: '${rowDelimiter}', delimiter: '${delimiter}', ${dataFormat.formatType === 'DELIMITER' ? 'quote: false' : ''} });`);
+					code.push(`${tab(2)}stream.pipe(csvOutputStream);`);
+					// code.push(`${tab(2)}const generateHeaders = ${node.meta.generateHeaders || false};`);
+					// code.push(`${tab(2)}if (generateHeaders) {`);
+					// code.push(`${tab(2)}stream.write(fileUtils.getHeaderOf${dataFormat._id}());`);
+					// code.push(`${tab(2)}}`);
+					code.push(`${tab(2)}if (Array.isArray(customBody)) {`);
+					code.push(`${tab(3)}customBody.forEach(data => {`);
+					code.push(`${tab(3)}stream.write(fileUtils.getValuesOf${dataFormat._id}(data));`);
+					code.push(`${tab(2)}});`);
+					code.push(`${tab(2)}} else {`);
+					code.push(`${tab(3)}stream.write(fileUtils.getValuesOf${dataFormat._id}(customBody));`);
+					code.push(`${tab(2)}}`);
+					code.push(`${tab(2)}stream.end();`);
+					code.push(`${tab(2)}csvOutputStream.on('close', async function() {`);
+					code.push(`${tab(3)}fileDetails = commonUtils.uploadFileToDB(req, uploadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
+					code.push(`${tab(2)}});`);
+				}
+			} else if (dataFormat.formatType === 'JSON') {
+				code.push(`${tab(2)}fs.writeFileSync(uploadFilePath, JSON.stringify(customBody), 'utf-8');`);
+				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, uploadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
+			} else if (dataFormat.formatType === 'XML') {
+				code.push(`${tab(2)}const content = new J2XParser().parse(customBody);`);
+				code.push(`${tab(2)}fs.writeFileSync(uploadFilePath, content, 'utf-8');`);
+				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, uploadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
+			}
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.body = fileDetails;`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
+			// code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
 		} else {
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);

@@ -5,6 +5,11 @@ const Client = require('ssh2-sftp-client');
 const { v4: uuid } = require('uuid');
 const _ = require('lodash');
 const { writeToPath } = require('fast-csv');
+const mongoose = require('mongoose');
+const fs = require('fs');
+const crypto = require('crypto');
+var zlib = require('zlib');
+const ALGORITHM = 'aes-256-gcm';
 
 const config = require('./config');
 const httpClient = require('./http-client');
@@ -246,6 +251,106 @@ function handleValidation(errors, state, req, node) {
 	}
 }
 
+async function uploadFileToDB(req, uploadFilePath, targetAgentId, targetAgentName, flowName, deploymentName, outputFileName) {
+	try {
+		const appcenterCon = mongoose.createConnection(config.mongoUrl, config.mongoAppCenterOptions);
+		appcenterCon.on('connecting', () => { logger.info(' *** Appcenter DB CONNECTING *** '); });
+		appcenterCon.on('disconnected', () => { logger.error(' *** Appcenter DB LOST CONNECTION *** '); });
+		appcenterCon.on('reconnect', () => { logger.info(' *** Appcenter DB RECONNECTED *** '); });
+		appcenterCon.on('connected', () => { logger.info('Connected to Appcenter DB DB'); global.appcenterCon = appcenterCon; });
+		appcenterCon.on('reconnectFailed', () => { logger.error(' *** Appcenter DB FAILED TO RECONNECT *** '); });
+
+		const dbname = config.DATA_STACK_NAMESPACE + '-' + config.app;
+		const dataDB = appcenterCon.useDb(dbname);
+		const gfsBucket = new mongoose.mongo.GridFSBucket(dataDB, { bucketName: 'b2b.files' });
+
+		logger.info(`Uploading file ${outputFileName} from flow ${config.flowId} to DB`);
+
+		const downloadFilePath = path.join(__dirname, 'downloads', outputFileName);
+		let writeStream = fs.createWriteStream(downloadFilePath);
+
+		const fileData = fs.readFileSync(uploadFilePath);
+		const encryptedData = encryptDataGCM(fileData, config.encryptionKey);
+		writeStream.write(encryptedData);
+
+		const fileDetails = await new Promise((resolve, reject) => {
+			fs.createReadStream(downloadFilePath).
+				pipe(gfsBucket.openUploadStream(crypto.createHash('md5').update(uuid()).digest('hex'))).
+				on('error', function (error) {
+					logger.error(`Error uploading file - ${error}`);
+					reject(error);
+				}).
+				on('finish', function (file) {
+					logger.debug(`Successfully uploaded file to DB`);
+					logger.trace(`File details - ${JSON.stringify(file)}`);
+					resolve(file);
+				});
+		});
+
+		logger.info(`Requesting BM to update the agent download action`);
+		const options = {};
+		options.url = `${config.baseUrlBM}/${config.app}/agent/utils/${targetAgentId}/agentAction`;
+		options.method = 'POST';
+		options.headers = {};
+		options.headers['Content-Type'] = 'application/json';
+		options.headers['Authorization'] = 'JWT ' + global.BM_TOKEN;
+		options.headers['Action'] = 'download';
+
+		const metaDataInfo = {};
+		metaDataInfo.originalFileName = outputFileName;
+		metaDataInfo.remoteTxnID = req.header('data-stack-remote-txn-id');
+		metaDataInfo.dataStackTxnID = req.header('data-stack-txn-id');
+		metaDataInfo.fileID = fileDetails.filename;
+		metaDataInfo.totalChunks = '1';
+		metaDataInfo.downloadAgentID = targetAgentId;
+
+		const eventDetails = {
+			'agentId': targetAgentId,
+			'app': config.app,
+			'agentName': targetAgentName,
+			'flowName': flowName,
+			'flowId': config.flowId,
+			'deploymentName': deploymentName,
+			'timestamp': new Date(),
+			'sentOrRead': false
+		};
+
+		const payload = {
+			'metaDataInfo': metaDataInfo,
+			'eventDetails': eventDetails
+		};
+
+		options.json = payload;
+		const response = await httpClient.request(options);
+		if (response.statusCode !== 200) {
+			throw response.body;
+		}
+		return fileDetails;
+	} catch (err) {
+		logger.error(err);
+		throw err;
+	}
+}
+
+function createHash(key) {
+	const encodedString = crypto.createHash('md5').update(key).digest("hex");
+	return encodedString;
+}
+
+function compress(data) {
+    const deflated = zlib.deflateSync(data);
+    return deflated;
+}
+
+function encryptDataGCM(data, key) {
+	const compressedData = compress(Buffer.from(data));
+	const hashedkey = createHash(key);
+	const nonce = crypto.randomBytes(12);
+	var cipher = crypto.createCipheriv(ALGORITHM, hashedkey, nonce);
+	const encrypted = Buffer.concat([nonce, cipher.update(Buffer.from(compressedData).toString("base64")), cipher.final(), cipher.getAuthTag()]);
+	return Buffer.from(encrypted).toString("base64");
+}
+
 module.exports.getDataService = getDataService;
 module.exports.getFlow = getFlow;
 module.exports.getFaaS = getFaaS;
@@ -259,3 +364,4 @@ module.exports.sftpFetchFile = sftpFetchFile;
 module.exports.sftpPutFile = sftpPutFile;
 module.exports.writeDataToCSV = writeDataToCSV;
 module.exports.writeDataToXLS = writeDataToXLS;
+module.exports.uploadFileToDB = uploadFileToDB;

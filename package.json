@@ -15,10 +15,12 @@
     "mkdirp": "^1.0.4",
     "moment": "^2.29.4",
     "mongodb": "^4.9.0",
+    "mongoose": "^6.6.5",
     "node-cron": "^3.0.2",
     "ssh2-sftp-client": "^9.0.4",
     "uuid": "^8.3.2",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "xlsx-populate": "^1.21.0"
   },
   "name": "ds-b2b-base",
   "description": "Integration base image",
