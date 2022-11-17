@@ -8,7 +8,8 @@ let e = {};
 e.addHeaders = (_req, _res, _next) => {
 	logger.info(`Getting Request: ${_req.path}`);
 	if (!_req.headers['data-stack-txn-id']) {
-		_req.headers['data-stack-txn-id'] = uuid();
+		let txnId = uuid().split('-');
+		_req.headers['data-stack-txn-id'] = `${txnId[1]}${txnId[2]}`;
 		logger.info(`No txn id found. Setting txn id to : ${_req.headers['data-stack-txn-id']}`);
 	}
 	if (!_req.headers['data-stack-remote-txn-id']) {

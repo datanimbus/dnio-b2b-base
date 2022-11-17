@@ -9,10 +9,14 @@ const schemaUtils = require('./schema.utils');
 const logger = log4js.getLogger(global.loggerName);
 
 async function createProject(flowJSON) {
+	logger.info(`Generating flow code for flow ID   :: ${flowJSON._id}`);
+	logger.info(`Generating flow code for flow Name :: ${flowJSON.name}`);
+	logger.info(`Generating flow code for flow App  :: ${flowJSON.app}`);
 	try {
 		if (!flowJSON.port) {
 			flowJSON.port = 31000;
 		}
+		logger.info(`Generating flow code for flow Port :: ${flowJSON.port}`);
 		// const folderPath = path.join(process.cwd(), 'generatedFlows', flowJSON._id);
 		const folderPath = process.cwd();
 

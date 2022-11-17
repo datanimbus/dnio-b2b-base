@@ -8,10 +8,6 @@ const express = require('express');
 const JWT = require('jsonwebtoken');
 
 const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
-log4js.configure({
-	appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
-	categories: { default: { appenders: ['out'], level: LOG_LEVEL } }
-});
 
 const config = require('./config');
 const codeGen = require('./generator/index');

@@ -17,8 +17,11 @@ function getState(req, nodeId, isChild, contentType) {
 	// data.remoteTxnId = req.headers['data-stack-remote-txn-id'];
 	// data.parentTxnId = isChild ? req.headers['data-stack-txn-id'] : null;
 	data.headers = req.headers;
+	logger.trace(`State :: ${nodeId} :: Headers :: ${JSON.stringify(req.headers)}`);
 	data.body = req.body;
+	logger.trace(`State :: ${nodeId} :: Body :: ${JSON.stringify(req.body)}`);
 	data.query = req.query;
+	logger.trace(`State :: ${nodeId} :: Query :: ${JSON.stringify(req.quert)}`);
 	data.interactionId = req.query.interactionId;
 	data.status = 'PENDING';
 	data.contentType = contentType || 'application/json';
@@ -72,13 +75,13 @@ async function upsertState(req, state) {
 			{ $set: clonedState },
 			{ upsert: true }
 		);
-		logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Stage State Result: ${status}`);
+		logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Stage State Result: ${JSON.stringify(status)}`);
 		status = await global.appcenterDB.collection('b2b.node.state.data').findOneAndUpdate(
 			{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
 			{ $set: dataPayload },
 			{ upsert: true }
 		);
-		logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Stage Data Result: ${status}`);
+		logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Stage Data Result: ${JSON.stringify(status)}`);
 		if (state.status == 'ERROR') {
 			logger.debug(`[${txnId}] [${remoteTxnId}] Setting Interaction State To Error: ${interactionId}`);
 			await updateInteraction(req, { status: state.status });
@@ -116,7 +119,8 @@ async function processInteraction(task, callback) {
 			}
 		});
 		logger.debug(`[${txnId}] [${remoteTxnId}] Ending Update Interaction: ${interactionId}`);
-		logger.trace(`[${txnId}] [${remoteTxnId}] ${status.statusCode} `, status.body);
+		logger.trace(`[${txnId}] [${remoteTxnId}] State status :: ${status.statusCode} `);
+		logger.trace(`[${txnId}] [${remoteTxnId}] State body:: ${JSON.stringify(status.body)} `);
 		return true;
 	} catch (err) {
 		logger.debug(`[${txnId}] [${remoteTxnId}] Ending Update Interaction With Error: ${interactionId}`);

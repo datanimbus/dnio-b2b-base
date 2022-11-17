@@ -4,7 +4,7 @@ const { v4: uuid } = require('uuid');
 const config = require('../config');
 const commonUtils = require('../common.utils');
 
-// const logger = log4js.getLogger(global.loggerName);
+let logger = global.logger;
 
 let visitedNodes = [];
 let visitedValidation = [];
@@ -71,7 +71,13 @@ function parseFlow(dataJson) {
 		code.push(`${tab(0)}router.use(express.raw());`);
 	}
 
-	code.push(`router.post('${api}', handleRequest);`);
+	if (inputNode.options && inputNode.options.method) {
+		let method = inputNode.options.method.toLowerCase();
+		code.push(`router.${method}('${api}', handleRequest);`);
+	}
+	else {
+		code.push(`router.post('${api}', handleRequest);`);
+	}
 
 	if (inputNode.type === 'TIMER') {
 		code.push(`${tab(0)}cron.schedule('${(inputNode.options.cron || '1 * * * *')}', async () => {`);
@@ -412,7 +418,8 @@ async function generateNodes(pNode) {
 		}
 		exportsCode.push(`module.exports.${_.camelCase(node._id)} = ${_.camelCase(node._id)};`);
 		code.push(`async function ${_.camelCase(node._id)}(req, state, node) {`);
-		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${_.camelCase(node._id)} Node\`);`);
+		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${node.name ? node.name : ''}(${_.camelCase(node._id)}) Node\`);`);
+		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Node type :: ${node.type}\`);`);
 		code.push(`${tab(1)}try {`);
 		let functionName = 'validate_structure_' + _.camelCase(node._id);
 		if (node.type === 'API' || node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
@@ -519,7 +526,7 @@ async function generateNodes(pNode) {
 				// code.push(`${tab(2)}customBody = { docs: state.body };`);
 			} else if (node.type === 'FUNCTION') {
 				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${node.options.faas._id}');`);
-				code.push(`${tab(2)}logger.trace({ faas });`);
+				code.push(`${tab(2)}logger.trace({ JSON.stringify(faas) });`);
 				// code.push(`${tab(2)}state.url = \`${config.baseUrlGW}\${faas.url}\`;`);
 				code.push(`${tab(2)}state.url = \`http://\${faas.deploymentName}.\${faas.namespace}\${faas.url.split('/a/').join('/')}\`;`);
 				code.push(`${tab(2)}state.method = '${node.options.method || 'POST'}';`);
