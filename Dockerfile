@@ -12,7 +12,6 @@ RUN npm install --production
 RUN npm audit fix --production
 RUN rm -rf /usr/local/lib/node_modules/npm/node_modules/node-gyp/test
 
-COPY Dockerfile Dockerfile
 COPY LICENSE LICENSE
 COPY README.md README.md
 COPY app.js app.js
