@@ -12,22 +12,22 @@ RUN npm install --production
 RUN npm audit fix --production
 RUN rm -rf /usr/local/lib/node_modules/npm/node_modules/node-gyp/test
 
-COPY LICENSE LICENSE
-COPY README.md README.md
-COPY app.js app.js
-COPY common.utils.js common.utils.js
-COPY config.js config.js
-COPY db-factory.js db-factory.js
-COPY flow.schema.json flow.schema.json
-COPY http-client.js http-client.js
-COPY lib.middlewares.js lib.middlewares.js
-COPY schema.utils.js schema.utils.js
-COPY state.utils.js state.utils.js
+COPY LICENSE /tmp/app
+COPY README.md /tmp/app
+COPY app.js /tmp/app
+COPY common.utils.js /tmp/app
+COPY config.js /tmp/app
+COPY db-factory.js /tmp/app
+COPY flow.schema.json /tmp/app
+COPY http-client.js /tmp/app
+COPY lib.middlewares.js /tmp/app
+COPY schema.utils.js /tmp/app
+COPY state.utils.js /tmp/app
 
-COPY generator/code.generator.js generator/code.generator.js
-COPY generator/index.js generator/index.js
-COPY generator/schema.utils.js generator/schema.utils.js
-COPY generator/schema.validator.js generator/schema.validator.js
+COPY generator/code.generator.js /tmp/app/generator
+COPY generator/index.js /tmp/app/generator
+COPY generator/schema.utils.js /tmp/app/generator
+COPY generator/schema.validator.js /tmp/app/generator
 
 ENV NODE_ENV='production'
 
