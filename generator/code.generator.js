@@ -715,6 +715,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}${node.options.code}`);
 			code.push(`${tab(2)}let response = await execute(state, node);`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.body = response.body;`);
 			code.push(`${tab(2)}state.headers = response.headers;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
