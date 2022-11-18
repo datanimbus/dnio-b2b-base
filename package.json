@@ -27,7 +27,7 @@
   },
   "name": "ds-b2b-base",
   "description": "Integration base image",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "main": "app.js",
   "scripts": {
     "test": "test.js",
