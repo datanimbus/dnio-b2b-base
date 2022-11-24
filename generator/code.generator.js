@@ -48,6 +48,7 @@ function parseFlow(dataJson) {
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('const xmlBuilder = new XMLBuilder();');
 	code.push('const xmlParser = new XMLParser();');
+	code.push('const httpClient = require(\'./http-client\');');
 	code.push('');
 	// TODO: Method to be fixed.
 	// code.push(`router.${(inputNode.options.method || 'POST').toLowerCase()}('${api}', async function (req, res) {`);
@@ -85,7 +86,7 @@ function parseFlow(dataJson) {
 		code.push(`${tab(2)}const date = new Date();`);
 		code.push(`${tab(2)}const options = {};`);
 		code.push(`${tab(2)}options.method = 'POST';`);
-		code.push(`${tab(2)}options.url = 'http://localhost:8080${api}';`);
+		code.push(`${tab(2)}options.url = 'http://localhost:8080/api/b2b${api}';`);
 		code.push(`${tab(2)}options.json = { triggerTime: date.toISOString() };`);
 		code.push(`${tab(2)}let response = await httpClient.request(options);`);
 		code.push(`${tab(1)}} catch (err) {`);
