@@ -227,6 +227,7 @@ function handleError(err, state, req, node) {
 }
 
 function handleResponse(response, state, req, node) {
+	logger.trace('Handle Response - ',{ response });
 	if (!response.statusCode) {
 		response.statusCode = 200;
 	}
