@@ -30,6 +30,7 @@
   "version": "2.6.0",
   "main": "app.js",
   "scripts": {
+    "start": "node app.js",
     "test": "test.js",
     "lint": "./node_modules/.bin/eslint --ignore-pattern test . --fix"
   },
