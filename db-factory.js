@@ -27,9 +27,9 @@ global.falseBooleanValues = ['n', 'no', 'false', '0'];
 		logger.error(err);
 		process.exit(0);
 	}
-	if (process.env.NODE_ENV !== 'production') {
-		logger.info(`NODE_ENV is ${process.env.NODE_ENV}. Won't call BM API.`);
-	} else {
+	// if (process.env.NODE_ENV !== 'production') {
+	// 	logger.info(`NODE_ENV is ${process.env.NODE_ENV}. Won't call BM API.`);
+	// } else {
 		try {
 			let b2bBaseURL = config.baseUrlBM + '/' + config.app + '/flow/utils/' + config.flowId + '/init';
 			logger.debug(`BM API Call :: ${config.baseUrlBM + '/' + config.app + '/flow/utils/' + config.flowId + '/init'}`);
@@ -46,5 +46,5 @@ global.falseBooleanValues = ['n', 'no', 'false', '0'];
 			logger.error('Unable to inform B2B Manager');
 			logger.error(err);
 		}
-	}
+	// }
 })();
