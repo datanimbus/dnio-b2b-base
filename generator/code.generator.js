@@ -86,7 +86,7 @@ function parseFlow(dataJson) {
 		code.push(`${tab(2)}const date = new Date();`);
 		code.push(`${tab(2)}const options = {};`);
 		code.push(`${tab(2)}options.method = 'POST';`);
-		code.push(`${tab(2)}options.url = 'http://localhost:8080/api/b2b${api}';`);
+		code.push(`${tab(2)}options.url = 'http://localhost:${config.port}/api/b2b${api}';`);
 		code.push(`${tab(2)}options.json = { triggerTime: date.toISOString() };`);
 		code.push(`${tab(2)}logger.trace({ options });`);
 		code.push(`${tab(2)}let response = await httpClient.request(options);`);
@@ -528,9 +528,13 @@ async function generateNodes(pNode) {
 				// code.push(`${tab(2)}customBody = { docs: state.body };`);
 			} else if (node.type === 'FUNCTION') {
 				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${node.options.faas._id}');`);
-				code.push(`${tab(2)}logger.trace({ JSON.stringify(faas) });`);
+				code.push(`${tab(2)}logger.trace(JSON.stringify(faas));`);
 				// code.push(`${tab(2)}state.url = \`${config.baseUrlGW}\${faas.url}\`;`);
-				code.push(`${tab(2)}state.url = \`http://\${faas.deploymentName}.\${faas.namespace}\${faas.url.split('/a/').join('/')}\`;`);
+				if (config.isK8sEnv()) {
+					code.push(`${tab(2)}state.url = \`http://\${faas.deploymentName}.\${faas.namespace}\${faas.url.split('/a/').join('/')}\`;`);
+				} else {
+					code.push(`${tab(2)}state.url = \`http://localhost:\${faas.port}\${faas.url.split('/a/').join('/')}\`;`);
+				}
 				code.push(`${tab(2)}state.method = '${node.options.method || 'POST'}';`);
 				code.push(`${tab(2)}logger.debug({ url: state.url });`);
 				code.push(`${tab(2)}options.url = state.url;`);
