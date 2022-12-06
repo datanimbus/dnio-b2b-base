@@ -86,7 +86,8 @@ function parseFlow(dataJson) {
 		code.push(`${tab(2)}const date = new Date();`);
 		code.push(`${tab(2)}const options = {};`);
 		code.push(`${tab(2)}options.method = 'POST';`);
-		code.push(`${tab(2)}options.url = 'http://localhost:${config.port}/api/b2b${api}';`);
+		// code.push(`${tab(2)}options.url = 'http://localhost:${config.port}/api/b2b${api}';`);
+		code.push(`${tab(2)}options.url = '${config.get('bm')}/b2b/pipes${api}';`);
 		code.push(`${tab(2)}options.json = { triggerTime: date.toISOString() };`);
 		code.push(`${tab(2)}logger.trace({ options });`);
 		code.push(`${tab(2)}let response = await httpClient.request(options);`);
@@ -574,7 +575,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}delete options.headers['user-agent'];`);
 			code.push(`${tab(2)}delete options.headers['content-length'];`);
 			code.push(`${tab(2)}delete options.headers['content-encoding'];`);
-
+			code.push(`${tab(2)}delete options.headers['transfer-encoding'];`);
 
 			if (node.type === 'DATASERVICE' && (node.options.update || node.options.insert)) {
 				code.push(`${tab(2)}let results = [];`);
