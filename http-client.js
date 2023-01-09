@@ -12,7 +12,7 @@ const got = require('got');
  * @typedef {Object} Options
  * @property {string} url
  * @property {string} [method=get]
- * @property {*} body
+ * @property {*} json
  * @property {*} formdata
  * @property {*} headers
  * @property {number} timeout

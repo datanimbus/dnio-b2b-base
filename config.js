@@ -5,18 +5,8 @@ let logLevel = process.env.LOG_LEVEL || 'info';
 if (process.env.NODE_ENV !== 'production') logLevel = 'trace';
 
 log4js.configure({
-	'appenders': {
-		'out': {
-			'type': 'stdout',
-			'layout': { type: 'coloured' }
-		}
-	},
-	'categories': {
-		'default': {
-			'appenders': ['out'],
-			'level': logLevel
-		}
-	}
+	appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
+	categories: { default: { appenders: ['out'], level: logLevel } }
 });
 
 const logger = log4js.getLogger('Config');
@@ -64,17 +54,19 @@ const e = {
 	baseUrlBM: get('bm') + '/bm',
 	baseUrlSEC: get('sec') + '/sec',
 	baseUrlDM: get('dm') + '/dm',
+	baseUrlGW: get('gw'),
 	isK8sEnv,
 	imageTag: process.env.IMAGE_TAG || 'dev',
 	hostname: process.env.HOSTNAME,
 	port: process.env.PORT || 8080,
 	httpsPort: process.env.HTTPS_PORT || 8443,
-	app: process.env.DATA_STACK_APP,
+	app: process.env.DATA_STACK_APP || 'Sushmitha',
 	appDB: process.env.DATA_DB || 'datastackB2B',
 	appNamespace: process.env.DATA_STACK_FLOW_NAMESPACE,
-	flowId: process.env.DATA_STACK_FLOW_ID,
+	flowId: process.env.DATA_STACK_FLOW_ID || 'FLOW0012',
 	DATA_STACK_NAMESPACE,
 	TOKEN_SECRET: process.env.TOKEN_SECRET || 'u?5k167v13w5fhjhuiweuyqi67621gqwdjavnbcvadjhgqyuqagsduyqtw87e187etqiasjdbabnvczmxcnkzn',
+	RBAC_JWT_KEY: process.env.RBAC_JWT_KEY || 'u?5k167v13w5fhjhuiweuyqi67621gqwdjavnbcvadjhgqyuqagsduyqtw87e187etqiasjdbabnvczmxcnkzn',
 	mongoUrl: process.env.MONGO_APPCENTER_URL || 'mongodb://localhost',
 	authorDB: process.env.MONGO_AUTHOR_DBNAME || 'datastackConfig',
 	mongoAuthorUrl: process.env.MONGO_AUTHOR_URL || 'mongodb://localhost',
@@ -105,7 +97,8 @@ const e = {
 		useUnifiedTopology: true,
 		useNewUrlParser: true,
 		dbName: process.env.MONGO_LOGS_DBNAME || 'datastackLogs'
-	}
+	},
+	get
 };
 
 module.exports = e;

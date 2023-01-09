@@ -9,14 +9,20 @@ const schemaUtils = require('./schema.utils');
 const logger = log4js.getLogger(global.loggerName);
 
 async function createProject(flowJSON) {
+	logger.info(`Generating flow code for flow ID   :: ${flowJSON._id}`);
+	logger.info(`Generating flow code for flow Name :: ${flowJSON.name}`);
+	logger.info(`Generating flow code for flow App  :: ${flowJSON.app}`);
 	try {
 		if (!flowJSON.port) {
 			flowJSON.port = 31000;
 		}
+		logger.info(`Generating flow code for flow Port :: ${flowJSON.port}`);
 		// const folderPath = path.join(process.cwd(), 'generatedFlows', flowJSON._id);
 		const folderPath = process.cwd();
 
 		mkdirp.sync(path.join(folderPath, 'schemas'));
+		mkdirp.sync(path.join(folderPath, 'SFTP-Files'));
+		mkdirp.sync(path.join(folderPath, 'downloads'));
 
 		if (flowJSON.dataStructures && Object.keys(flowJSON.dataStructures).length > 0) {
 			Object.keys(flowJSON.dataStructures).forEach(schemaID => {
@@ -27,8 +33,10 @@ async function createProject(flowJSON) {
 				}
 			});
 		}
+		const nodeUtilsContent = await codeGen.parseNodes(flowJSON);
 		fs.writeFileSync(path.join(folderPath, 'route.js'), codeGen.parseFlow(flowJSON));
-		fs.writeFileSync(path.join(folderPath, 'stage.utils.js'), codeGen.parseStages(flowJSON));
+		fs.writeFileSync(path.join(folderPath, 'node.utils.js'), nodeUtilsContent);
+		fs.writeFileSync(path.join(folderPath, 'file.utils.js'), codeGen.parseDataStructuresForFileUtils(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'validation.utils.js'), codeGen.parseDataStructures(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'flow.json'), JSON.stringify(flowJSON));
 

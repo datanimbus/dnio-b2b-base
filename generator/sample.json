@@ -1,389 +1,275 @@
 {
-    "_id": "FLOW1001",
-    "name": "Test Flow",
-    "options": {
-        "uniqueTxnID": true
-    },
-    "inputStage": {
+    "_id": "FLOW1452",
+    "app": "Demo2",
+    "name": "IDValidator",
+    "version": 22,
+    "status": "Active",
+    "inputNode": {
+        "_id": "SCRKOX",
         "type": "API",
-        "name": "Get Data",
-        "incoming": {
-            "path": "/test01",
+        "options": {
             "method": "POST",
-            "headers": {
-                "Content-Type": "application/json"
-            }
+            "path": "/idValidator",
+            "contentType": "application/json"
         },
-        "onSuccess": [
-            {
-                "_id": "STAGE1001"
-            }
-        ],
-        "onError": [],
         "dataStructure": {
             "outgoing": {
-                "type": "dataFormat",
-                "_id": "DF1001"
+                "_id": "KOWWP",
+                "name": "Custom_KOWWP"
             }
-        }
+        },
+        "name": "Loan Origination",
+        "mappings": [],
+        "onSuccess": [
+            {
+                "_id": "SUZCED"
+            }
+        ]
     },
-    "stages": [
+    "nodes": [
         {
-            "_id": "STAGE1001",
-            "name": "Convert from DF1001 to DF1003",
-            "type": "TRANSFORM",
+            "_id": "SUZCED",
+            "type": "API",
             "onSuccess": [
                 {
-                    "_id": "STAGE1012"
+                    "_id": "SZMLXJ"
                 }
             ],
             "onError": [],
-            "mapping": [
-                {
-                    "source": [
-                        {
-                            "type": "String",
-                            "dataPath": "_id"
-                        }
-                    ],
-                    "target": {
-                        "type": "String",
-                        "dataPath": "_id"
-                    },
-                    "formula": "return input1"
-                },
-                {
-                    "source": [
-                        {
-                            "type": "String",
-                            "dataPath": "name"
-                        }
-                    ],
-                    "target": {
-                        "type": "String",
-                        "dataPath": "name"
-                    },
-                    "formula": "return input1"
-                },
-                {
-                    "source": [
-                        {
-                            "type": "String",
-                            "dataPath": "email"
-                        }
-                    ],
-                    "target": {
-                        "type": "String",
-                        "dataPath": "email"
-                    },
-                    "formula": "return input1"
-                },
-                {
-                    "source": [
-                        {
-                            "type": "Number",
-                            "dataPath": "contactNo"
-                        }
-                    ],
-                    "target": {
-                        "type": "Number",
-                        "dataPath": "contactNo"
-                    },
-                    "formula": "return input1"
-                },
-                {
-                    "source": [
-                        {
-                            "type": "Number",
-                            "dataPath": "age"
-                        }
-                    ],
-                    "target": {
-                        "type": "Number",
-                        "dataPath": "age"
-                    },
-                    "formula": "return input1"
-                }
-            ],
+            "options": {
+                "method": "GET",
+                "headers": {},
+                "url": "https://bifrost.ds.appveen.com/api/a/faas/Demo2/sampleValidator?pan={{node[\"SCRKOX\"].body['pan']}}",
+                "body": "",
+                "insert": true
+            },
             "dataStructure": {
                 "outgoing": {
-                    "type": "dataFormat",
-                    "_id": "DF1002"
+                    "_id": "SUMXI",
+                    "name": "Custom_SUMXI",
+                    "definition": [
+                        {
+                            "type": "String",
+                            "key": "panName",
+                            "properties": {
+                                "name": "panName"
+                            }
+                        },
+                        {
+                            "type": "String",
+                            "key": "panNumber",
+                            "properties": {
+                                "name": "panNumber",
+                                "dataPath": "panNumber"
+                            }
+                        },
+                        {
+                            "type": "Boolean",
+                            "key": "valid",
+                            "properties": {
+                                "name": "valid",
+                                "dataPath": "valid"
+                            }
+                        }
+                    ],
+                    "formatType": "JSON"
                 }
-            }
+            },
+            "name": "Validate PAN",
+            "mappings": []
         },
         {
-            "_id": "STAGE1012",
-            "name": "Call external API",
-            "type": "API",
-            "outgoing": {
-                "url": "http://localhost:18080/api/test1",
+            "_id": "SZMLXJ",
+            "type": "MAPPING",
+            "onSuccess": [
+                {
+                    "_id": "STSBHC"
+                }
+            ],
+            "onError": [],
+            "options": {
                 "method": "POST",
-                "headers": "{{stage['STAGE1001'].headers}}"
+                "headers": {},
+                "insert": true
             },
             "dataStructure": {
                 "outgoing": {
-                    "type": "dataFormat",
-                    "_id": "DF1003"
+                    "_id": "FCMMY",
+                    "name": "Custom_FCMMY",
+                    "definition": [
+                        {
+                            "type": "String",
+                            "key": "aadhaar",
+                            "properties": {
+                                "name": "aadhaar",
+                                "dataPath": "aadhaar"
+                            }
+                        }
+                    ],
+                    "formatType": "JSON"
                 }
             },
-            "onSuccess": [
+            "name": "Set Aadhaar Payload",
+            "mappings": [
                 {
-                    "_id": "LOGIN"
+                    "target": {
+                        "type": "String",
+                        "dataPath": "aadhaar"
+                    },
+                    "source": [],
+                    "formula": "return node[\"SCRKOX\"].body['aadhaar']",
+                    "formulaID": "formula_eee23B2684294A709E7EB5404Dab32B0"
                 }
-            ],
-            "onError": []
+            ]
         },
         {
-            "_id": "LOGIN",
-            "name": "DS Login",
-            "type": "AUTH-DATASTACK",
-            "onSuccess": [
-                {
-                    "_id": "STAGE1002"
-                }
-            ],
-            "onError": [],
-            "auth": {
-                "username": "johndoe@ds.com",
-                "password": "123123123"
-            },
-            "dataStructure": {
-                "outgoing": {
-                    "type": "dataFormat",
-                    "_id": "DF1002"
-                }
-            }
-        },
-        {
-            "_id": "STAGE1002",
-            "name": "Call external API",
+            "_id": "STSBHC",
             "type": "API",
-            "outgoing": {
-                "url": "http://localhost:18080/api/test1",
+            "onSuccess": [],
+            "onError": [],
+            "options": {
                 "method": "POST",
                 "headers": {
-                    "Content-Type": "application/json",
-                    "Authorization": "JWT {{stage['LOGIN'].body.token}}"
-                }
+                    "Authorization": "{{node['SCRKOX'].headers['Authorization']}}"
+                },
+                "url": "https://bifrost.ds.appveen.com/api/a/faas/Demo2/sampleValidator",
+                "body": "{{node[\"SZMLXJ\"].body}}",
+                "insert": true
             },
             "dataStructure": {
                 "outgoing": {
-                    "type": "dataFormat",
-                    "_id": "DF1003"
+                    "_id": "TYZNT",
+                    "name": "Custom_TYZNT",
+                    "definition": [
+                        {
+                            "type": "String",
+                            "key": "aadhaar",
+                            "properties": {
+                                "name": "aadhaar",
+                                "dataPath": "aadhaar"
+                            }
+                        }
+                    ],
+                    "formatType": "JSON"
                 }
             },
-            "onSuccess": [],
-            "onError": []
-        },
-        {
-            "_id": "STAGE1003",
-            "name": "Convert from DF1001 to DF1003",
-            "type": "TRANSFORM",
-            "onSuccess": [
-                {
-                    "_id": "STAGE1002"
-                }
-            ],
-            "onError": [],
-            "mapping": [
-                {
-                    "source": [
-                        "_id"
-                    ],
-                    "target": "_id",
-                    "formula": "return input1"
-                },
-                {
-                    "source": [
-                        "name"
-                    ],
-                    "target": "name",
-                    "formula": "return input1"
-                },
-                {
-                    "source": [
-                        "email"
-                    ],
-                    "target": "email",
-                    "formula": "return input1"
-                },
-                {
-                    "source": [
-                        "contactNo"
-                    ],
-                    "target": "contactNo",
-                    "formula": "return input1"
-                },
-                {
-                    "source": [
-                        "age"
-                    ],
-                    "target": "age",
-                    "formula": "return input1"
-                }
-            ],
-            "dataStructure": {
-                "outgoing": {
-                    "type": "dataFormat",
-                    "_id": "DF1002"
-                }
-            }
+            "name": "Validate Aadhaar",
+            "mappings": []
         }
     ],
+    "description": null,
+    "isBinary": false,
+    "_metadata": {
+        "lastUpdated": "2022-11-16T20:08:38.982Z",
+        "createdAt": "2022-11-16T18:22:21.270Z",
+        "deleted": false,
+        "version": {
+            "document": 23,
+            "_id": "63752a5d5b5280f93cd9956b"
+        },
+        "_id": "63752a5d5b5280f93cd9956a"
+    },
+    "deploymentName": "b2b-idvalidator",
+    "namespace": "appveen-demo2",
     "dataStructures": {
-        "DF1001": {
-            "name": "Some Structure",
+        "KOWWP": {
+            "_id": "KOWWP",
+            "name": "Custom_KOWWP",
             "definition": [
-                {
-                    "key": "_id",
-                    "type": "String",
-                    "prefix": "EMP",
-                    "suffix": null,
-                    "padding": null,
-                    "counter": 1001,
-                    "properties": {
-                        "name": "ID",
-                        "required": false,
-                        "dataPath": "_id"
-                    }
-                },
                 {
                     "type": "String",
                     "key": "name",
                     "properties": {
-                        "name": "Name",
+                        "name": "name",
                         "dataPath": "name"
                     }
                 },
                 {
                     "type": "String",
-                    "key": "email",
+                    "key": "pan",
                     "properties": {
-                        "name": "Email",
-                        "dataPath": "email"
+                        "name": "pan",
+                        "dataPath": "pan"
                     }
                 },
                 {
                     "type": "String",
-                    "key": "contactNo",
+                    "key": "aadhaar",
                     "properties": {
-                        "name": "Contact No",
-                        "dataPath": "contactNo"
+                        "name": "aadhaar",
+                        "dataPath": "aadhaar"
                     }
                 },
                 {
-                    "type": "Number",
-                    "key": "age",
+                    "type": "String",
+                    "key": "phoneNumber",
                     "properties": {
-                        "name": "Age",
-                        "precision": 2,
-                        "dataPath": "age"
+                        "name": "phoneNumber",
+                        "dataPath": "phoneNumber"
                     }
                 }
             ]
         },
-        "DF1002": {
-            "name": "Some Structure",
+        "SUMXI": {
+            "_id": "SUMXI",
+            "name": "Custom_SUMXI",
             "definition": [
                 {
-                    "key": "_id",
                     "type": "String",
-                    "prefix": "EMP",
-                    "suffix": null,
-                    "padding": null,
-                    "counter": 1001,
+                    "key": "panName",
                     "properties": {
-                        "name": "ID",
-                        "required": false,
-                        "dataPath": "_id"
+                        "name": "panName"
                     }
                 },
                 {
                     "type": "String",
-                    "key": "name",
+                    "key": "panNumber",
                     "properties": {
-                        "name": "Name",
-                        "dataPath": "name"
+                        "name": "panNumber",
+                        "dataPath": "panNumber"
                     }
                 },
                 {
-                    "type": "String",
-                    "key": "email",
+                    "type": "Boolean",
+                    "key": "valid",
                     "properties": {
-                        "name": "Email",
-                        "dataPath": "email"
-                    }
-                },
-                {
-                    "type": "String",
-                    "key": "contactNo",
-                    "properties": {
-                        "name": "Contact No",
-                        "dataPath": "contactNo"
-                    }
-                },
-                {
-                    "type": "Number",
-                    "key": "age",
-                    "properties": {
-                        "name": "Age",
-                        "precision": 2,
-                        "dataPath": "age"
+                        "name": "valid",
+                        "dataPath": "valid"
                     }
                 }
-            ]
+            ],
+            "formatType": "JSON"
         },
-        "DF1003": {
-            "name": "Some Structure",
+        "FCMMY": {
+            "_id": "FCMMY",
+            "name": "Custom_FCMMY",
             "definition": [
                 {
-                    "key": "_id",
                     "type": "String",
-                    "prefix": "EMP",
-                    "suffix": null,
-                    "padding": null,
-                    "counter": 1001,
+                    "key": "aadhaar",
                     "properties": {
-                        "name": "ID",
-                        "required": false,
-                        "dataPath": "_id"
-                    }
-                },
-                {
-                    "type": "String",
-                    "key": "name",
-                    "properties": {
-                        "name": "Name",
-                        "dataPath": "name"
-                    }
-                },
-                {
-                    "type": "String",
-                    "key": "email",
-                    "properties": {
-                        "name": "Email",
-                        "dataPath": "email"
-                    }
-                },
-                {
-                    "type": "String",
-                    "key": "contactNo",
-                    "properties": {
-                        "name": "Contact No",
-                        "dataPath": "contactNo"
-                    }
-                },
-                {
-                    "type": "Number",
-                    "key": "age",
-                    "properties": {
-                        "name": "Age",
-                        "precision": 2,
-                        "dataPath": "age"
+                        "name": "aadhaar",
+                        "dataPath": "aadhaar"
                     }
                 }
-            ]
+            ],
+            "formatType": "JSON"
+        },
+        "TYZNT": {
+            "_id": "TYZNT",
+            "name": "Custom_TYZNT",
+            "definition": [
+                {
+                    "type": "String",
+                    "key": "aadhaar",
+                    "properties": {
+                        "name": "aadhaar",
+                        "dataPath": "aadhaar"
+                    }
+                }
+            ],
+            "formatType": "JSON"
         }
-    }
+    },
+    "port": 31000
 }

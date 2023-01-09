@@ -16,31 +16,31 @@ function checkFlowGraph(flowDefinition) {
 		e: { s: [], e: [] }
 	};
 	cl(`Flow name - ${flowDefinition.name}`);
-	flowDefinition.inputStage.onSuccess.forEach(node => {
+	flowDefinition.inputNode.onSuccess.forEach(node => {
 		if (nodes.indexOf(node._id) != -1) nodes.push(node._id);
 		dg.i.s.push(node._id);
 	});
-	flowDefinition.inputStage.onError.forEach(node => {
+	flowDefinition.inputNode.onError.forEach(node => {
 		if (nodes.indexOf(node._id) != -1) nodes.push(node._id);
 		dg.i.e.push(node._id);
 	});
-	flowDefinition.stages.forEach(stage => {
-		dg[stage._id] = { s: [], e: [] };
-		if (nodes.indexOf(stage._id) == -1) nodes.push(stage._id);
+	flowDefinition.nodes.forEach(node => {
+		dg[node._id] = { s: [], e: [] };
+		if (nodes.indexOf(node._id) == -1) nodes.push(node._id);
 
-		stage.onSuccess.forEach(node => {
+		node.onSuccess.forEach(node => {
 			if (nodes.indexOf(node._id) != -1) nodes.push(node._id);
-			dg[stage._id].s.push(node._id);
+			dg[node._id].s.push(node._id);
 		});
-		stage.onError.forEach(node => {
+		node.onError.forEach(node => {
 			if (nodes.indexOf(node._id) != -1) nodes.push(node._id);
-			dg[stage._id].e.push(node._id);
+			dg[node._id].e.push(node._id);
 		});
 	});
-	flowDefinition.error.forEach(stage => {
-		dg[stage._id] = { s: [], e: [] };
-		stage.onSuccess.forEach(node => dg[stage._id].s.push(node._id));
-		stage.onError.forEach(node => dg[stage._id].e.push(node._id));
+	flowDefinition.error.forEach(node => {
+		dg[node._id] = { s: [], e: [] };
+		node.onSuccess.forEach(node => dg[node._id].s.push(node._id));
+		node.onError.forEach(node => dg[node._id].e.push(node._id));
 	});
 	cl(nodes);
 	cl(dg);

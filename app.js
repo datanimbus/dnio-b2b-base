@@ -7,13 +7,14 @@ const log4js = require('log4js');
 const express = require('express');
 const JWT = require('jsonwebtoken');
 
-const { XMLParser } = require('fast-xml-parser');
+const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
 
 const config = require('./config');
 const codeGen = require('./generator/index');
 const httpClient = require('./http-client');
 
-const token = JWT.sign({ name: 'DS_BM', _id: 'admin', isSuperAdmin: true }, config.TOKEN_SECRET);
+const token = JWT.sign({ name: 'DS_BM', _id: 'admin', isSuperAdmin: true }, config.RBAC_JWT_KEY);
+global.BM_TOKEN = token;
 
 httpClient.request({
 	url: config.baseUrlBM + '/' + config.app + '/flow/' + config.flowId,
@@ -52,21 +53,11 @@ function initialize() {
 
 	const app = express();
 	const logger = log4js.getLogger(global.loggerName);
-	const xmlParser = new XMLParser();
 
 	const middlewares = require('./lib.middlewares');
 
 	app.use(express.urlencoded({ extended: true }));
-	app.use(express.raw({ type: ['application/xml', 'text/xml'] }));
-	app.use(express.json({ inflate: true, limit: '100mb' }));
 	app.use(middlewares.addHeaders);
-
-	app.use((req, res, next) => {
-		if (req.get('content-type') === 'application/xml' || req.get('content-type') == 'text/xml') {
-			req.body = xmlParser.parse(req.body);
-		}
-		next();
-	});
 
 	app.use('/api/b2b', require('./route'));
 
@@ -96,7 +87,7 @@ function initialize() {
 			}, 15000);
 			logger.info('Process Kill Request Recieved');
 			// Stopping CRON Job;
-			global.job.cancel();
+			// global.job.cancel();
 			// global.pullJob.cancel();
 			// clearInterval(global.pullJob)
 			const intVal = setInterval(() => {

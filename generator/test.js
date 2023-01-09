@@ -1,10 +1,17 @@
 const { writeFileSync } = require('fs');
 
 const codeGen = require('./code.generator');
-const sampleJSON = require('./sample.json');
+const flowJSON = require('./sample.json');
 
-const stages = codeGen.parseStages(sampleJSON);
-const code = codeGen.parseFlow(sampleJSON);
+// const stages = codeGen.parseFlow(sampleJSON);
+const code = codeGen.parseFlow(flowJSON);
 
-writeFileSync('../stage.utils.js', stages);
-writeFileSync('../route.js', code);
+
+(async () => {
+	const nodeUtilsContent = await codeGen.parseNodes(flowJSON);
+	writeFileSync('../route.js', codeGen.parseFlow(flowJSON));
+	writeFileSync('../node.utils.js', nodeUtilsContent);
+	writeFileSync('../file.utils.js', codeGen.parseDataStructuresForFileUtils(flowJSON));
+	writeFileSync('../validation.utils.js', codeGen.parseDataStructures(flowJSON));
+	// writeFileSync('../flow.json', JSON.stringify(flowJSON));
+})();
