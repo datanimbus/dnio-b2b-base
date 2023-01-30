@@ -27,6 +27,7 @@ function getState(req, nodeId, isChild, contentType) {
 	data.contentType = contentType || 'application/json';
 	data._metadata = {
 		createdAt: new Date(),
+		lastUpdated: new Date(),
 		deleted: false
 	};
 	return data;
@@ -44,6 +45,7 @@ async function upsertState(req, state) {
 	dataPayload.body = clonedState.body;
 	dataPayload.batchList = clonedState.batchList;
 	dataPayload.dataType = clonedState.contentType || 'application/json';
+	dataPayload._metadata = clonedState._metadata;
 	clonedState.payload = {};
 	if (clonedState.body) {
 		if (Array.isArray(clonedState.body)) {
@@ -68,6 +70,7 @@ async function upsertState(req, state) {
 	delete clonedState.body;
 	delete clonedState.batchList;
 	clonedState._metadata.lastUpdated = new Date();
+	dataPayload._metadata.lastUpdated = new Date();
 	logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Stage: ${JSON.stringify(state._id)}`);
 	try {
 		let status = await global.appcenterDB.collection('b2b.node.state').findOneAndUpdate(
