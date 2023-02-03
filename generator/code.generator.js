@@ -770,9 +770,9 @@ async function generateNodes(pNode) {
 				if (connector.type == 'MSSQL') {
 					code.push(`${tab(2)}const crud = new mssql({ connectionString: connectorConfig.connectionString});`);
 				} else if (connector.type == 'MYSQL') {
-					code.push(`${tab(2)}const crud = new mysql({ connectionString: connectorConfig.connectionString});`);
+					code.push(`${tab(2)}const crud = new mysql({ host: connectorConfig.host, port: connectorConfig.port, user: connectorConfig.user, password: connectorConfig.password, database: connectorConfig.database});`);
 				} else if (connector.type == 'PGSQL') {
-					code.push(`${tab(2)}const crud = new psql({ connectionString: connectorConfig.connectionString});`);
+					code.push(`${tab(2)}const crud = new psql({ host: connectorConfig.host, port: connectorConfig.port, user: connectorConfig.user, password: connectorConfig.password, database: connectorConfig.database});`);
 				} else {
 					code.push(`${tab(2)}const crud = new mdb({ connectionString: connectorConfig.connectionString});`);
 				}
