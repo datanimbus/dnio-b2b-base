@@ -390,7 +390,6 @@ async function parseNodes(dataJson) {
 	code.push('const fileUtils = require(\'./file.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
-	code.push('const xmlBuilder = new XMLBuilder();');
 	code.push('');
 	const tempCode = await generateNodes(dataJson);
 	return _.concat(code, tempCode).join('\n');
@@ -910,8 +909,12 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}fs.writeFileSync(uploadFilePath, JSON.stringify(customBody), 'utf-8');`);
 				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, uploadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
 			} else if (dataFormat.formatType === 'XML') {
-				code.push(`${tab(2)}const content = new J2XParser().parse(customBody);`);
-				code.push(`${tab(2)}fs.writeFileSync(uploadFilePath, content, 'utf-8');`);
+				code.push(`${tab(2)}let xmlContent = new XMLBuilder({format: true,arrayNodeName: '${dataFormat.rootNodeName}'}).build(customBody);`);
+				if (dataFormat.xmlInitFormat) {
+					code.push(`${tab(2)}const xmlInitFormat = '${dataFormat.xmlInitFormat}\\r\\n';`);
+					code.push(`${tab(2)}xmlContent = xmlInitFormat + xmlContent;`);
+				}
+				code.push(`${tab(2)}fs.writeFileSync(uploadFilePath, xmlContent, 'utf-8');`);
 				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, uploadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);

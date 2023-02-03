@@ -98,6 +98,7 @@ const e = {
 		useNewUrlParser: true,
 		dbName: process.env.MONGO_LOGS_DBNAME || 'datastackLogs'
 	},
+	encryptionKey: process.env.ENCRYPTION_KEY || '34857057658800771270426551038148',
 	get
 };
 
