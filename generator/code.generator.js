@@ -782,7 +782,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}const result = await crud.sqlQuery(\`${parseDynamicVariable(node.options.query)}\`);`);
 				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Query Executed\`);`);
 				code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Query Result\`, result);`);
-				code.push(`${tab(2)}state.body = result.recordset;`);
+				code.push(`${tab(2)}state.body = result;`);
 				// code.push(`${tab(2)}await crud.disconnect();`);
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
