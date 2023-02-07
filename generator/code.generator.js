@@ -402,6 +402,10 @@ async function generateNodes(pNode) {
 	let code = [];
 	const exportsCode = [];
 	let loopCode = [];
+	const nodeVariables = [{ key: _.snakeCase(pNode.inputNode.name), value: pNode.inputNode._id }];
+	nodes.forEach((node) => {
+		nodeVariables.push({ key: _.snakeCase(node.name), value: node._id })
+	});
 	// let promises = nodes.map(async (node) => {
 	await nodes.reduce(async (prev, node) => {
 		await prev;
@@ -422,15 +426,22 @@ async function generateNodes(pNode) {
 		code.push(`async function ${_.camelCase(node._id)}(req, state, node) {`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${node.name ? node.name : ''}(${_.camelCase(node._id)}) Node\`);`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Node type :: ${node.type}\`);`);
+		// nodeVariables.forEach((item) => {
+		// 	code.push(`${tab(1)}const ${_.snakeCase(item.key)} = node['${item.value}'];`);
+		// });
 		code.push(`${tab(1)}try {`);
 		let functionName = 'validate_structure_' + _.camelCase(node._id);
 		if (node.type === 'API' || node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
 			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
 			if (node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
-				code.push(`${tab(2)}if (req.header('authorization')) {`);
-				code.push(`${tab(3)}customHeaders['authorization'] = req.header('authorization');`);
-				code.push(`${tab(2)}}`);
+				if (node.options.authorization) {
+					code.push(`${tab(3)}customHeaders['authorization'] = '${node.options.authorization}';`);
+				} else {
+					code.push(`${tab(2)}if (req.header('authorization')) {`);
+					code.push(`${tab(3)}customHeaders['authorization'] = req.header('authorization');`);
+					code.push(`${tab(2)}}`);
+				}
 			}
 			code.push(`${tab(2)}let customBody = state.body;`);
 			if (node.type === 'API' && node.options) {
