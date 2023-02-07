@@ -104,6 +104,7 @@ function parseFlow(dataJson) {
 	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}', false, '${(inputNode.options.contentType || '')}');`);
 	code.push(`${tab(1)}let node = {};`);
 	code.push(`${tab(1)}node['${inputNode._id}'] = state;`);
+	// code.push(`${tab(1)}const ${_.snakeCase(inputNode.name)} = state;`);
 	code.push(`${tab(1)}let isResponseSent = false;`);
 	if (inputNode.type === 'API') {
 		code.push(`${tab(1)}setTimeout(function() {`);
@@ -279,7 +280,7 @@ function parseFlow(dataJson) {
 function generateCode(node, nodes) {
 	let code = [];
 	code.push(`${tab(1)}\n\n// ═══════════════════ ${node._id} / ${node.name} / ${node.type} ══════════════════════`);
-	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking node :: ${node._id} / ${node.name} / ${node.type}\`)`);
+	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking node :: ${node._id} / ${node.name} / ${node.type}\`);`);
 	code.push(`${tab(1)}try {`);
 	if (node.type === 'RESPONSE') {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
@@ -436,7 +437,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
 			if (node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 				if (node.options.authorization) {
-					code.push(`${tab(3)}customHeaders['authorization'] = '${node.options.authorization}';`);
+					code.push(`${tab(3)}customHeaders['authorization'] = \`${parseDynamicVariable(node.options.authorization)}\`;`);
 				} else {
 					code.push(`${tab(2)}if (req.header('authorization')) {`);
 					code.push(`${tab(3)}customHeaders['authorization'] = req.header('authorization');`);
