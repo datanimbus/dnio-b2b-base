@@ -314,8 +314,23 @@ function generateCode(node, nodes) {
 		code.push(`${tab(2)}response = await nodeUtils.${_.camelCase(node._id)}(req, state, node);`);
 		code.push(`${tab(2)}if (response.statusCode >= 400) {`);
 		if (node.onError && node.onError.length > 0) {
-			code.push(`${tab(3)}state = stateUtils.getState(response, '${node.onError[0]._id}');`);
-			code.push(`${tab(3)}await nodeUtils.${_.camelCase(node.onError[0]._id)}(req, state, node);`);
+			let tempNodes = (node.onError || []);
+			for (let index = 0; index < tempNodes.length; index++) {
+				const ss = tempNodes[index];
+				const node = nodes.find(e => e._id === ss._id);
+				if (ss.condition) {
+					node.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '');
+				}
+				if (visitedNodes.indexOf(node._id) > -1) {
+					return;
+				}
+				visitedNodes.push(node._id);
+				if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
+				code = code.concat(generateCode(node, nodes));
+				if (node.condition) code.push(`${tab(1)}}`);
+			}
+			// code.push(`${tab(3)}state = stateUtils.getState(response, '${node.onError[0]._id}');`);
+			// code.push(`${tab(3)}await nodeUtils.${_.camelCase(node.onError[0]._id)}(req, state, node);`);
 		} else {
 			code.push(`${tab(3)}if (!isResponseSent) {`);
 			code.push(`${tab(4)}isResponseSent = true;`);
@@ -329,10 +344,15 @@ function generateCode(node, nodes) {
 	}
 	code.push(`${tab(1)}} catch (err) {`);
 	code.push(`${tab(2)}logger.error(err);`);
+	// if (node.onError && node.onError.length > 0) {
+	// 	code.push(`${tab(2)}state = stateUtils.getState(response, '${node.onError[0]._id}');`);
+	// 	code.push(`${tab(2)}await nodeUtils.${_.camelCase(node.onError[0]._id)}(req, state, node);`);
+	// } else {
 	code.push(`${tab(2)}if (!isResponseSent) {`);
 	code.push(`${tab(3)}res.status(500).json({ message: 'Error occured at ${node.name || node._id}' });`);
 	code.push(`${tab(3)}isResponseSent = true;`);
 	code.push(`${tab(2)}}`);
+	// }
 	code.push(`${tab(1)}}`);
 	let tempNodes = (node.onSuccess || []);
 	for (let index = 0; index < tempNodes.length; index++) {
@@ -806,58 +826,6 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
-		} else if (node.type === 'FOREACH' || node.type === 'REDUCE') {
-			loopCode = generateNodes(node);
-			code.push(`${tab(2)}let temp = JSON.parse(JSON.stringify(state.body));`);
-			code.push(`${tab(2)}if (!Array.isArray(temp)) {`);
-			code.push(`${tab(3)}temp = [temp]`);
-			code.push(`${tab(2)}}`);
-			if (node.type === 'FOREACH') {
-				code.push(`${tab(2)}promises = temp.map(async(data) => {`);
-				code.push(`${tab(2)}let response = { headers: state.headers, body: data };`);
-				node.nodes.forEach((st, si) => {
-					code.push(`${tab(2)}state = stateUtils.getState(response, '${st._id}', true);`);
-					code.push(`${tab(2)}response = await ${_.camelCase(st._id)}(req, state, node);`);
-					code.push(`${tab(2)}if (response.statusCode >= 400) {`);
-					code.push(`${tab(3)}state.status = 'ERROR'`);
-					code.push(`${tab(3)}state.statusCode = response.statusCode;`);
-					code.push(`${tab(3)}state.body = response.body;`);
-					if (st.onError && st.onError.length > 0) {
-						code.push(`${tab(3)}state = stateUtils.getState(response, '${st.onError[0]._id}', true);`);
-						code.push(`${tab(3)}await ${_.camelCase(st.onError[0]._id)}(req, state, node);`);
-					} else {
-						code.push(`${tab(3)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
-					}
-					code.push(`${tab(2)}}`);
-					if (node.nodes.length - 1 === si) {
-						code.push(`${tab(3)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
-					}
-				});
-				code.push(`${tab(2)}});`);
-				code.push(`${tab(2)}promises = await Promise.all(promises);`);
-				code.push(`${tab(2)}state.status = 'SUCCESS';`);
-				code.push(`${tab(2)}state.statusCode = 200;`);
-				code.push(`${tab(2)}state.body = promises.map(e => e.body);`);
-				code.push(`${tab(2)}return _.cloneDeep(state);`);
-				// code.push(`${tab(2)}return { statusCode: 200, body: promises.map(e=>e.body), headers: state.headers };`);
-			} else {
-				// code.push(`${tab(2)}promises = await temp.reduce(async(response, data) => {`);
-				// code.push(`${tab(2)}let response = { headers: state.headers, body: data };`);
-				// node.nodes.forEach(st => {
-				// 	code.push(`${tab(2)}state = stateUtils.getState(response, '${st._id}');`);
-				// 	code.push(`${tab(2)}response = await ${_.camelCase(st._id)}(req, state, node);`);
-				// 	code.push(`${tab(2)}if (response.statusCode >= 400) {`);
-				// 	if (st.onError && st.onError.length > 0) {
-				// 		code.push(`${tab(3)}state = stateUtils.getState(response, '${st.onError[0]._id}');`);
-				// 		code.push(`${tab(3)}await ${_.camelCase(st.onError[0]._id)}(req, state, node);`);
-				// 	} else {
-				// 		code.push(`${tab(3)}return { statusCode: response.statusCode, body: response.body, headers: response.headers };`);
-				// 	}
-				// 	code.push(`${tab(2)}}`);
-				// });
-				// code.push(`${tab(2)}});`);
-				// code.push(`${tab(2)}return { statusCode: 200, body: promises.body, headers: state.headers };`);
-			}
 		} else if (node.type === 'FILE') {
 			code.push(`${tab(2)}let customBody = state.body;`);
 			let ext = '.json';
