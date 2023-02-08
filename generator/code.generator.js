@@ -288,11 +288,15 @@ function generateCode(node, nodes) {
 			code.push(`${tab(2)}state.statusCode = ${node.options.statusCode};`);
 		}
 		if (node.options && node.options.body) {
-			try {
-				JSON.parse(node.options.body);
-				code.push(`${tab(2)}state.body = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-			} catch (err) {
-				code.push(`${tab(2)}state.body = \`${parseBody(node.options.body)}\`;`);
+			if (node.options.body.indexOf('node[') > -1) {
+				code.push(`${tab(2)}state.body = ${parseBody(node.options.body)};`);
+			} else {
+				try {
+					JSON.parse(node.options.body);
+					code.push(`${tab(2)}state.body = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+				} catch (err) {
+					code.push(`${tab(2)}state.body = \`${parseBody(node.options.body)}\`;`);
+				}
 			}
 		}
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
@@ -324,7 +328,7 @@ function generateCode(node, nodes) {
 		} else {
 			code.push(`${tab(3)}if (!isResponseSent) {`);
 			code.push(`${tab(4)}isResponseSent = true;`);
-			code.push(`${tab(4)}return res.status((response.statusCode || 200)).json(response.body);`);
+			code.push(`${tab(4)}return res.status((response.statusCode || 200)).json({ message: 'Error occured at ${node.name || node._id}' });`);
 			code.push(`${tab(3)}}`);
 		}
 		code.push(`${tab(2)}}`);
@@ -335,7 +339,7 @@ function generateCode(node, nodes) {
 	code.push(`${tab(1)}} catch (err) {`);
 	code.push(`${tab(2)}logger.error(err);`);
 	code.push(`${tab(2)}if (!isResponseSent) {`);
-	code.push(`${tab(3)}res.status(500).json({ message: err.message });`);
+	code.push(`${tab(3)}res.status(500).json({ message: 'Error occured at ${node.name || node._id}' });`);
 	code.push(`${tab(3)}isResponseSent = true;`);
 	code.push(`${tab(2)}}`);
 	code.push(`${tab(1)}}`);
@@ -459,11 +463,15 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
 				if (node.options.body && !_.isEmpty(node.options.body)) {
-					try {
-						JSON.parse(node.options.body);
-						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-					} catch (err) {
-						code.push(`${tab(2)}customBody = \`${parseBody(node.options.body)}\`;`);
+					if (node.options.body.indexOf('node[') > -1) {
+						code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					} else {
+						try {
+							JSON.parse(node.options.body);
+							code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+						} catch (err) {
+							code.push(`${tab(2)}customBody = \`${parseBody(node.options.body)}\`;`);
+						}
 					}
 				}
 			} else if (node.type === 'DATASERVICE' && node.options.dataService && node.options.dataService._id) {
