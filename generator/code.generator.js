@@ -288,16 +288,7 @@ function generateCode(node, nodes) {
 			code.push(`${tab(2)}state.statusCode = ${node.options.statusCode};`);
 		}
 		if (node.options && node.options.body) {
-			if (node.options.body.indexOf('node[') > -1) {
-				code.push(`${tab(2)}state.body = ${parseBody(node.options.body)};`);
-			} else {
-				try {
-					JSON.parse(node.options.body);
-					code.push(`${tab(2)}state.body = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-				} catch (err) {
-					code.push(`${tab(2)}state.body = \`${parseBody(node.options.body)}\`;`);
-				}
-			}
+			code.push(`${tab(2)}state.body = ${parseBody(node.options.body)};`);
 		}
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 		code.push(`${tab(2)}state.status = 'SUCCESS';`);
@@ -463,16 +454,8 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
 				if (node.options.body && !_.isEmpty(node.options.body)) {
-					if (node.options.body.indexOf('node[') > -1) {
-						code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
-					} else {
-						try {
-							JSON.parse(node.options.body);
-							code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-						} catch (err) {
-							code.push(`${tab(2)}customBody = \`${parseBody(node.options.body)}\`;`);
-						}
-					}
+					code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					code.push(`${tab(2)}state.body = customBody;`);
 				}
 			} else if (node.type === 'DATASERVICE' && node.options.dataService && node.options.dataService._id) {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${node.options.dataService._id}');`);
@@ -538,7 +521,10 @@ async function generateNodes(pNode) {
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
-
+				if ((node.options.update || node.options.insert) && node.options.body) {
+					code.push(`${tab(2)}customBody = ${node.options.body};`);
+					code.push(`${tab(2)}state.body = customBody;`);
+				}
 				if (node.options.update || node.options.insert) {
 					code.push(`${tab(2)}let iterator = [];`);
 					code.push(`${tab(2)}if (!Array.isArray(state.body)) {`);
@@ -573,12 +559,8 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
 				if (node.options.body && !_.isEmpty(node.options.body)) {
-					try {
-						JSON.parse(node.options.body);
-						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-					} catch (err) {
-						code.push(`${tab(2)}customBody = \`${parseBody(node.options.body)}\`;`);
-					}
+					code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					code.push(`${tab(2)}state.body = customBody;`);
 				}
 			} else if (node.type === 'FLOW') {
 				code.push(`${tab(2)}const flow = await commonUtils.getFlow('${node.options._id}');`);
@@ -591,12 +573,8 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
 				if (node.options.body && !_.isEmpty(node.options.body)) {
-					try {
-						JSON.parse(node.options.body);
-						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-					} catch (err) {
-						code.push(`${tab(2)}customBody = \`${parseBody(node.options.body)}\`;`);
-					}
+					code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					code.push(`${tab(2)}state.body = customBody;`);
 				}
 			} else if (node.type === 'AUTH-DATASTACK') {
 				code.push(`${tab(2)}const password = '${node.options.password}'`);
