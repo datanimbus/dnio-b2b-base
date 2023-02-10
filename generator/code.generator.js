@@ -498,6 +498,9 @@ async function generateNodes(pNode) {
 						if (!node.options.filter) {
 							node.options.filter = '{}';
 						}
+						if (typeof node.options.filter == 'object') {
+							node.options.filter = JSON.stringify(node.options.filter);
+						}
 						params.push(`filter=${parseDynamicVariable(node.options.filter)}`);
 						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/?${params.join('&')}\`;`);
 					} else if (node.options.delete) {
@@ -522,7 +525,10 @@ async function generateNodes(pNode) {
 						if (!node.options.filter) {
 							node.options.filter = '{}';
 						}
-						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/?select=${node.options.select}&sort=${node.options.sort}&count=${node.options.count}&page=${node.options.page}&filter=${parseDynamicVariable(node.options.filter)}';`);
+						if (typeof node.options.filter == 'object') {
+							node.options.filter = JSON.stringify(node.options.filter);
+						}
+						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + \`/?select=${node.options.select}&sort=${node.options.sort}&count=${node.options.count}&page=${node.options.page}&filter=${parseDynamicVariable(node.options.filter)}\`;`);
 					} else if (node.options.delete) {
 						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + \`/${parseDynamicVariable(node.options.documentId)}\`;`);
 					} else {
