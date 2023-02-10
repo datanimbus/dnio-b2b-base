@@ -12,7 +12,7 @@ let visitedValidation = [];
 function tab(len) {
 	let d = '';
 	while (len > 0) {
-		d += '    ';
+		d += '\t';
 		len--;
 	}
 	return d;
@@ -69,7 +69,8 @@ function parseFlow(dataJson) {
 		code.push(`${tab(1)}next();`);
 		code.push(`${tab(0)}});`);
 	} else {
-		code.push(`${tab(0)}router.use(express.raw());`);
+		code.push(`${tab(0)}router.use(express.json({ inflate: true, limit: '100mb' }));`);
+		// code.push(`${tab(0)}router.use(express.raw());`);
 	}
 
 	if (inputNode.options && inputNode.options.method) {
@@ -425,7 +426,7 @@ async function generateNodes(pNode) {
 	let loopCode = [];
 	const nodeVariables = [{ key: _.snakeCase(pNode.inputNode.name), value: pNode.inputNode._id }];
 	nodes.forEach((node) => {
-		nodeVariables.push({ key: _.snakeCase(node.name), value: node._id })
+		nodeVariables.push({ key: _.snakeCase(node.name), value: node._id });
 	});
 	// let promises = nodes.map(async (node) => {
 	await nodes.reduce(async (prev, node) => {
@@ -626,7 +627,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(3)}await prev;`);
 				code.push(`${tab(3)}if (!curr) { return; }`);
 				code.push(`${tab(3)}if (options.method == 'POST' || options.method == 'PUT') {`);
-				code.push(`${tab(4)}options.json = { keys: [${node.options?.fields?.split(',').map(e => `'${e}'`).join(',') || ""}], docs: curr.rows };`);
+				code.push(`${tab(4)}options.json = { keys: [${node.options.fields.split(',').map(e => `'${e}'`).join(',') || ''}], docs: curr.rows };`);
 				code.push(`${tab(3)}}`);
 				code.push(`${tab(3)}try {`);
 				code.push(`${tab(4)}logger.trace({ options });`);
