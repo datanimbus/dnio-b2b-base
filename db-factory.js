@@ -30,21 +30,21 @@ global.falseBooleanValues = ['n', 'no', 'false', '0'];
 	// if (process.env.NODE_ENV !== 'production') {
 	// 	logger.info(`NODE_ENV is ${process.env.NODE_ENV}. Won't call BM API.`);
 	// } else {
-		try {
-			let b2bBaseURL = config.baseUrlBM + '/' + config.app + '/flow/utils/' + config.flowId + '/init';
-			logger.debug(`BM API Call :: ${config.baseUrlBM + '/' + config.app + '/flow/utils/' + config.flowId + '/init'}`);
-			const resp = await httpClient.request({
-				method: 'PUT',
-				url: b2bBaseURL,
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
-			logger.debug(`BM API Call status :: ${resp.statusCode}`);
-			logger.trace('BM API Call response body :: ',resp.body);
-		} catch (err) {
-			logger.error('Unable to inform B2B Manager');
-			logger.error(err);
-		}
+	try {
+		let b2bBaseURL = config.baseUrlBM + '/' + config.app + '/flow/utils/' + config.flowId + '/init';
+		logger.debug(`BM API Call :: ${config.baseUrlBM + '/' + config.app + '/flow/utils/' + config.flowId + '/init'}`);
+		const resp = await httpClient.request({
+			method: 'PUT',
+			url: b2bBaseURL,
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+		logger.debug(`BM API Call status :: ${resp.statusCode}`);
+		logger.trace('BM API Call response body :: ', resp.body);
+	} catch (err) {
+		logger.error('Unable to inform B2B Manager');
+		logger.error(err);
+	}
 	// }
 })();

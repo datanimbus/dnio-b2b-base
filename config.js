@@ -58,7 +58,7 @@ const e = {
 	isK8sEnv,
 	imageTag: process.env.IMAGE_TAG || 'dev',
 	hostname: process.env.HOSTNAME,
-	port: process.env.PORT || 8000,
+	port: process.env.PORT || 8080,
 	httpsPort: process.env.HTTPS_PORT || 8443,
 	app: process.env.DATA_STACK_APP || 'Sushmitha',
 	appDB: process.env.DATA_DB || 'datastackB2B',
