@@ -572,7 +572,8 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
 				if ((node.options.update || node.options.insert) && node.options.body) {
-					code.push(`${tab(2)}customBody = ${node.options.body};`);
+					// code.push(`${tab(2)}customBody = ${node.options.body};`);
+					code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
 					code.push(`${tab(2)}state.body = customBody;`);
 				}
 
