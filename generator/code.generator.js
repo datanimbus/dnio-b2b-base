@@ -1019,7 +1019,7 @@ function parseBody(body) {
 				tempBody[key] = parseBody(body[key]);
 			});
 		} else if (typeof body === 'string' && body.indexOf('{{') > -1) {
-			return parseDynamicVariable(body);
+			return body.replace(/{{/g, '').replace(/}}/g, '');
 		} else {
 			return body;
 		}
