@@ -289,7 +289,11 @@ function generateCode(node, nodes) {
 			code.push(`${tab(2)}state.statusCode = ${node.options.statusCode};`);
 		}
 		if (node.options && node.options.body) {
-			code.push(`${tab(2)}state.body = ${parseBody(node.options.body)};`);
+			if (typeof node.options.body == 'object') {
+				code.push(`${tab(2)}state.body = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+			} else {
+				code.push(`${tab(2)}state.body = ${parseBody(node.options.body)};`);
+			}
 		}
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 		code.push(`${tab(2)}state.status = 'SUCCESS';`);
@@ -498,7 +502,12 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
 				if (node.options.body && !_.isEmpty(node.options.body)) {
-					code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					if (typeof node.options.body == 'object') {
+						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+					} else {
+						code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					}
 					code.push(`${tab(2)}state.body = customBody;`);
 				}
 			} else if (node.type === 'DATASERVICE' && node.options.dataService && node.options.dataService._id) {
@@ -573,7 +582,12 @@ async function generateNodes(pNode) {
 				}
 				if ((node.options.update || node.options.insert) && node.options.body) {
 					// code.push(`${tab(2)}customBody = ${node.options.body};`);
-					code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					if (typeof node.options.body == 'object') {
+						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+					} else {
+						code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					}
 					code.push(`${tab(2)}state.body = customBody;`);
 				}
 
@@ -635,7 +649,12 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
 				if (node.options.body && !_.isEmpty(node.options.body)) {
-					code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					if(typeof node.options.body == 'object'){
+						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+					} else {
+						code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					}
 					code.push(`${tab(2)}state.body = customBody;`);
 				}
 			} else if (node.type === 'FLOW') {
@@ -649,7 +668,12 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
 				if (node.options.body && !_.isEmpty(node.options.body)) {
-					code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					if(typeof node.options.body == 'object'){
+						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+					} else {
+						code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+					}
 					code.push(`${tab(2)}state.body = customBody;`);
 				}
 			} else if (node.type === 'AUTH-DATASTACK') {
@@ -1012,15 +1036,19 @@ function parseHeaders(headers) {
 	return JSON.stringify(tempHeaders);
 }
 
-function parseBody(body) {
+function parseBody(body, parent) {
 	let tempBody = {};
 	if (body) {
 		if (typeof body === 'object') {
 			Object.keys(body).forEach(key => {
-				tempBody[key] = parseBody(body[key]);
+				tempBody[key] = parseBody(body[key], key);
 			});
 		} else if (typeof body === 'string' && body.indexOf('{{') > -1) {
-			return body.replace(/{{/g, '').replace(/}}/g, '');
+			if (parent) {
+				return parseDynamicVariable(body);
+			} else {
+				return body.replace(/{{/g, '').replace(/}}/g, '');
+			}
 		} else {
 			return body;
 		}
