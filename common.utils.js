@@ -208,36 +208,42 @@ function writeDataToXLS(filepath, data, headers) {
 }
 
 function handleError(err, state, req, node) {
+	state.error = err;
 	if (err.statusCode) {
 		state.statusCode = err.statusCode;
 	} else {
 		state.statusCode = 500;
 	}
+	if (err.status) {
+		state.responseStatus = err.status;
+	} else {
+		state.responseStatus = 'ERROR';
+	}
 	if (err.body) {
-		state.body = err.body;
+		state.responseBody = err.body;
 		logger.error(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}]`, err.body);
 	} else if (err.message) {
-		state.body = { message: err.message };
+		state.responseBody = { message: err.message };
 		logger.error(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}]`, err.message);
 	} else {
-		state.body = err;
+		state.responseBody = err;
 		logger.error(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}]`, err);
 	}
 	state.status = 'ERROR';
 }
 
 function handleResponse(response, state, req, node) {
-	logger.trace('Handle Response - ',{ response });
+	logger.trace('Handle Response - ', { response });
 	if (!response.statusCode) {
 		response.statusCode = 200;
 	}
 	state.statusCode = response.statusCode;
-	state.body = response.body;
+	state.responseBody = response.body;
 	state.headers = response.headers;
 	if (response && response.statusCode != 200) {
 		state.status = 'ERROR';
 		state.statusCode = response && response.statusCode ? response.statusCode : 400;
-		state.body = response && response.body ? response.body : { message: 'Unable to reach the URL' };
+		state.responseBody = response && response.body ? response.body : { message: 'Unable to reach the URL' };
 	} else {
 		state.status = 'SUCCESS';
 		state.statusCode = 200;
@@ -248,7 +254,7 @@ function handleValidation(errors, state, req, node) {
 	if (errors && !_.isEmpty(errors)) {
 		state.status = 'ERROR';
 		state.statusCode = 400;
-		state.body = { message: errors };
+		state.responseBody = { message: errors };
 	}
 }
 
@@ -282,13 +288,13 @@ async function uploadFileToDB(req, uploadFilePath, targetAgentId, targetAgentNam
 					reject(error);
 				}).
 				on('finish', function (file) {
-					logger.debug(`Successfully uploaded file to DB`);
+					logger.debug('Successfully uploaded file to DB');
 					logger.trace(`File details - ${JSON.stringify(file)}`);
 					resolve(file);
 				});
 		});
 
-		logger.info(`Requesting BM to update the agent download action`);
+		logger.info('Requesting BM to update the agent download action');
 		const options = {};
 		options.url = `${config.baseUrlBM}/${config.app}/agent/utils/${targetAgentId}/agentAction`;
 		options.method = 'POST';
@@ -334,13 +340,13 @@ async function uploadFileToDB(req, uploadFilePath, targetAgentId, targetAgentNam
 }
 
 function createHash(key) {
-	const encodedString = crypto.createHash('md5').update(key).digest("hex");
+	const encodedString = crypto.createHash('md5').update(key).digest('hex');
 	return encodedString;
 }
 
 function compress(data) {
-    const deflated = zlib.deflateSync(data);
-    return deflated;
+	const deflated = zlib.deflateSync(data);
+	return deflated;
 }
 
 function encryptDataGCM(data, key) {
@@ -348,8 +354,8 @@ function encryptDataGCM(data, key) {
 	const hashedkey = createHash(key);
 	const nonce = crypto.randomBytes(12);
 	var cipher = crypto.createCipheriv(ALGORITHM, hashedkey, nonce);
-	const encrypted = Buffer.concat([nonce, cipher.update(Buffer.from(compressedData).toString("base64")), cipher.final(), cipher.getAuthTag()]);
-	return Buffer.from(encrypted).toString("base64");
+	const encrypted = Buffer.concat([nonce, cipher.update(Buffer.from(compressedData).toString('base64')), cipher.final(), cipher.getAuthTag()]);
+	return Buffer.from(encrypted).toString('base64');
 }
 
 module.exports.getDataService = getDataService;
