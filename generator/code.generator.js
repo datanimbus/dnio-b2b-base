@@ -24,7 +24,7 @@ function countDuplicates(nodeId, nodes) {
 		if (item == nodeId) {
 			count++;
 		}
-	})
+	});
 	return count;
 }
 
@@ -454,7 +454,11 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
 			if (node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 				if (node.options.authorization) {
-					code.push(`${tab(3)}customHeaders['authorization'] = \`${parseDynamicVariable(node.options.authorization)}\`;`);
+					if (node.options.authorization.startsWith('node[')) {
+						code.push(`${tab(3)}customHeaders['authorization'] = ${node.options.authorization};`);
+					} else {
+						code.push(`${tab(3)}customHeaders['authorization'] = \`${parseDynamicVariable(node.options.authorization)}\`;`);
+					}
 				} else {
 					code.push(`${tab(2)}if (req.header('authorization')) {`);
 					code.push(`${tab(3)}customHeaders['authorization'] = req.header('authorization');`);
