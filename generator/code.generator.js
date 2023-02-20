@@ -584,20 +584,21 @@ async function generateNodes(pNode) {
 				if (node.options.retry && node.options.retry.count) {
 					code.push(`${tab(2)}options.retry = { limit: ${node.options.retry.count}, methods: ['${node.options.method || 'POST'}'], calculateDelay: calculateDelay };`);
 					code.push(`${tab(2)}options.hooks = { beforeRetry: [retryCallbackHook] };`);
+
+					code.push(`${tab(2)}function calculateDelay(retryData) {`);
+					code.push(`${tab(3)}if (retryData.attemptCount > ${node.options.retry.count}) {`);
+					code.push(`${tab(4)}return 0;`);
+					code.push(`${tab(3)}}`);
+					code.push(`${tab(3)}return ${node.options.retry.interval * 1000};`);
+					code.push(`${tab(2)}}`);
+					code.push(`${tab(2)}function retryCallbackHook(options, error, retryCount) {`);
+					code.push(`${tab(3)}console.log(\`Retrying [\${retryCount}]: \${error.code}\`);`);
+					code.push(`${tab(3)}if (!state.retry) {`);
+					code.push(`${tab(4)}state.retry = [];`);
+					code.push(`${tab(3)}}`);
+					code.push(`${tab(3)}state.retry.push({ retryCount, error: { code: error.code, name: error.name }, timestamp: new Date().toISOString() });`);
+					code.push(`${tab(2)}}`);
 				}
-				code.push(`${tab(2)}function calculateDelay(retryData) {`);
-				code.push(`${tab(3)}if (retryData.attemptCount > ${node.options.retry.count}) {`);
-				code.push(`${tab(4)}return 0;`);
-				code.push(`${tab(3)}}`);
-				code.push(`${tab(3)}return ${node.options.retry.interval * 1000};`);
-				code.push(`${tab(2)}}`);
-				code.push(`${tab(2)}function retryCallbackHook(options, error, retryCount) {`);
-				code.push(`${tab(3)}console.log(\`Retrying [\${retryCount}]: \${error.code}\`);`);
-				code.push(`${tab(3)}if (!state.retry) {`);
-				code.push(`${tab(4)}state.retry = [];`);
-				code.push(`${tab(3)}}`);
-				code.push(`${tab(3)}state.retry.push({ retryCount, error: { code: error.code, name: error.name }, timestamp: new Date().toISOString() });`);
-				code.push(`${tab(2)}}`);
 				/** ---------------RE-TRY LOGIC ENDS--------------- */
 
 
