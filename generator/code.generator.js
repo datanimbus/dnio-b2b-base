@@ -421,6 +421,12 @@ async function generateNodes(pNode) {
 	// let promises = nodes.map(async (node) => {
 	await nodes.reduce(async (prev, node) => {
 		await prev;
+		if (!node.dataStructure) {
+			node.dataStructure = {};
+		}
+		if (!node.dataStructure.outgoing) {
+			node.dataStructure.outgoing = {};
+		}
 		const dataFormat = dataStructures[node.dataStructure.outgoing._id] || { _id: node.dataStructure.outgoing._id };
 		if (!dataFormat.formatType) {
 			dataFormat.formatType = 'JSON';
@@ -468,20 +474,20 @@ async function generateNodes(pNode) {
 				if (node.options.retry && node.options.retry.count) {
 					code.push(`${tab(2)}options.retry = { limit: ${node.options.retry.count}, methods: ['${node.options.method || 'POST'}'], calculateDelay: calculateDelay };`);
 					code.push(`${tab(2)}options.hooks = { beforeRetry: [retryCallbackHook] };`);
+					code.push(`${tab(2)}function calculateDelay(retryData) {`);
+					code.push(`${tab(3)}if (retryData.attemptCount > ${node.options.retry.count}) {`);
+					code.push(`${tab(4)}return 0;`);
+					code.push(`${tab(3)}}`);
+					code.push(`${tab(3)}return ${node.options.retry.interval * 1000};`);
+					code.push(`${tab(2)}}`);
+					code.push(`${tab(2)}function retryCallbackHook(options, error, retryCount) {`);
+					code.push(`${tab(3)}console.log(\`Retrying [\${retryCount}]: \${error.code}\`);`);
+					code.push(`${tab(3)}if (!state.retry) {`);
+					code.push(`${tab(4)}state.retry = [];`);
+					code.push(`${tab(3)}}`);
+					code.push(`${tab(3)}state.retry.push({ retryCount, error: { code: error.code, name: error.name }, timestamp: new Date().toISOString() });`);
+					code.push(`${tab(2)}}`);
 				}
-				code.push(`${tab(2)}function calculateDelay(retryData) {`);
-				code.push(`${tab(3)}if (retryData.attemptCount > ${node.options.retry.count}) {`);
-				code.push(`${tab(4)}return 0;`);
-				code.push(`${tab(3)}}`);
-				code.push(`${tab(3)}return ${node.options.retry.interval * 1000};`);
-				code.push(`${tab(2)}}`);
-				code.push(`${tab(2)}function retryCallbackHook(options, error, retryCount) {`);
-				code.push(`${tab(3)}console.log(\`Retrying [\${retryCount}]: \${error.code}\`);`);
-				code.push(`${tab(3)}if (!state.retry) {`);
-				code.push(`${tab(4)}state.retry = [];`);
-				code.push(`${tab(3)}}`);
-				code.push(`${tab(3)}state.retry.push({ retryCount, error: { code: error.code, name: error.name }, timestamp: new Date().toISOString() });`);
-				code.push(`${tab(2)}}`);
 				/** ---------------RE-TRY LOGIC ENDS--------------- */
 
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
@@ -1043,7 +1049,7 @@ function parseBody(body, parent) {
 			return body;
 		}
 	}
-	return JSON.stringify(tempBody);
+	return parent ? tempBody : JSON.stringify(tempBody);
 }
 
 
