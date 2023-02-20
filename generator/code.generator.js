@@ -812,6 +812,14 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 			// code.push(`${tab(2)}return { statusCode: 200, body: newBody, headers: state.headers };`);
 		} else if (node.type === 'UNWIND') {
+			if (node.options.body && !_.isEmpty(node.options.body)) {
+				if (typeof node.options.body == 'object') {
+					code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+				} else {
+					code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+				}
+				code.push(`${tab(2)}state.body = customBody;`);
+			}
 			code.push(`${tab(2)}let newBody = [];`);
 			code.push(`${tab(2)}if (Array.isArray(state.body)) {`);
 			code.push(`${tab(3)}newBody = [];`);
@@ -836,7 +844,7 @@ async function generateNodes(pNode) {
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
-			code.push(`${tab(2)}state.body = newBody;`);
+			code.push(`${tab(2)}state.responseBody = newBody;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'CODEBLOCK' && node.options.code) {
 			code.push(`${tab(2)}${node.options.code}`);
