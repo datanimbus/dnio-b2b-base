@@ -18,6 +18,16 @@ function tab(len) {
 	return d;
 }
 
+function countDuplicates(nodeId, nodes) {
+	let count = 0;
+	nodes.forEach(item => {
+		if (item == nodeId) {
+			count++;
+		}
+	})
+	return count;
+}
+
 /**
  * 
  * @param {any} dataJson 
@@ -240,9 +250,9 @@ function parseFlow(dataJson) {
 		if (ss.condition) {
 			node.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '');
 		}
-		if (visitedNodes.indexOf(node._id) > -1) {
-			return;
-		}
+		// if (visitedNodes.indexOf(node._id) > -1) {
+		// 	return;
+		// }
 		visitedNodes.push(node._id);
 		if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
 		code = code.concat(generateCode(node, nodes));
@@ -303,15 +313,13 @@ function generateCode(node, nodes) {
 		if (node.options.contentType == 'application/xml') {
 			code.push(`${tab(2)}state.xmlContent = xmlBuilder.build(state.body);`);
 			code.push(`${tab(2)}res.set('Content-Type','application/xml');`);
-			code.push(`${tab(2)}res.status(state.statusCode).write(state.xmlContent).end();`);
+			code.push(`${tab(2)}return res.status(state.statusCode).write(state.xmlContent).end();`);
 		} else if (node.options.contentType == 'multipart/form-data') {
 			// code.push(`${tab(2)}fs.writeFileSync(state.body);`);
 			code.push(`${tab(2)}res.set('Content-Type','application/octet-stream');`);
-			code.push(`${tab(2)}res.status(state.statusCode).write(state.body).end();`);
+			code.push(`${tab(2)}return res.status(state.statusCode).write(state.body).end();`);
 		} else {
-			code.push(`${tab(2)}res.status(state.statusCode).json(state.body);`);
-			code.push(`${tab(2)}node['${node._id}'] = state;`);
-			code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
+			code.push(`${tab(2)}return res.status(state.statusCode).json(state.body);`);
 		}
 		code.push(`${tab(2)}}`);
 	} else {
@@ -326,16 +334,11 @@ function generateCode(node, nodes) {
 				if (ss.condition) {
 					node.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '');
 				}
-				if (visitedNodes.indexOf(node._id) > -1) {
-					return;
-				}
 				visitedNodes.push(node._id);
 				if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
 				code = code.concat(generateCode(node, nodes));
 				if (node.condition) code.push(`${tab(1)}}`);
 			}
-			// code.push(`${tab(3)}state = stateUtils.getState(response, '${node.onError[0]._id}');`);
-			// code.push(`${tab(3)}await nodeUtils.${_.camelCase(node.onError[0]._id)}(req, state, node);`);
 		} else {
 			code.push(`${tab(3)}if (!isResponseSent) {`);
 			code.push(`${tab(4)}isResponseSent = true;`);
@@ -344,52 +347,35 @@ function generateCode(node, nodes) {
 		}
 		code.push(`${tab(2)}}`);
 	}
-	if (!node.onSuccess || node.onSuccess.length == 0) {
-		code.push(`${tab(2)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
+	if (node.onSuccess && node.onSuccess.length > 0) {
+		let tempNodes = (node.onSuccess || []);
+		for (let index = 0; index < tempNodes.length; index++) {
+			const ss = tempNodes[index];
+			const nextNode = nodes.find(e => e._id === ss._id);
+			if (ss.condition) {
+				nextNode.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '');
+			}
+			if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
+				visitedNodes.push(nextNode._id);
+				if (nextNode.condition) code.push(`${tab(1)}if (${nextNode.condition}) {`);
+				code = code.concat(generateCode(nextNode, nodes));
+				if (nextNode.condition) code.push(`${tab(1)}}`);
+			}
+		}
 	}
 	code.push(`${tab(1)}} catch (err) {`);
 	code.push(`${tab(2)}logger.error(err);`);
-	// if (node.onError && node.onError.length > 0) {
-	// 	code.push(`${tab(2)}state = stateUtils.getState(response, '${node.onError[0]._id}');`);
-	// 	code.push(`${tab(2)}await nodeUtils.${_.camelCase(node.onError[0]._id)}(req, state, node);`);
-	// } else {
 	code.push(`${tab(2)}if (!isResponseSent) {`);
 	code.push(`${tab(3)}res.status(500).json({ message: 'Error occured at ${node.name || node._id}' });`);
 	code.push(`${tab(3)}isResponseSent = true;`);
 	code.push(`${tab(2)}}`);
-	// }
-	code.push(`${tab(1)}}`);
-	let tempNodes = (node.onSuccess || []);
-	for (let index = 0; index < tempNodes.length; index++) {
-		const ss = tempNodes[index];
-		const nextNode = nodes.find(e => e._id === ss._id);
-		if (ss.condition) {
-			nextNode.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '');
-		}
-		if (nextNode) {
-			if (visitedNodes.indexOf(nextNode._id) > -1) {
-				return;
-			}
-			visitedNodes.push(nextNode._id);
-			if (nextNode.condition) code.push(`${tab(1)}if (${nextNode.condition}) {`);
-			code = code.concat(generateCode(nextNode, nodes));
-			if (nextNode.condition) code.push(`${tab(1)}}`);
-		}
+	code.push(`${tab(1)}} finally {`);
+	code.push(`${tab(2)}node['${node._id}'] = state;`);
+	code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
+	if (!node.onSuccess || node.onSuccess.length == 0) {
+		code.push(`${tab(2)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
 	}
-	// (node.onSuccess || []).map(ss => {
-	// 	const nodeCondition = ss.condition;
-	// 	const temp = nodes.find(e => e._id === ss._id);
-	// 	temp.condition = nodeCondition;
-	// 	return temp;
-	// }).forEach((node, i) => {
-	// 	if (visitedNodes.indexOf(node._id) > -1) {
-	// 		return;
-	// 	}
-	// 	visitedNodes.push(node._id);
-	// 	if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
-	// 	code = code.concat(generateCode(node, nodes));
-	// 	if (node.condition) code.push(`${tab(1)}}`);
-	// });
+	code.push(`${tab(1)}}`);
 	return code;
 }
 
@@ -650,7 +636,7 @@ async function generateNodes(pNode) {
 				}
 				if (node.options.body && !_.isEmpty(node.options.body)) {
 					// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
-					if(typeof node.options.body == 'object'){
+					if (typeof node.options.body == 'object') {
 						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 					} else {
 						code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
@@ -669,7 +655,7 @@ async function generateNodes(pNode) {
 				}
 				if (node.options.body && !_.isEmpty(node.options.body)) {
 					// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
-					if(typeof node.options.body == 'object'){
+					if (typeof node.options.body == 'object') {
 						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 					} else {
 						code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
@@ -695,6 +681,9 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}delete options.headers['transfer-encoding'];`);
 
 			if (node.type === 'DATASERVICE' && (node.options.update || node.options.insert)) {
+				if (!node.options.fields) {
+					node.options.fields = '_id';
+				}
 				code.push(`${tab(2)}let results = [];`);
 				code.push(`${tab(2)}await state.batchList.reduce(async (prev, curr) => {`);
 				code.push(`${tab(3)}await prev;`);
