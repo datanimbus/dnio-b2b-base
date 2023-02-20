@@ -43,6 +43,7 @@ async function upsertState(req, state) {
 	dataPayload.nodeId = clonedState.nodeId;
 	dataPayload.interactionId = interactionId;
 	dataPayload.body = clonedState.body;
+	dataPayload.responseBody = clonedState.responseBody;
 	dataPayload.batchList = clonedState.batchList;
 	dataPayload.dataType = clonedState.contentType || 'application/json';
 	dataPayload._metadata = clonedState._metadata;
