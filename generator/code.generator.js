@@ -309,7 +309,10 @@ function generateCode(node, nodes) {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
 		if (node.options && node.options.statusCode) {
 			code.push(`${tab(2)}state.statusCode = ${node.options.statusCode};`);
+		} else {
+			code.push(`${tab(2)}state.statusCode = 200;`);
 		}
+		code.push(`${tab(2)}state.status = 'SUCCESS';`);
 		if (node.options && node.options.body) {
 			if (typeof node.options.body == 'object') {
 				code.push(`${tab(2)}state.body = JSON.parse(\`${parseBody(node.options.body)}\`);`);
@@ -318,8 +321,6 @@ function generateCode(node, nodes) {
 			}
 		}
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
-		code.push(`${tab(2)}state.status = 'SUCCESS';`);
-		code.push(`${tab(2)}state.statusCode = 200;`);
 		code.push(`${tab(2)}if (!isResponseSent) {`);
 		code.push(`${tab(2)}isResponseSent = true;`);
 		if (node.options.contentType == 'application/xml') {
