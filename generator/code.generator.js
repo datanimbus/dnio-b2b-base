@@ -549,6 +549,7 @@ async function generateNodes(pNode) {
 						}
 						params.push(`filter=${parseDynamicVariable(node.options.filter)}`);
 						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/?${params.join('&')}\`;`);
+						code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: ${JSON.stringify(node.options.filter)} }`);
 					} else if (node.options.delete) {
 						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/${parseDynamicVariable(node.options.documentId)}\`;`);
 					} else {
@@ -583,6 +584,7 @@ async function generateNodes(pNode) {
 				}
 				if (node.options.get) {
 					code.push(`${tab(2)}state.method = 'GET';`);
+					code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: ${JSON.stringify(node.options.filter)} }`);
 				} else if (node.options.delete) {
 					code.push(`${tab(2)}state.method = 'DELETE';`);
 				} else {
