@@ -60,7 +60,7 @@ function initialize() {
 	app.use(middlewares.addHeaders);
 
 	app.use('/api/b2b', require('./route'));
-	app.use('/api/b2b/internal/export/route', async function (req, res) {
+	app.get('/api/b2b/internal/export/route', async function (req, res) {
 		res.json({ content: require('./route') });
 	});
 	app.use('/api/b2b/internal/health/ready', async function (req, res) {
