@@ -28,6 +28,18 @@ function countDuplicates(nodeId, nodes) {
 	return count;
 }
 
+function fixCondition(condition) {
+	if (condition) {
+		return condition.replaceAll('{{', '')
+			.replaceAll('}}', '')
+			.replaceAll('= =', '==')
+			.replaceAll('! =', '!=')
+			.replaceAll('< =', '<=')
+			.replaceAll('> =', '>=');
+	}
+	return condition;
+}
+
 /**
  * 
  * @param {any} dataJson 
@@ -248,7 +260,7 @@ function parseFlow(dataJson) {
 		const ss = tempNodes[index];
 		const node = nodes.find(e => e._id === ss._id);
 		if (ss.condition) {
-			node.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '').replaceAll('= =', '==');
+			node.condition = fixCondition(ss.condition);
 		}
 		// if (visitedNodes.indexOf(node._id) > -1) {
 		// 	return;
@@ -332,7 +344,7 @@ function generateCode(node, nodes) {
 				const ss = tempNodes[index];
 				const node = nodes.find(e => e._id === ss._id);
 				if (ss.condition) {
-					node.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '').replaceAll('= =', '==');
+					node.condition = fixCondition(ss.condition);
 				}
 				visitedNodes.push(node._id);
 				if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
@@ -353,7 +365,7 @@ function generateCode(node, nodes) {
 			const ss = tempNodes[index];
 			const nextNode = nodes.find(e => e._id === ss._id);
 			if (ss.condition) {
-				nextNode.condition = ss.condition.replaceAll('{{', '').replaceAll('}}', '').replaceAll('= =', '==');
+				nextNode.condition = fixCondition(ss.condition);
 			}
 			if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
 				visitedNodes.push(nextNode._id);
