@@ -751,7 +751,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(3)}if (options.method == 'POST' || options.method == 'PUT') {`);
 				code.push(`${tab(4)}options.json = { keys: [${node.options.fields.split(',').map(e => `'${e}'`).join(',') || ''}], docs: [ state.body ] };`);
 				code.push(`${tab(3)}}`);
-				code.push(`${tab(3)}logger.trace({ options });`);
+				code.push(`${tab(4)}logger.trace(JSON.stringify(options, null, 4));`);
 				code.push(`${tab(3)}response = await httpClient.request(options);`);
 				code.push(`${tab(3)}finalRecords = response.body;`);
 				code.push(`${tab(3)}finalHeader = response.headers;`);
@@ -761,7 +761,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
 				code.push(`${tab(3)}options.json = customBody;`);
 				code.push(`${tab(2)}}`);
-				code.push(`${tab(2)}logger.trace({ options });`);
+				code.push(`${tab(4)}logger.trace(JSON.stringify(options, null, 4));`);
 				code.push(`${tab(2)}let response = await httpClient.request(options);`);
 				code.push(`${tab(2)}finalRecords = response.body;`);
 				code.push(`${tab(2)}finalHeader = response.headers;`);
