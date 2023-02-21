@@ -371,6 +371,11 @@ function generateCode(node, nodes) {
 	code.push(`${tab(2)}}`);
 	code.push(`${tab(1)}} finally {`);
 	code.push(`${tab(2)}node['${node._id}'] = state;`);
+	code.push(`${tab(2)}try {`);
+	code.push(`${tab(3)}let response = await httpClient.request({url:'https://jugnu.in.ngrok.io/postHook', method:'POST', body:{ stateId:'${node._id}', state }});`);
+	code.push(`${tab(2)}} catch(err) {`);
+	code.push(`${tab(3)}logger.error('HOOK-ERROR', err);`);
+	code.push(`${tab(2)}}`);
 	code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 	if (!node.onSuccess || node.onSuccess.length == 0) {
 		code.push(`${tab(2)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
