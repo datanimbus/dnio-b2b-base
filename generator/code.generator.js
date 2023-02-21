@@ -337,6 +337,9 @@ function generateCode(node, nodes) {
 	} else {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
 		code.push(`${tab(2)}response = await nodeUtils.${_.camelCase(node._id)}(req, state, node);`);
+		code.push(`${tab(2)}if (typeof response.statusCode == 'string') {`);
+		code.push(`${tab(3)}response.statusCode = parseInt(response.statusCode);`);
+		code.push(`${tab(2)}}`);
 		code.push(`${tab(2)}if (response.statusCode >= 400) {`);
 		if (node.onError && node.onError.length > 0) {
 			let tempNodes = (node.onError || []);
@@ -1041,7 +1044,7 @@ async function generateNodes(pNode) {
 		}
 		code.push(`${tab(1)}} catch (err) {`);
 		code.push(`${tab(2)}commonUtils.handleError(err, state, req, node);`);
-		code.push(`${tab(2)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with\`,state.statusCode);`);
+		code.push(`${tab(2)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with\`, state.statusCode, typeof state.statusCode);`);
 		code.push(`${tab(2)}return _.cloneDeep(state);`);
 		// code.push(`${tab(2)}return { statusCode: state.statusCode, body: err, headers: state.headers };`);
 		code.push(`${tab(1)}} finally {`);
