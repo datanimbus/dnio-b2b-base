@@ -728,15 +728,16 @@ async function generateNodes(pNode) {
 				code.push(`${tab(4)}curr.responseBody = response.body;`);
 				code.push(`${tab(3)}} catch(err) {`);
 				code.push(`${tab(4)}results.push(err);`);
-				code.push(`${tab(4)}curr.statusCode = err.statusCode;`);
-				code.push(`${tab(4)}curr.headers = err.headers;`);
-				code.push(`${tab(4)}curr.responseBody = err.body;`);
+				code.push(`${tab(4)}curr.statusCode = err.statusCode || 400;`);
+				code.push(`${tab(4)}curr.headers = err.headers || curr.headers;`);
+				code.push(`${tab(4)}curr.responseBody = err.body ? err.body : err;`);
 				code.push(`${tab(3)}}`);
 				code.push(`${tab(2)}}, Promise.resolve());`);
 				// code.push(`${tab(2)}logger.trace(results);`);
-				code.push(`${tab(2)}const finalRecords = _.flatten(results.map(e => e.body));`);
+				code.push(`${tab(2)}const finalRecords = _.flatten(results.map(e => e.body ? e.body : e));`);
 				code.push(`${tab(2)}const finalHeader = Object.assign.apply({}, _.flatten(results.map(e => e.headers)));`);
 				code.push(`${tab(2)}let response = _.cloneDeep(state);`);
+				code.push(`${tab(2)}response.statusCode = results.every(e => e.statusCode == 200) ? 200 : 400;`);
 			} else {
 				code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
 				code.push(`${tab(3)}options.json = customBody;`);
@@ -747,7 +748,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}const finalHeader = response.headers;`);
 			}
 			// code.push(`${tab(2)}response = { statusCode: 200, body: finalRecords, headers: finalHeader }`);
-			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.statusCode = response.statusCode || 400;`);
 			code.push(`${tab(2)}state.responseBody = response.body;`);
 			code.push(`${tab(2)}state.responseHeaders = response.headers;`);
 			code.push(`${tab(2)}response.body = finalRecords;`);
