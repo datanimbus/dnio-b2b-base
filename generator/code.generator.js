@@ -856,7 +856,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}let response = await execute(state, node);`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
-			code.push(`${tab(2)}state.body = response.body;`);
+			code.push(`${tab(2)}state.responseBody = response.responseBody;`);
 			code.push(`${tab(2)}state.headers = response.headers;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'CONNECTOR' && node.options.connector && node.options.connector._id) {
@@ -915,7 +915,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}const result = await crud.sqlQuery(\`${parseDynamicVariable(node.options.query)}\`);`);
 				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Query Executed\`);`);
 				code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Query Result\`, result);`);
-				code.push(`${tab(2)}state.body = result;`);
+				code.push(`${tab(2)}state.responseBody = result;`);
 				// code.push(`${tab(2)}await crud.disconnect();`);
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
@@ -999,7 +999,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, uploadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
-			code.push(`${tab(2)}state.body = fileDetails;`);
+			code.push(`${tab(2)}state.responseBody = fileDetails;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 			// code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
 		} else {
