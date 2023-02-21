@@ -703,7 +703,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(4)}options.json = { keys: [${node.options.fields.split(',').map(e => `'${e}'`).join(',') || ''}], docs: curr.rows };`);
 				code.push(`${tab(3)}}`);
 				code.push(`${tab(3)}try {`);
-				code.push(`${tab(4)}logger.trace({ options });`);
+				code.push(`${tab(4)}logger.trace(JSON.stringify(options, null, 4));`);
 				code.push(`${tab(4)}let response = await httpClient.request(options);`);
 				code.push(`${tab(4)}results.push(response);`);
 				code.push(`${tab(4)}curr.statusCode = response.statusCode;`);

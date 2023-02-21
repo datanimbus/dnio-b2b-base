@@ -233,7 +233,7 @@ function handleError(err, state, req, node) {
 }
 
 function handleResponse(response, state, req, node) {
-	logger.trace('Handle Response - ', { response });
+	logger.trace('Handle Response - ', JSON.stringify(response, null, 4));
 	if (!response.statusCode) {
 		response.statusCode = 200;
 	}
