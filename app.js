@@ -1,8 +1,8 @@
 if (process.env.NODE_ENV !== 'production') {
 	require('dotenv').config();
 }
-// const fs = require('fs');
-// const path = require('path');
+const fs = require('fs');
+const path = require('path');
 const log4js = require('log4js');
 const express = require('express');
 const JWT = require('jsonwebtoken');
@@ -61,7 +61,8 @@ function initialize() {
 
 	app.use('/api/b2b', require('./route'));
 	app.get('/api/b2b/internal/export/route', async function (req, res) {
-		res.json({ content: require('./route') });
+		let content = fs.readFileSync(path.join(__dirname, 'route.js'), 'utf-8');
+		res.json({ content });
 	});
 	app.use('/api/b2b/internal/health/ready', async function (req, res) {
 		try {
