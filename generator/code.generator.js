@@ -629,17 +629,19 @@ async function generateNodes(pNode) {
 				/** ---------------RE-TRY LOGIC ENDS--------------- */
 
 
-				if (node.options.update || node.options.insert) {
+				if ((node.options.update || node.options.insert)) {
+					code.push(`${tab(2)}if (!Array.isArray(state.body)) {`);
 					code.push(`${tab(2)}let iterator = [];`);
 					code.push(`${tab(2)}if (!Array.isArray(state.body)) {`);
-					code.push(`${tab(3)}iterator = _.chunk([state.body], 500);`);
+					code.push(`${tab(3)}iterator = _.chunk([state.body], 100);`);
 					code.push(`${tab(2)}} else {`);
-					code.push(`${tab(3)}iterator = _.chunk(state.body, 500);`);
+					code.push(`${tab(3)}iterator = _.chunk(state.body, 100);`);
 					code.push(`${tab(2)}}`);
 					code.push(`${tab(2)}let batchList = iterator.map((e,i) => {`);
 					code.push(`${tab(3)}return {_id: uuid(), seqNo: (i + 1), rows: e, status: 'PENDING' };`);
 					code.push(`${tab(2)}});`);
 					code.push(`${tab(2)}state.batchList = batchList;`);
+					code.push(`${tab(2)}}`);
 				}
 				// code.push(`${tab(2)}delete state.body;`);
 				// if (node.options.body && !_.isEmpty(node.options.body)) {
@@ -712,6 +714,11 @@ async function generateNodes(pNode) {
 				if (!node.options.fields) {
 					node.options.fields = '_id';
 				}
+				code.push(`${tab(2)}let response;`);
+				code.push(`${tab(2)}let finalRecords;`);
+				code.push(`${tab(2)}let finalHeader;`);
+				code.push(`${tab(2)}if (Array.isArray(state.body)) {`);
+				code.push(`${tab(3)}logger.debug('Making Requests in Batch');`);
 				code.push(`${tab(2)}let results = [];`);
 				code.push(`${tab(2)}await state.batchList.reduce(async (prev, curr) => {`);
 				code.push(`${tab(3)}await prev;`);
@@ -721,7 +728,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(3)}}`);
 				code.push(`${tab(3)}try {`);
 				code.push(`${tab(4)}logger.trace(JSON.stringify(options, null, 4));`);
-				code.push(`${tab(4)}let response = await httpClient.request(options);`);
+				code.push(`${tab(4)}response = await httpClient.request(options);`);
 				code.push(`${tab(4)}results.push(response);`);
 				code.push(`${tab(4)}curr.statusCode = response.statusCode;`);
 				code.push(`${tab(4)}curr.headers = response.headers;`);
@@ -733,19 +740,29 @@ async function generateNodes(pNode) {
 				code.push(`${tab(4)}curr.responseBody = err.body ? err.body : err;`);
 				code.push(`${tab(3)}}`);
 				code.push(`${tab(2)}}, Promise.resolve());`);
-				// code.push(`${tab(2)}logger.trace(results);`);
-				code.push(`${tab(2)}const finalRecords = _.flatten(results.map(e => e.body ? e.body : e));`);
-				code.push(`${tab(2)}const finalHeader = Object.assign.apply({}, _.flatten(results.map(e => e.headers)));`);
-				code.push(`${tab(2)}let response = _.cloneDeep(state);`);
+				code.push(`${tab(2)}finalRecords = _.flatten(results.map(e => e.body ? e.body : e));`);
+				code.push(`${tab(2)}finalHeader = Object.assign.apply({}, _.flatten(results.map(e => e.headers)));`);
+				code.push(`${tab(2)}response = _.cloneDeep(state);`);
 				code.push(`${tab(2)}response.statusCode = results.every(e => e.statusCode == 200) ? 200 : 400;`);
+				code.push(`${tab(2)}} else {`);
+				code.push(`${tab(3)}logger.debug('Making Requests Once');`);
+				code.push(`${tab(3)}if (options.method == 'POST' || options.method == 'PUT') {`);
+				code.push(`${tab(4)}options.json = { keys: [${node.options.fields.split(',').map(e => `'${e}'`).join(',') || ''}], docs: [ state.body ] };`);
+				code.push(`${tab(3)}}`);
+				code.push(`${tab(3)}logger.trace({ options });`);
+				code.push(`${tab(3)}response = await httpClient.request(options);`);
+				code.push(`${tab(3)}finalRecords = response.body;`);
+				code.push(`${tab(3)}finalHeader = response.headers;`);
+				code.push(`${tab(2)}}`);
 			} else {
+				code.push(`${tab(2)}logger.debug('Making Requests Once');`);
 				code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
 				code.push(`${tab(3)}options.json = customBody;`);
 				code.push(`${tab(2)}}`);
 				code.push(`${tab(2)}logger.trace({ options });`);
 				code.push(`${tab(2)}let response = await httpClient.request(options);`);
-				code.push(`${tab(2)}const finalRecords = response.body;`);
-				code.push(`${tab(2)}const finalHeader = response.headers;`);
+				code.push(`${tab(2)}finalRecords = response.body;`);
+				code.push(`${tab(2)}finalHeader = response.headers;`);
 			}
 			// code.push(`${tab(2)}response = { statusCode: 200, body: finalRecords, headers: finalHeader }`);
 			code.push(`${tab(2)}state.statusCode = response.statusCode || 400;`);
