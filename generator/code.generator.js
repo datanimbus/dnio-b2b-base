@@ -5,6 +5,8 @@ const config = require('../config');
 const commonUtils = require('../common.utils');
 
 let logger = global.logger;
+let flowData;
+let hasGlobaErrorHandler = false;
 
 let visitedNodes = [];
 let visitedValidation = [];
@@ -46,6 +48,10 @@ function fixCondition(condition) {
  */
 function parseFlow(dataJson) {
 	visitedNodes = [];
+	flowData = dataJson;
+	if (flowData && flowData.onError && flowData.onError.length > 0) {
+		hasGlobaErrorHandler = true;
+	}
 	const inputNode = dataJson.inputNode;
 	const nodes = dataJson.nodes;
 	let api = '/' + dataJson.app + inputNode.options.path;
@@ -273,24 +279,36 @@ function parseFlow(dataJson) {
 	if (!tempNodes || tempNodes.length == 0) {
 		code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
 	}
-	// (inputNode.onSuccess || []).map(ss => {
-	// 	const nodeCondition = ss.condition;
-	// 	const temp = nodes.find(e => e._id === ss._id);
-	// 	temp.condition = nodeCondition;
-	// 	return temp;
-	// }).forEach((node, i) => {
-	// 	if (visitedNodes.indexOf(node._id) > -1) {
-	// 		return;
-	// 	}
-	// 	visitedNodes.push(node._id);
-	// 	if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
-	// 	code = code.concat(generateCode(node, nodes));
-	// 	if (node.condition) code.push(`${tab(1)}}`);
-	// });
+
+
+
 	code.push(`${tab(1)}if (!isResponseSent) {`);
 	code.push(`${tab(2)}res.status((response.statusCode || 200)).json(response.body);`);
 	code.push(`${tab(2)}isResponseSent = true;`);
 	code.push(`${tab(1)}}`);
+	code.push('}');
+
+	code.push('async function handleError(err, req, res) {');
+	if (flowData && flowData.onError && flowData.onError.length > 0) {
+		let errNodes = (flowData.onError || []);
+		for (let index = 0; index < errNodes.length; index++) {
+			const ss = errNodes[index];
+			const node = nodes.find(e => e._id === ss._id);
+			if (ss.condition) {
+				node.condition = fixCondition(ss.condition);
+			}
+			// if (visitedNodes.indexOf(node._id) > -1) {
+			// 	return;
+			// }
+			visitedNodes.push(node._id);
+			if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
+			code = code.concat(generateCode(node, nodes));
+			if (node.condition) code.push(`${tab(1)}}`);
+		}
+		if (!errNodes || errNodes.length == 0) {
+			code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: 'ERROR' });`);
+		}
+	}
 	code.push('}');
 	code.push('module.exports = router;');
 	return code.join('\n');
@@ -355,6 +373,8 @@ function generateCode(node, nodes) {
 				code = code.concat(generateCode(node, nodes));
 				if (node.condition) code.push(`${tab(1)}}`);
 			}
+		} else if (hasGlobaErrorHandler) {
+			code.push(`${tab(4)}return handleError(response, req, res);`);
 		} else {
 			code.push(`${tab(3)}if (!isResponseSent) {`);
 			code.push(`${tab(4)}isResponseSent = true;`);
