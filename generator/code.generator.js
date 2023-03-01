@@ -49,7 +49,7 @@ function fixCondition(condition) {
 function parseFlow(dataJson) {
 	visitedNodes = [];
 	flowData = dataJson;
-	if (flowData && flowData.onError && flowData.onError.length > 0) {
+	if (flowData && flowData.errorNode && flowData.errorNode.onSuccess && flowData.errorNode.onSuccess.length > 0) {
 		hasGlobaErrorHandler = true;
 	}
 	const inputNode = dataJson.inputNode;
@@ -288,9 +288,9 @@ function parseFlow(dataJson) {
 	code.push(`${tab(1)}}`);
 	code.push('}');
 
-	code.push('async function handleError(err, req, res) {');
-	if (flowData && flowData.onError && flowData.onError.length > 0) {
-		let errNodes = (flowData.onError || []);
+	code.push('async function handleError(response, req, res, txnId, remoteTxnId, state, node, isResponseSent) {');
+	if (flowData && flowData.errorNode && flowData.errorNode.onSuccess && flowData.errorNode.onSuccess.length > 0) {
+		let errNodes = (flowData.errorNode.onSuccess || []);
 		for (let index = 0; index < errNodes.length; index++) {
 			const ss = errNodes[index];
 			const node = nodes.find(e => e._id === ss._id);
@@ -302,7 +302,7 @@ function parseFlow(dataJson) {
 			// }
 			visitedNodes.push(node._id);
 			if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
-			code = code.concat(generateCode(node, nodes));
+			code = code.concat(generateCode(node, nodes, true));
 			if (node.condition) code.push(`${tab(1)}}`);
 		}
 		if (!errNodes || errNodes.length == 0) {
@@ -318,7 +318,7 @@ function parseFlow(dataJson) {
  * 
  * @param {any} dataJson 
  */
-function generateCode(node, nodes) {
+function generateCode(node, nodes, isErrorNode) {
 	let code = [];
 	code.push(`${tab(1)}\n\n// ═══════════════════ ${node._id} / ${node.name} / ${node.type} ══════════════════════`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking node :: ${node._id} / ${node.name} / ${node.type}\`);`);
@@ -370,15 +370,16 @@ function generateCode(node, nodes) {
 				}
 				visitedNodes.push(node._id);
 				if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
-				code = code.concat(generateCode(node, nodes));
+				code = code.concat(generateCode(node, nodes, isErrorNode));
 				if (node.condition) code.push(`${tab(1)}}`);
 			}
-		} else if (hasGlobaErrorHandler) {
-			code.push(`${tab(4)}return handleError(response, req, res);`);
+		} else if (hasGlobaErrorHandler && !isErrorNode) {
+			code.push(`${tab(4)}return handleError(response, req, res, txnId, remoteTxnId, state, node, isResponseSent);`);
 		} else {
 			code.push(`${tab(3)}if (!isResponseSent) {`);
 			code.push(`${tab(4)}isResponseSent = true;`);
-			code.push(`${tab(4)}return res.status((response.statusCode || 200)).json({ message: 'Error occured at ${node.name || node._id}' });`);
+			// code.push(`${tab(4)}return res.status((response.statusCode || 200)).json({ message: 'Error occured at ${node.name || node._id}' });`);
+			code.push(`${tab(4)}return res.status((response.statusCode || 400)).json(response.body);`);
 			code.push(`${tab(3)}}`);
 		}
 		code.push(`${tab(2)}}`);
@@ -394,7 +395,7 @@ function generateCode(node, nodes) {
 			if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
 				visitedNodes.push(nextNode._id);
 				if (nextNode.condition) code.push(`${tab(1)}if (${nextNode.condition}) {`);
-				code = code.concat(generateCode(nextNode, nodes));
+				code = code.concat(generateCode(nextNode, nodes, isErrorNode));
 				if (nextNode.condition) code.push(`${tab(1)}}`);
 			}
 		}
@@ -402,7 +403,8 @@ function generateCode(node, nodes) {
 	code.push(`${tab(1)}} catch (err) {`);
 	code.push(`${tab(2)}logger.error(err);`);
 	code.push(`${tab(2)}if (!isResponseSent) {`);
-	code.push(`${tab(3)}res.status(500).json({ message: 'Error occured at ${node.name || node._id}' });`);
+	// code.push(`${tab(3)}res.status(500).json({ message: 'Error occured at ${node.name || node._id}' });`);
+	code.push(`${tab(4)}res.status(500).json(err.body ? err.body : err);`);
 	code.push(`${tab(3)}isResponseSent = true;`);
 	code.push(`${tab(2)}}`);
 	code.push(`${tab(1)}} finally {`);
