@@ -283,7 +283,7 @@ function parseFlow(dataJson) {
 
 
 	code.push(`${tab(1)}if (!isResponseSent) {`);
-	code.push(`${tab(2)}res.status((response.statusCode || 200)).json(response.body);`);
+	code.push(`${tab(2)}res.status((response.statusCode || 200)).json(response.responseBody);`);
 	code.push(`${tab(2)}isResponseSent = true;`);
 	code.push(`${tab(1)}}`);
 	code.push('}');
@@ -327,8 +327,6 @@ function generateCode(node, nodes, isErrorNode) {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
 		if (node.options && node.options.statusCode) {
 			code.push(`${tab(2)}state.statusCode = ${node.options.statusCode};`);
-		} else {
-			code.push(`${tab(2)}state.statusCode = 200;`);
 		}
 		code.push(`${tab(2)}state.status = 'SUCCESS';`);
 		if (node.options && node.options.body) {
@@ -379,7 +377,7 @@ function generateCode(node, nodes, isErrorNode) {
 			code.push(`${tab(3)}if (!isResponseSent) {`);
 			code.push(`${tab(4)}isResponseSent = true;`);
 			// code.push(`${tab(4)}return res.status((response.statusCode || 200)).json({ message: 'Error occured at ${node.name || node._id}' });`);
-			code.push(`${tab(4)}return res.status((response.statusCode || 400)).json(response.body);`);
+			code.push(`${tab(4)}return res.status((response.statusCode || 400)).json(response.responseBody);`);
 			code.push(`${tab(3)}}`);
 		}
 		code.push(`${tab(2)}}`);
