@@ -18,7 +18,11 @@ function getState(req, nodeId, isChild, contentType) {
 	// data.parentTxnId = isChild ? req.headers['data-stack-txn-id'] : null;
 	data.headers = req.headers;
 	logger.trace(`State :: ${nodeId} :: Headers :: ${JSON.stringify(req.headers)}`);
-	data.body = req.body;
+	if (req.responseBody) {
+		data.body = req.responseBody;
+	} else {
+		data.body = req.body;
+	}
 	logger.trace(`State :: ${nodeId} :: Body :: ${JSON.stringify(req.body)}`);
 	data.query = req.query;
 	logger.trace(`State :: ${nodeId} :: Query :: ${JSON.stringify(req.quert)}`);
@@ -30,6 +34,11 @@ function getState(req, nodeId, isChild, contentType) {
 		lastUpdated: new Date(),
 		deleted: false
 	};
+	if (req.statusCode) {
+		data.statusCode = req.statusCode;
+	} else {
+		data.statusCode = 500;
+	}
 	return data;
 }
 
