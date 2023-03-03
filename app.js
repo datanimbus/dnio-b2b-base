@@ -31,6 +31,9 @@ httpClient.request({
 	config.appNamespace = flowData.namespace;
 	config.imageTag = flowData._id + ':' + flowData.version;
 	config.appDB = config.DATA_STACK_NAMESPACE + '-' + flowData.app;
+	if (flowData.inputNode && flowData.inputNode.options && flowData.inputNode.options.timeout) {
+		config.serverTimeout = flowData.inputNode.options.timeout;
+	}
 	try {
 		await codeGen.createProject(flowData);
 		initialize();
@@ -79,8 +82,11 @@ function initialize() {
 	const server = app.listen(config.port, function () {
 		logger.info('Server Listening on port:', config.port);
 	});
-
-	server.setTimeout(300000);
+	let timeout = config.serverTimeout || 60;
+	if (typeof timeout == 'string') {
+		timeout = parseInt(timeout, 10);
+	}
+	server.setTimeout(timeout * 1000);
 
 	process.on('SIGTERM', () => {
 		try {

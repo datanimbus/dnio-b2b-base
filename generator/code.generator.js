@@ -141,7 +141,7 @@ function parseFlow(dataJson) {
 		code.push(`${tab(3)}res.status(202).json({ message: 'Your requested process is taking more then expected time, Please check interactions for final status.' });`);
 		code.push(`${tab(3)}isResponseSent = true;`);
 		code.push(`${tab(2)}}`);
-		code.push(`${tab(1)}}, 30000);`);
+		code.push(`${tab(1)}}, ${(inputNode.options.timeout || 60) * 1000});`);
 	}
 	if (inputNode.type === 'FILE' || (inputNode.options && inputNode.options.contentType === 'multipart/form-data')) {
 		if (inputNode.type === 'FILE') {
