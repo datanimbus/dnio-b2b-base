@@ -860,7 +860,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}if (errors) {`);
 				code.push(`${tab(3)}state.status = "ERROR";`);
 				code.push(`${tab(3)}state.statusCode = 400;`);
-				code.push(`${tab(3)}state.body = { message: errors };`);
+				code.push(`${tab(3)}state.responseBody = { message: errors };`);
 				code.push(`${tab(3)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
 				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`);`);
 				code.push(`${tab(3)}return _.cloneDeep(state);`);
@@ -869,7 +869,7 @@ async function generateNodes(pNode) {
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
-			code.push(`${tab(2)}state.body = _.cloneDeep(newBody);`);
+			code.push(`${tab(2)}state.responseBody = _.cloneDeep(newBody);`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 			// code.push(`${tab(2)}return { statusCode: 200, body: newBody, headers: state.headers };`);
 		} else if (node.type === 'UNWIND') {
@@ -897,7 +897,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}if (errors) {`);
 				code.push(`${tab(3)}state.status = "ERROR";`);
 				code.push(`${tab(3)}state.statusCode = 400;`);
-				code.push(`${tab(3)}state.body = { message: errors };`);
+				code.push(`${tab(3)}state.responseBody = { message: errors };`);
 				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
 				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`);`);
 				code.push(`${tab(3)}return _.cloneDeep(state);`);
