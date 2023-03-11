@@ -32,12 +32,12 @@ function countDuplicates(nodeId, nodes) {
 
 function fixCondition(condition) {
 	if (condition) {
-		return condition.replaceAll('{{', '')
-			.replaceAll('}}', '')
-			.replaceAll('= =', '==')
-			.replaceAll('! =', '!=')
-			.replaceAll('< =', '<=')
-			.replaceAll('> =', '>=');
+		return condition.replace('{{', '')
+			.replace('}}', '')
+			.replace('= =', '==')
+			.replace('! =', '!=')
+			.replace('< =', '<=')
+			.replace('> =', '>=');
 	}
 	return condition;
 }
@@ -656,7 +656,7 @@ async function generateNodes(pNode) {
 
 
 				if ((node.options.update || node.options.insert)) {
-					code.push(`${tab(2)}if (!Array.isArray(state.body)) {`);
+					code.push(`${tab(2)}if (Array.isArray(state.body)) {`);
 					code.push(`${tab(2)}let iterator = [];`);
 					code.push(`${tab(2)}if (!Array.isArray(state.body)) {`);
 					code.push(`${tab(3)}iterator = _.chunk([state.body], 100);`);
@@ -746,6 +746,8 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}if (Array.isArray(state.body)) {`);
 				code.push(`${tab(3)}logger.debug('Making Requests in Batch');`);
 				code.push(`${tab(2)}let results = [];`);
+				code.push(`${tab(3)}logger.debug('state - ',JSON.stringify(state));`);
+				code.push(`${tab(3)}logger.debug('batch list - ',JSON.stringify(state.batchList));`);
 				code.push(`${tab(2)}await state.batchList.reduce(async (prev, curr) => {`);
 				code.push(`${tab(3)}await prev;`);
 				code.push(`${tab(3)}if (!curr) { return; }`);
@@ -753,8 +755,9 @@ async function generateNodes(pNode) {
 				code.push(`${tab(4)}options.json = { keys: [${node.options.fields.split(',').map(e => `'${e}'`).join(',') || ''}], docs: curr.rows };`);
 				code.push(`${tab(3)}}`);
 				code.push(`${tab(3)}try {`);
-				code.push(`${tab(4)}logger.trace(JSON.stringify(options, null, 4));`);
+				code.push(`${tab(4)}logger.trace('trace - ',JSON.stringify(options, null, 4));`);
 				code.push(`${tab(4)}response = await httpClient.request(options);`);
+				code.push(`${tab(4)}logger.debug('Response - ',JSON.stringify(response));`);
 				code.push(`${tab(4)}results.push(response);`);
 				code.push(`${tab(4)}curr.statusCode = response.statusCode;`);
 				code.push(`${tab(4)}curr.headers = response.headers;`);
