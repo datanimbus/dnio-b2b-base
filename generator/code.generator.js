@@ -32,8 +32,7 @@ function countDuplicates(nodeId, nodes) {
 
 function fixCondition(condition) {
 	if (condition) {
-		return condition.replace('{{', '')
-			.replace('}}', '')
+		return condition.replace(/{{|}}/g, '')
 			.replace('= =', '==')
 			.replace('! =', '!=')
 			.replace('< =', '<=')
@@ -68,6 +67,7 @@ function parseFlow(dataJson) {
 	code.push('const { v4: uuid } = require(\'uuid\');');
 	code.push('const _ = require(\'lodash\');');
 	code.push('const cron = require(\'node-cron\');');
+
 	code.push('');
 	code.push('const stateUtils = require(\'./state.utils\');');
 	code.push('const nodeUtils = require(\'./node.utils\');');
@@ -265,16 +265,18 @@ function parseFlow(dataJson) {
 	for (let index = 0; index < tempNodes.length; index++) {
 		const ss = tempNodes[index];
 		const node = nodes.find(e => e._id === ss._id);
-		if (ss.condition) {
-			node.condition = fixCondition(ss.condition);
+		if (node) {
+			if (ss.condition) {
+				node.condition = fixCondition(ss.condition);
+			}
+			// if (visitedNodes.indexOf(node._id) > -1) {
+			// 	return;
+			// }
+			visitedNodes.push(node._id);
+			if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
+			code = code.concat(generateCode(node, nodes));
+			if (node.condition) code.push(`${tab(1)}}`);
 		}
-		// if (visitedNodes.indexOf(node._id) > -1) {
-		// 	return;
-		// }
-		visitedNodes.push(node._id);
-		if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
-		code = code.concat(generateCode(node, nodes));
-		if (node.condition) code.push(`${tab(1)}}`);
 	}
 	if (!tempNodes || tempNodes.length == 0) {
 		code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
@@ -294,16 +296,18 @@ function parseFlow(dataJson) {
 		for (let index = 0; index < errNodes.length; index++) {
 			const ss = errNodes[index];
 			const node = nodes.find(e => e._id === ss._id);
-			if (ss.condition) {
-				node.condition = fixCondition(ss.condition);
+			if (node) {
+				if (ss.condition) {
+					node.condition = fixCondition(ss.condition);
+				}
+				// if (visitedNodes.indexOf(node._id) > -1) {
+				// 	return;
+				// }
+				visitedNodes.push(node._id);
+				if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
+				code = code.concat(generateCode(node, nodes, true));
+				if (node.condition) code.push(`${tab(1)}}`);
 			}
-			// if (visitedNodes.indexOf(node._id) > -1) {
-			// 	return;
-			// }
-			visitedNodes.push(node._id);
-			if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
-			code = code.concat(generateCode(node, nodes, true));
-			if (node.condition) code.push(`${tab(1)}}`);
 		}
 		if (!errNodes || errNodes.length == 0) {
 			code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: 'ERROR' });`);
@@ -363,13 +367,15 @@ function generateCode(node, nodes, isErrorNode) {
 			for (let index = 0; index < tempNodes.length; index++) {
 				const ss = tempNodes[index];
 				const node = nodes.find(e => e._id === ss._id);
-				if (ss.condition) {
-					node.condition = fixCondition(ss.condition);
+				if (node) {
+					if (ss.condition) {
+						node.condition = fixCondition(ss.condition);
+					}
+					visitedNodes.push(node._id);
+					if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
+					code = code.concat(generateCode(node, nodes, isErrorNode));
+					if (node.condition) code.push(`${tab(1)}}`);
 				}
-				visitedNodes.push(node._id);
-				if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
-				code = code.concat(generateCode(node, nodes, isErrorNode));
-				if (node.condition) code.push(`${tab(1)}}`);
 			}
 		} else if (hasGlobaErrorHandler && !isErrorNode) {
 			code.push(`${tab(4)}return handleError(response, req, res, txnId, remoteTxnId, state, node, isResponseSent);`);
@@ -387,14 +393,16 @@ function generateCode(node, nodes, isErrorNode) {
 		for (let index = 0; index < tempNodes.length; index++) {
 			const ss = tempNodes[index];
 			const nextNode = nodes.find(e => e._id === ss._id);
-			if (ss.condition) {
-				nextNode.condition = fixCondition(ss.condition);
-			}
-			if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
-				visitedNodes.push(nextNode._id);
-				if (nextNode.condition) code.push(`${tab(1)}if (${nextNode.condition}) {`);
-				code = code.concat(generateCode(nextNode, nodes, isErrorNode));
-				if (nextNode.condition) code.push(`${tab(1)}}`);
+			if (nextNode) {
+				if (ss.condition) {
+					nextNode.condition = fixCondition(ss.condition);
+				}
+				if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
+					visitedNodes.push(nextNode._id);
+					if (nextNode.condition) code.push(`${tab(1)}if (${nextNode.condition}) {`);
+					code = code.concat(generateCode(nextNode, nodes, isErrorNode));
+					if (nextNode.condition) code.push(`${tab(1)}}`);
+				}
 			}
 		}
 	}
@@ -435,6 +443,7 @@ async function parseNodes(dataJson) {
 	code.push('const xlsxPopulate = require(\'xlsx-populate\');');
 	code.push('const J2XParser = require(\'fast-xml-parser\').j2xParser;');
 	code.push('const { mssql, mysql, psql } = require(\'@appveen/rest-crud\');');
+	code.push('const Mustache = require(\'mustache\');');
 	code.push('');
 	code.push('const httpClient = require(\'./http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
@@ -495,11 +504,12 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
 			if (node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 				if (node.options.authorization) {
-					if (node.options.authorization.startsWith('node[')) {
-						code.push(`${tab(3)}customHeaders['authorization'] = ${node.options.authorization};`);
-					} else {
-						code.push(`${tab(3)}customHeaders['authorization'] = \`${parseDynamicVariable(node.options.authorization)}\`;`);
-					}
+					code.push(`${tab(3)}customHeaders['authorization'] = Mustache.render(\`${node.options.authorization}\`, node);`);
+					// if (node.options.authorization.startsWith('node[')) {
+					// 	code.push(`${tab(3)}customHeaders['authorization'] = ${node.options.authorization};`);
+					// } else {
+					// 	code.push(`${tab(3)}customHeaders['authorization'] = \`${parseDynamicVariable(node.options.authorization)}\`;`);
+					// }
 				} else {
 					code.push(`${tab(2)}if (req.header('authorization')) {`);
 					code.push(`${tab(3)}customHeaders['authorization'] = req.header('authorization');`);
@@ -508,7 +518,8 @@ async function generateNodes(pNode) {
 			}
 			code.push(`${tab(2)}let customBody = state.body;`);
 			if (node.type === 'API' && node.options) {
-				code.push(`${tab(2)}state.url = \`${parseDynamicVariable(node.options.url)}\`;`);
+				code.push(`${tab(2)}state.url = Mustache.render(\`${node.options.url}\`, node);`);
+				// code.push(`${tab(2)}state.url = \`${parseDynamicVariable(node.options.url)}\`;`);
 				code.push(`${tab(2)}state.method = '${node.options.method || 'POST'}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
@@ -553,32 +564,35 @@ async function generateNodes(pNode) {
 					if (node.options.get) {
 						const params = [];
 						if (node.options.select && node.options.select != '*') {
-							params.push(`select=${parseDynamicVariable(node.options.select)}`);
+							params.push(`select=${(node.options.select)}`);
 						}
 						if (node.options.count) {
-							params.push(`count=${parseDynamicVariable(node.options.count)}`);
+							params.push(`count=${(node.options.count)}`);
 						}
 						if (node.options.page) {
-							params.push(`page=${parseDynamicVariable(node.options.page)}`);
+							params.push(`page=${(node.options.page)}`);
 						}
 						if (!node.options.sort) {
 							node.options.sort = '_metadata.lastUpdated';
 						}
-						params.push(`sort=${parseDynamicVariable(node.options.sort)}`);
+						params.push(`sort=${(node.options.sort)}`);
 						if (!node.options.filter) {
 							node.options.filter = '{}';
 						}
 						if (typeof node.options.filter == 'object') {
 							node.options.filter = JSON.stringify(node.options.filter);
 						}
-						params.push(`filter=${parseDynamicVariable(node.options.filter)}`);
+						params.push(`filter=${(node.options.filter)}`);
 						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/?${params.join('&')}\`;`);
-						code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: ${JSON.stringify(node.options.filter)} }`);
+
+						code.push(`${tab(2)}let filter = Mustache.render(\`${JSON.stringify(node.options.filter)}\`, node);`);
+						code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: filter }`);
 					} else if (node.options.delete) {
-						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/${parseDynamicVariable(node.options.documentId)}\`;`);
+						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/${(node.options.documentId)}\`;`);
 					} else {
 						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}\`;`);
 					}
+					code.push(`${tab(2)}state.url = Mustache.render(state.url, node);`);
 				} else {
 					if (node.options.get) {
 						if (!node.options.select || node.options.select == '*') {
@@ -599,16 +613,18 @@ async function generateNodes(pNode) {
 						if (typeof node.options.filter == 'object') {
 							node.options.filter = JSON.stringify(node.options.filter);
 						}
-						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + \`/?select=${node.options.select}&sort=${node.options.sort}&count=${node.options.count}&page=${node.options.page}&filter=${parseDynamicVariable(node.options.filter)}\`;`);
+						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + \`/?select=${node.options.select}&sort=${node.options.sort}&count=${node.options.count}&page=${node.options.page}&filter=${(node.options.filter)}\`;`);
 					} else if (node.options.delete) {
-						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + \`/${parseDynamicVariable(node.options.documentId)}\`;`);
+						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + \`/${(node.options.documentId)}\`;`);
 					} else {
 						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}';`);
 					}
+					code.push(`${tab(2)}state.url = Mustache.render(state.url, node);`);
 				}
 				if (node.options.get) {
 					code.push(`${tab(2)}state.method = 'GET';`);
-					code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: ${JSON.stringify(node.options.filter)} }`);
+					code.push(`${tab(2)}let filter = Mustache.render(\`${JSON.stringify(node.options.filter)}\`, node);`);
+					code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: filter };`);
 				} else if (node.options.delete) {
 					code.push(`${tab(2)}state.method = 'DELETE';`);
 				} else {
@@ -736,13 +752,13 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}delete options.headers['content-encoding'];`);
 			code.push(`${tab(2)}delete options.headers['transfer-encoding'];`);
 
+			code.push(`${tab(2)}let finalRecords;`);
+			code.push(`${tab(2)}let finalHeader;`);
 			if (node.type === 'DATASERVICE' && (node.options.update || node.options.insert)) {
 				if (!node.options.fields) {
 					node.options.fields = '_id';
 				}
 				code.push(`${tab(2)}let response;`);
-				code.push(`${tab(2)}let finalRecords;`);
-				code.push(`${tab(2)}let finalHeader;`);
 				code.push(`${tab(2)}if (Array.isArray(state.body)) {`);
 				code.push(`${tab(3)}logger.debug('Making Requests in Batch');`);
 				code.push(`${tab(2)}let results = [];`);
