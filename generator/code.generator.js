@@ -1,4 +1,5 @@
 // const log4js = require('log4js');
+const { randomInt } = require('crypto');
 const _ = require('lodash');
 const { v4: uuid } = require('uuid');
 const config = require('../config');
@@ -845,14 +846,23 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}let newBody = {};`);
 			node.mappings.forEach(mappingData => {
 				const formulaCode = [];
-				const formulaID = 'formula_' + _.camelCase(uuid());
+				// const formulaID = 'formula_' + _.snakeCase(uuid());
+				const formulaID = 'formula_' + randomInt(1000);
 				mappingData.formulaID = formulaID;
+				formulaCode.push('// eslint-disable-next-line no-inner-declarations, camelcase');
 				formulaCode.push(`function ${formulaID}(data) {`);
 				mappingData.source.forEach((source, i) => {
 					formulaCode.push(`let input${i + 1} =  _.get(data, '${source.dataPath}');`);
 				});
 				if (mappingData.formula) {
-					formulaCode.push(mappingData.formula);
+					if (mappingData.formula.indexOf('\n') > -1) {
+						formulaCode.push(`${mappingData.formula.replace(/{{(.*)}}/g, '_.get(\'$1\', node)')}`);
+						// formulaCode.push(`return eval(Mustache.render(\`${mappingData.formula}\`, node));`);
+					} else {
+						formulaCode.push(`return ${mappingData.formula.replace(/{{(.*)}}/g, '_.get(\'$1\', node)')};`);
+						// formulaCode.push(`return eval(Mustache.render('return ${mappingData.formula}', node));`);
+					}
+
 				} else if (mappingData.source && mappingData.source.length > 0) {
 					formulaCode.push('return input1;');
 				}
