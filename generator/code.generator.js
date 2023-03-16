@@ -454,6 +454,15 @@ async function parseNodes(dataJson) {
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('');
+
+	const formulas = await commonUtils.getAllFormulas();
+	formulas.forEach((item) => {
+		if (item.code) {
+			code.push(`function ${item.name}(${item.params.map(e => e.name)}) {`);
+			code.push(`${item.code}`);
+			code.push('}');
+		}
+	});
 	const tempCode = await generateNodes(dataJson);
 	return _.concat(code, tempCode).join('\n');
 }

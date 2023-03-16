@@ -93,6 +93,36 @@ async function getConnector(connectorId) {
 	}
 }
 
+
+async function getAllFormulas() {
+	try {
+		let options = {};
+		options.url = `${config.baseUrlUSR}/admin/metadata/mapper/formula/count`;
+		options.method = 'GET';
+		options.headers = {};
+		options.headers['Content-Type'] = 'application/json';
+		options.headers['Authorization'] = 'JWT ' + global.BM_TOKEN;
+		let response = await httpClient.request(options);
+		if (response.statusCode !== 200) {
+			throw response.body;
+		}
+		options = {};
+		options.url = `${config.baseUrlUSR}/admin/metadata/mapper/formula?count=` + response.body;
+		options.method = 'GET';
+		options.headers = {};
+		options.headers['Content-Type'] = 'application/json';
+		options.headers['Authorization'] = 'JWT ' + global.BM_TOKEN;
+		response = await httpClient.request(options);
+		if (response.statusCode !== 200) {
+			throw response.body;
+		}
+		return response.body;
+	} catch (err) {
+		logger.error(err);
+		throw err;
+	}
+}
+
 async function sftpFetchFile(configData) {
 	let sftp = new Client();
 	try {
@@ -372,3 +402,4 @@ module.exports.sftpPutFile = sftpPutFile;
 module.exports.writeDataToCSV = writeDataToCSV;
 module.exports.writeDataToXLS = writeDataToXLS;
 module.exports.uploadFileToDB = uploadFileToDB;
+module.exports.getAllFormulas = getAllFormulas;
