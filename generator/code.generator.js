@@ -358,7 +358,7 @@ function generateCode(node, nodes, isErrorNode) {
 		code.push(`${tab(2)}}`);
 	} else {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
-		code.push(`${tab(2)}response = await nodeUtils.${_.camelCase(node._id)}(req, state, node);`);
+		code.push(`${tab(2)}response = await nodeUtils.${(node._id)}(req, state, node);`);
 		code.push(`${tab(2)}if (typeof response.statusCode == 'string') {`);
 		code.push(`${tab(3)}response.statusCode = parseInt(response.statusCode);`);
 		code.push(`${tab(2)}}`);
@@ -500,15 +500,15 @@ async function generateNodes(pNode) {
 				node.options.insert = true;
 			}
 		}
-		exportsCode.push(`module.exports.${_.camelCase(node._id)} = ${_.camelCase(node._id)};`);
-		code.push(`async function ${_.camelCase(node._id)}(req, state, node) {`);
-		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${node.name ? node.name : ''}(${_.camelCase(node._id)}) Node\`);`);
+		exportsCode.push(`module.exports.${(node._id)} = ${(node._id)};`);
+		code.push(`async function ${(node._id)}(req, state, node) {`);
+		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${node.name ? node.name : ''}(${(node._id)}) Node\`);`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Node type :: ${node.type}\`);`);
 		// nodeVariables.forEach((item) => {
 		// 	code.push(`${tab(1)}const ${_.snakeCase(item.key)} = node['${item.value}'];`);
 		// });
 		code.push(`${tab(1)}try {`);
-		let functionName = 'validate_structure_' + _.camelCase(node._id);
+		let functionName = 'validate_structure_' + (node._id);
 		if (node.type === 'API' || node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
 			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
@@ -830,14 +830,14 @@ async function generateNodes(pNode) {
 			// code.push(`${tab(3)}options.json = customBody;`);
 			// code.push(`${tab(2)}}`);
 
-			// code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request URL of ${_.camelCase(node._id)} \`, options.url);`);
-			// code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request Data of ${_.camelCase(node._id)} \`, JSON.stringify(options));`);
+			// code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request URL of ${(node._id)} \`, options.url);`);
+			// code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request Data of ${(node._id)} \`, JSON.stringify(options));`);
 			// code.push(`${tab(2)}let response = await httpClient.request(options);`);
 
 
 			code.push(`${tab(2)}commonUtils.handleResponse(response, state, req, node);`);
-			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Response Status Code of ${_.camelCase(node._id)} \`, state.statusCode);`);
-			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Response Data of ${_.camelCase(node._id)} \`, JSON.stringify(state));`);
+			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Response Status Code of ${(node._id)} \`, state.statusCode);`);
+			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Response Data of ${(node._id)} \`, JSON.stringify(state));`);
 			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id && node.dataStructure.outgoing.strictValidation) {
 				code.push(`${tab(2)}if (state.statusCode == 200) {`);
 				code.push(`${tab(3)}const errors = validationUtils.${functionName}(req, response.body);`);
@@ -845,9 +845,9 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}}`);
 			}
 			code.push(`${tab(2)}if (state.statusCode != 200) {`);
-			code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`, response.statusCode);`);
+			code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${(node._id)} Node with not 200\`, response.statusCode);`);
 			code.push(`${tab(2)}} else {`);
-			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with 200\`);`);
+			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${(node._id)} Node with 200\`);`);
 			code.push(`${tab(2)}}`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 			// code.push(`${tab(2)}return { statusCode: state.statusCode, body: state.body, headers: state.headers };`);
@@ -899,8 +899,8 @@ async function generateNodes(pNode) {
 				code.push(`${tab(3)}state.status = "ERROR";`);
 				code.push(`${tab(3)}state.statusCode = 400;`);
 				code.push(`${tab(3)}state.responseBody = { message: errors };`);
-				code.push(`${tab(3)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
-				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`);`);
+				code.push(`${tab(3)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${(node._id)} \`, errors);`);
+				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${(node._id)} Node with not 200\`);`);
 				code.push(`${tab(3)}return _.cloneDeep(state);`);
 				// code.push(`${tab(3)}return { statusCode: 400, body: { message: errors }, headers: response.headers };`);
 				code.push(`${tab(2)}}`);
@@ -936,8 +936,8 @@ async function generateNodes(pNode) {
 				code.push(`${tab(3)}state.status = "ERROR";`);
 				code.push(`${tab(3)}state.statusCode = 400;`);
 				code.push(`${tab(3)}state.responseBody = { message: errors };`);
-				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${_.camelCase(node._id)} \`, errors);`);
-				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with not 200\`);`);
+				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${(node._id)} \`, errors);`);
+				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${(node._id)} Node with not 200\`);`);
 				code.push(`${tab(3)}return _.cloneDeep(state);`);
 				code.push(`${tab(2)}}`);
 			}
@@ -1103,7 +1103,7 @@ async function generateNodes(pNode) {
 		}
 		code.push(`${tab(1)}} catch (err) {`);
 		code.push(`${tab(2)}commonUtils.handleError(err, state, req, node);`);
-		code.push(`${tab(2)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${_.camelCase(node._id)} Node with\`, state.statusCode, typeof state.statusCode);`);
+		code.push(`${tab(2)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${(node._id)} Node with\`, state.statusCode, typeof state.statusCode);`);
 		code.push(`${tab(2)}return _.cloneDeep(state);`);
 		// code.push(`${tab(2)}return { statusCode: state.statusCode, body: err, headers: state.headers };`);
 		code.push(`${tab(1)}} finally {`);
@@ -1193,12 +1193,12 @@ function generateDataStructures(node, nodes) {
 	if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
 		schemaID = (node.dataStructure.outgoing._id);
 	}
-	const functionName = 'validate_structure_' + _.camelCase(node._id);
+	const functionName = 'validate_structure_' + node._id;
 	exportsCode.push(`module.exports.${functionName} = ${functionName};`);
 	code.push(`function ${functionName}(req, data) {`);
 	if (schemaID) {
 		code.push(`${tab(1)}const errors = {};`);
-		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Data Structure ${_.camelCase(node._id)} Node\`);`);
+		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Data Structure ${(node._id)} Node\`);`);
 		code.push(`${tab(1)}if (Array.isArray(data)) {`);
 		code.push(`${tab(2)}for (let i=0;i<data.length;i++) {`);
 		code.push(`${tab(3)}const item = data[i];`);
@@ -1213,7 +1213,7 @@ function generateDataStructures(node, nodes) {
 		code.push(`${tab(2)}throw errors;`);
 		code.push(`${tab(1)}}`);
 	} else {
-		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] No Data Structure found for ${_.camelCase(node._id)} Node\`);`);
+		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] No Data Structure found for ${(node._id)} Node\`);`);
 	}
 	code.push(`${tab(1)}return null;`);
 	code.push('}');
