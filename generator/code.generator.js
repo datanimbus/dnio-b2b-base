@@ -864,7 +864,7 @@ async function generateNodes(pNode) {
 					formulaCode.push(`let input${i + 1} =  _.get(data, '${source.dataPath}');`);
 				});
 				if (mappingData.formula) {
-					if (mappingData.formula.indexOf('\n') > -1) {
+					if (mappingData.formula.indexOf('\n') > -1 || mappingData.formula.indexOf('return ') > -1) {
 						formulaCode.push(`${mappingData.formula.replace(/{{(.*)}}/g, '_.get(\'$1\', node)')}`);
 						// formulaCode.push(`return eval(Mustache.render(\`${mappingData.formula}\`, node));`);
 					} else {
