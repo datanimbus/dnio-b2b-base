@@ -865,10 +865,12 @@ async function generateNodes(pNode) {
 				});
 				if (mappingData.formula) {
 					if (mappingData.formula.indexOf('\n') > -1 || mappingData.formula.indexOf('return ') > -1) {
-						formulaCode.push(`${mappingData.formula.replace(/{{(.*)}}/g, '_.get(\'$1\', node)')}`);
+						formulaCode.push(`${mappingData.formula.replace(/{{/g, '_.get(\'').replace(/}}/g, '\', node)')}`);
+						// formulaCode.push(`${mappingData.formula.replace(/{{(.*)}}/g, '_.get(\'$1\', node)')}`);
 						// formulaCode.push(`return eval(Mustache.render(\`${mappingData.formula}\`, node));`);
 					} else {
-						formulaCode.push(`return ${mappingData.formula.replace(/{{(.*)}}/g, '_.get(\'$1\', node)')};`);
+						formulaCode.push(`return ${mappingData.formula.replace(/{{/g, '_.get(\'').replace(/}}/g, '\', node)')};`);
+						// formulaCode.push(`return ${mappingData.formula.replace(/{{(.*)}}/g, '_.get(\'$1\', node)')};`);
 						// formulaCode.push(`return eval(Mustache.render('return ${mappingData.formula}', node));`);
 					}
 
