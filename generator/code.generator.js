@@ -201,6 +201,7 @@ function parseFlow(dataJson) {
 			code.push(`${tab(3)}state.status = "ERROR";`);
 			code.push(`${tab(3)}state.statusCode = 400;`);
 			code.push(`${tab(3)}state.body = err;`);
+			code.push(`${tab(3)}state.responseBody = err;`);
 			code.push(`${tab(3)}stateUtils.upsertState(req, state);`);
 			code.push(`${tab(3)}reject(err);`);
 			code.push(`${tab(2)}}).on('data', row => records.push(row))`);
@@ -209,6 +210,7 @@ function parseFlow(dataJson) {
 			code.push(`${tab(3)}state.totalRecords = rowCount;`);
 			code.push(`${tab(3)}state.statusCode = 200;`);
 			code.push(`${tab(3)}state.body = records;`);
+			code.push(`${tab(3)}state.responseBody = records;`);
 			// code.push(`${tab(3)}logger.trace('Parsed Data - ', state.body);`);
 			code.push(`${tab(3)}resolve(records);`);
 			code.push(`${tab(2)}});`);
@@ -219,11 +221,13 @@ function parseFlow(dataJson) {
 			code.push(`${tab(2)}state.status = "SUCCESS";`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.body = JSON.parse(contents);`);
+			code.push(`${tab(2)}state.responseBody = JSON.parse(contents);`);
 		} else if (dataFormat.formatType === 'XML') {
 			code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
 			code.push(`${tab(2)}state.status = "SUCCESS";`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.body = xmlParser.parse(contents);`);
+			code.push(`${tab(2)}state.responseBody = xmlParser.parse(contents);`);
 		} else if (dataFormat.formatType === 'BINARY') {
 			// code.push(`${tab(2)}fs.copyFileSync(reqFile.tempFilePath, path.join(process.cwd(), 'downloads', req['local']['output-file-name']));`);
 			// code.push(`${tab(2)}}`);
@@ -258,6 +262,7 @@ function parseFlow(dataJson) {
 	// code.push(`${tab(2)}response = { statusCode: 200, body: state.body, headers: state.headers };`);
 	code.push(`${tab(1)}state.statusCode = 200;`);
 	code.push(`${tab(1)}state.status = 'SUCCESS';`);
+	code.push(`${tab(1)}node['${inputNode._id}'] = state;`);
 	code.push(`${tab(1)}response = _.cloneDeep(state);`);
 	code.push(`${tab(1)}stateUtils.upsertState(req, state);`);
 	// code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(state.body));`);
