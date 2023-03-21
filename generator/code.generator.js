@@ -549,7 +549,10 @@ async function generateNodes(pNode) {
 			}
 			code.push(`${tab(2)}let customBody = state.body;`);
 			if (node.type === 'API' && node.options) {
-				code.push(`${tab(2)}state.url = Mustache.render(\`${node.options.url}\`, node);`);
+				// code.push(`${tab(2)}state.url = Mustache.render(\`${node.options.url}\`, node);`);
+				
+				code.push(`${tab(2)}state.url = \`${node.options.url.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
+
 				// code.push(`${tab(2)}state.url = \`${parseDynamicVariable(node.options.url)}\`;`);
 				code.push(`${tab(2)}state.method = '${node.options.method || 'POST'}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
