@@ -25,7 +25,7 @@ function getState(req, nodeId, isChild, contentType) {
 	}
 	logger.trace(`State :: ${nodeId} :: Body :: ${JSON.stringify(req.body)}`);
 	data.query = req.query;
-	logger.trace(`State :: ${nodeId} :: Query :: ${JSON.stringify(req.quert)}`);
+	logger.trace(`State :: ${nodeId} :: Query :: ${JSON.stringify(req.query)}`);
 	data.interactionId = req.query.interactionId;
 	data.status = 'PENDING';
 	data.contentType = contentType || 'application/json';
@@ -79,6 +79,7 @@ async function upsertState(req, state) {
 	delete clonedState._id;
 	delete clonedState.body;
 	delete clonedState.batchList;
+	delete clonedState.responseBody;
 	clonedState._metadata.lastUpdated = new Date();
 	dataPayload._metadata.lastUpdated = new Date();
 	logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Stage: ${JSON.stringify(state._id)}`);
