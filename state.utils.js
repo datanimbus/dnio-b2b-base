@@ -57,6 +57,7 @@ async function upsertState(req, state) {
 	dataPayload.dataType = clonedState.contentType || 'application/json';
 	dataPayload._metadata = clonedState._metadata;
 	clonedState.payload = {};
+	clonedState.responseData = {};
 	if (clonedState.body) {
 		if (Array.isArray(clonedState.body)) {
 			clonedState.payload.type = 'Array';
@@ -76,6 +77,27 @@ async function upsertState(req, state) {
 		clonedState.payload.totalRecords = null;
 		clonedState.payload.attributes = null;
 	}
+
+	if (clonedState.responseBody) {
+		if (Array.isArray(clonedState.responseBody)) {
+			clonedState.responseData.type = 'Array';
+			clonedState.responseData.totalRecords = clonedState.responseBody.length;
+			if (clonedState.responseBody[0]) {
+				clonedState.responseData.attributes = Object.keys(clonedState.responseBody[0]).length;
+			} else {
+				clonedState.responseData.attributes = 0;
+			}
+		} else {
+			clonedState.responseData.type = 'Object';
+			clonedState.responseData.totalRecords = 1;
+			clonedState.responseData.attributes = Object.keys(clonedState.responseBody).length;
+		}
+	} else {
+		clonedState.responseData.type = 'Binary';
+		clonedState.responseData.totalRecords = null;
+		clonedState.responseData.attributes = null;
+	}
+
 	delete clonedState._id;
 	delete clonedState.body;
 	delete clonedState.batchList;
