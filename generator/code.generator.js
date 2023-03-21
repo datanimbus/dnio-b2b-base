@@ -42,6 +42,38 @@ function fixCondition(condition) {
 	return condition;
 }
 
+function CreateNodeVariables(flowData) {
+	let code = [];
+	code.push(`${tab(1)}node['${flowData.inputNode._id}'] = {};`);
+	flowData.nodes.forEach(item => {
+		code.push(`${tab(1)}node['${item._id}'] = {};`);
+	});
+	if (flowData.errorNode && flowData.errorNode._id) {
+		code.push(`${tab(1)}node['${flowData.errorNode._id}'] = {};`);
+	}
+
+	code.push(`${tab(1)}let ${flowData.inputNode._id} = node['${flowData.inputNode._id}'];`);
+	flowData.nodes.forEach(item => {
+		code.push(`${tab(1)}let ${item._id} = node['${item._id}'];`);
+	});
+	if (flowData.errorNode && flowData.errorNode._id) {
+		code.push(`${tab(1)}let ${flowData.errorNode._id} = node['${flowData.errorNode._id}'];`);
+	}
+	return code;
+}
+
+function ResetNodeVariables(flowData, init) {
+	let code = [];
+	code.push(`${tab(1)}${init ? 'let ' : ''}${flowData.inputNode._id} = node['${flowData.inputNode._id}'];`);
+	flowData.nodes.forEach(item => {
+		code.push(`${tab(1)}${init ? 'let ' : ''}${item._id} = node['${item._id}'];`);
+	});
+	if (flowData.errorNode && flowData.errorNode._id) {
+		code.push(`${tab(1)}${init ? 'let ' : ''}${flowData.errorNode._id} = node['${flowData.errorNode._id}'];`);
+	}
+	return code;
+}
+
 /**
  * 
  * @param {any} dataJson 
@@ -56,6 +88,8 @@ function parseFlow(dataJson) {
 	const nodes = dataJson.nodes;
 	let api = '/' + dataJson.app + inputNode.options.path;
 	let code = [];
+	code.push('/* eslint-disable camelcase */');
+	code.push('/* eslint-disable quotes */');
 	code.push('const fs = require(\'fs\');');
 	code.push('const path = require(\'path\');');
 	code.push('const express = require(\'express\');');
@@ -133,21 +167,8 @@ function parseFlow(dataJson) {
 	code.push(`${tab(1)}let response = req;`);
 	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}', false, '${(inputNode.options.contentType || '')}');`);
 	code.push(`${tab(1)}let node = {};`);
-	code.push(`${tab(1)}node['${inputNode._id}'] = {};`);
-	nodes.forEach(item => {
-		code.push(`${tab(1)}node['${item._id}'] = {};`);
-	});
-	if (flowData.errorNode && flowData.errorNode._id) {
-		code.push(`${tab(1)}node['${flowData.errorNode._id}'] = {};`);
-	}
 
-	code.push(`${tab(1)}let ${inputNode._id} = node['${inputNode._id}'];`);
-	nodes.forEach(item => {
-		code.push(`${tab(1)}let ${item._id} = node['${item._id}'];`);
-	});
-	if (flowData.errorNode && flowData.errorNode._id) {
-		code.push(`${tab(1)}let ${flowData.errorNode._id} = node['${flowData.errorNode._id}'];`);
-	}
+	code = code.concat(CreateNodeVariables(flowData));
 
 	// code.push(`${tab(1)}const ${_.snakeCase(inputNode.name)} = state;`);
 	code.push(`${tab(1)}let isResponseSent = false;`);
@@ -346,6 +367,8 @@ function parseFlow(dataJson) {
  */
 function generateCode(node, nodes, isErrorNode) {
 	let code = [];
+
+	code = code.concat(ResetNodeVariables(flowData));
 	code.push(`${tab(1)}\n\n// ═══════════════════ ${node._id} / ${node.name} / ${node.type} ══════════════════════`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking node :: ${node._id} / ${node.name} / ${node.type}\`);`);
 	code.push(`${tab(1)}try {`);
@@ -379,7 +402,7 @@ function generateCode(node, nodes, isErrorNode) {
 		code.push(`${tab(2)}}`);
 	} else {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
-		code.push(`${tab(2)}response = await nodeUtils.${(node._id)}(req, state, node);`);
+		code.push(`${tab(2)}response = await nodeUtils.func_${(node._id)}(req, state, node);`);
 		code.push(`${tab(2)}if (typeof response.statusCode == 'string') {`);
 		code.push(`${tab(3)}response.statusCode = parseInt(response.statusCode);`);
 		code.push(`${tab(2)}}`);
@@ -453,6 +476,8 @@ function generateCode(node, nodes, isErrorNode) {
 async function parseNodes(dataJson) {
 	visitedNodes = [];
 	const code = [];
+	code.push('/* eslint-disable camelcase */');
+	code.push('/* eslint-disable quotes */');
 	code.push('const fs = require(\'fs\');');
 	code.push('const path = require(\'path\');');
 	code.push('const log4js = require(\'log4js\');');
@@ -521,10 +546,11 @@ async function generateNodes(pNode) {
 				node.options.insert = true;
 			}
 		}
-		exportsCode.push(`module.exports.${(node._id)} = ${(node._id)};`);
-		code.push(`async function ${(node._id)}(req, state, node) {`);
+		exportsCode.push(`module.exports.func_${(node._id)} = func_${(node._id)};`);
+		code.push(`async function func_${(node._id)}(req, state, node) {`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${node.name ? node.name : ''}(${(node._id)}) Node\`);`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Node type :: ${node.type}\`);`);
+		code = code.concat(ResetNodeVariables(pNode, true));
 		// nodeVariables.forEach((item) => {
 		// 	code.push(`${tab(1)}const ${_.snakeCase(item.key)} = node['${item.value}'];`);
 		// });
@@ -550,7 +576,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}let customBody = state.body;`);
 			if (node.type === 'API' && node.options) {
 				// code.push(`${tab(2)}state.url = Mustache.render(\`${node.options.url}\`, node);`);
-				
+
 				code.push(`${tab(2)}state.url = \`${node.options.url.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
 
 				// code.push(`${tab(2)}state.url = \`${parseDynamicVariable(node.options.url)}\`;`);
@@ -879,8 +905,8 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}let newBody = {};`);
 			node.mappings.forEach(mappingData => {
 				const formulaCode = [];
-				// const formulaID = 'formula_' + _.snakeCase(uuid());
-				const formulaID = 'formula_' + randomInt(1000);
+				const formulaID = 'formula_' + _.snakeCase(uuid());
+				// const formulaID = 'formula_' + randomInt(1000);
 				mappingData.formulaID = formulaID;
 				formulaCode.push('// eslint-disable-next-line no-inner-declarations, camelcase');
 				formulaCode.push(`function ${formulaID}(data) {`);
