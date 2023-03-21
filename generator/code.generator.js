@@ -334,6 +334,7 @@ function parseFlow(dataJson) {
 	code.push('}');
 
 	code.push('async function handleError(response, req, res, txnId, remoteTxnId, state, node, isResponseSent) {');
+	code = code.concat(ResetNodeVariables(flowData, true));
 	if (flowData && flowData.errorNode && flowData.errorNode.onSuccess && flowData.errorNode.onSuccess.length > 0) {
 		let errNodes = (flowData.errorNode.onSuccess || []);
 		for (let index = 0; index < errNodes.length; index++) {
