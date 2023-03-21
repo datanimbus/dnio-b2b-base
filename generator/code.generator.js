@@ -133,6 +133,22 @@ function parseFlow(dataJson) {
 	code.push(`${tab(1)}let response = req;`);
 	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}', false, '${(inputNode.options.contentType || '')}');`);
 	code.push(`${tab(1)}let node = {};`);
+	code.push(`${tab(1)}node['${inputNode._id}'] = {};`);
+	nodes.forEach(item => {
+		code.push(`${tab(1)}node['${item._id}'] = {};`);
+	});
+	if (flowData.errorNode && flowData.errorNode._id) {
+		code.push(`${tab(1)}node['${flowData.errorNode._id}'] = {};`);
+	}
+
+	code.push(`${tab(1)}let ${inputNode._id} = node['${inputNode._id}'];`);
+	nodes.forEach(item => {
+		code.push(`${tab(1)}let ${item._id} = node['${item._id}'];`);
+	});
+	if (flowData.errorNode && flowData.errorNode._id) {
+		code.push(`${tab(1)}let ${flowData.errorNode._id} = node['${flowData.errorNode._id}'];`);
+	}
+
 	// code.push(`${tab(1)}const ${_.snakeCase(inputNode.name)} = state;`);
 	code.push(`${tab(1)}let isResponseSent = false;`);
 	if (inputNode.type === 'API') {
