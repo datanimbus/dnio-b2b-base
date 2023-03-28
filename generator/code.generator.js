@@ -1004,19 +1004,24 @@ async function generateNodes(pNode) {
 			code.push(`${tab(3)}state.status = 'SUCCESS';`);
 			code.push(`${tab(3)}return _.cloneDeep(state);`);
 			code.push(`${tab(2)}}`);
-			
-			code.push(`${tab(2)}state.responseBody = _.uniqWith(state.body, (a, b) => {`);
+
+			code.push(`${tab(2)}function comparator(a, b) {`);
 			code.push(`${tab(3)}return _.isEqual(_.at(a, ${JSON.stringify(node.options.fields.split(','))}), _.at(b, ${JSON.stringify(node.options.fields.split(','))}));`);
-			code.push(`${tab(2)}});`);
+			code.push(`${tab(2)}}`);
+
+			code.push(`${tab(2)}state.responseBody = _.uniqWith(state.body, comparator);`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.headers = response.headers;`);
 			code.push(`${tab(2)}if (state.body.length != state.responseBody.length) {`);
-			code.push(`${tab(3)}state.duplicates = _.xorWith(state.body, state.responseBody, _.isEqual);`);
+			code.push(`${tab(3)}state.duplicates = _.xorWith(state.body, state.responseBody, comparator);`);
 			if (node.options.rejectAll) {
 				code.push(`${tab(2)}state.statusCode = 400;`);
 				code.push(`${tab(2)}state.status = 'ERROR';`);
 				code.push(`${tab(2)}state.error = { message: 'Duplicates Found' };`);
+				code.push(`${tab(3)}state.responseBody = { message: 'Duplicates Found', duplicates: state.duplicates };`);
+			} else {
+				code.push(`${tab(3)}state.responseBody = _.pullAllWith(state.responseBody, state.duplicates, comparator);`);
 			}
 			code.push(`${tab(2)}}`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
