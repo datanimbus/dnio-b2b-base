@@ -1115,7 +1115,7 @@ async function generateNodes(pNode) {
 		} else if (node.type === 'MARKETPLACE') {
 			const nodeData = await commonUtils.getCustomNode(node.options.node._id);
 			code.push(`${tab(2)}async function execute(state, node) {`);
-			code = code.concat(ResetNodeVariables(flowData));
+			// code = code.concat(ResetNodeVariables(flowData));
 			code.push(`${tab(3)}${nodeData.code}`);
 			code.push(`${tab(2)}}`);
 			code.push(`${tab(2)}let response = await execute(state, node);`);
