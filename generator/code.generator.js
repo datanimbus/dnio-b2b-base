@@ -362,6 +362,33 @@ function parseFlow(dataJson) {
 	return code.join('\n');
 }
 
+function generateCodeForLoop(node, nodes) {
+	let code = [];
+	code.push(`${tab(2)}tempState = _.cloneDeep(response);`);
+	code.push(`${tab(2)}tempState.body = item;`);
+	code.push(`${tab(2)}response = await nodeUtils.func_${(node._id)}(req, tempState, node);`);
+	code.push(`${tab(2)}tempState.responseBody = response.body;`);
+	if (node.onSuccess && node.onSuccess.length > 0) {
+		let tempNodes = (node.onSuccess || []);
+		for (let index = 0; index < tempNodes.length; index++) {
+			const ss = tempNodes[index];
+			const nextNode = nodes.find(e => e._id === ss._id);
+			if (nextNode) {
+				if (ss.condition) {
+					nextNode.condition = fixCondition(ss.condition);
+				}
+				if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
+					visitedNodes.push(nextNode._id);
+					if (nextNode.condition) code.push(`${tab(1)}if (${nextNode.condition}) {`);
+					code = code.concat(generateCodeForLoop(nextNode, nodes));
+					if (nextNode.condition) code.push(`${tab(1)}}`);
+				}
+			}
+		}
+	}
+	return code;
+}
+
 /**
  * 
  * @param {any} dataJson 
@@ -403,7 +430,55 @@ function generateCode(node, nodes, isErrorNode) {
 		code.push(`${tab(2)}}`);
 	} else {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
-		code.push(`${tab(2)}response = await nodeUtils.func_${(node._id)}(req, state, node);`);
+		if (node.type === 'FOREACH') {
+			code.push(`${tab(2)}let tempBody = state.body;`);
+			code.push(`${tab(2)}if (!Array.isArray(state.body)) {`);
+			code.push(`${tab(3)}tempBody = [state.body];`);
+			code.push(`${tab(2)}}`);
+
+			code.push(`${tab(2)}let promises = tempBody.map(async(item) => {`);
+			code.push(`${tab(3)}try {`);
+			code.push(`${tab(2)}let tempState;`);
+			let startNode = node.options.startNode;
+			if (startNode) {
+				let nextNode = nodes.find(e => e._id === startNode._id);
+				let tempNodes = [nextNode];
+				for (let index = 0; index < tempNodes.length; index++) {
+					const ss = tempNodes[index];
+					nextNode = nodes.find(e => e._id === ss._id);
+					if (nextNode) {
+						if (ss.condition) {
+							nextNode.condition = fixCondition(ss.condition);
+						}
+						if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
+							visitedNodes.push(nextNode._id);
+							if (nextNode.condition) code.push(`${tab(1)}if (${nextNode.condition}) {`);
+							code = code.concat(generateCodeForLoop(nextNode, nodes));
+							if (nextNode.condition) code.push(`${tab(1)}}`);
+						}
+					}
+				}
+			}
+
+
+			code.push(`${tab(4)}`);
+			code.push(`${tab(3)}} catch(err) {`);
+			code.push(`${tab(4)}tempState.statusCode = 500;`);
+			code.push(`${tab(4)}tempState.status = 'ERROR';`);
+			code.push(`${tab(4)}tempState.responseBody = err;`);
+			code.push(`${tab(4)}tempState.error = err;`);
+			code.push(`${tab(3)}}`);
+			code.push(`${tab(3)}return tempState;`);
+			code.push(`${tab(2)}});`);
+
+			code.push(`${tab(2)}response = _.cloneDeep(state);`);
+			code.push(`${tab(2)}response.stateList = await Promise.all(promises);`);
+			code.push(`${tab(2)}response.responseBody = state.stateList.map(e => e.responseBody);`);
+			code.push(`${tab(2)}response.statusCode = 200;`);
+			code.push(`${tab(2)}response.status = 'SUCCESS';`);
+		} else {
+			code.push(`${tab(2)}response = await nodeUtils.func_${(node._id)}(req, state, node);`);
+		}
 		code.push(`${tab(2)}if (typeof response.statusCode == 'string') {`);
 		code.push(`${tab(3)}response.statusCode = parseInt(response.statusCode);`);
 		code.push(`${tab(2)}}`);
@@ -795,14 +870,6 @@ async function generateNodes(pNode) {
 					}
 					code.push(`${tab(2)}state.body = customBody;`);
 				}
-			} else if (node.type === 'AUTH-DATASTACK') {
-				code.push(`${tab(2)}const password = '${node.options.password}'`);
-				code.push(`${tab(2)}state.url = '${config.baseUrlUSR}/auth/login'`);
-				code.push(`${tab(2)}state.method = 'POST';`);
-				code.push(`${tab(2)}options.url = state.url;`);
-				code.push(`${tab(2)}options.method = state.method;`);
-				code.push(`${tab(2)}customHeaders = state.headers;`);
-				code.push(`${tab(2)}customBody = { username: '${node.options.username}', password: '${node.options.password}' };`);
 			}
 			code.push(`${tab(2)}options.headers = _.merge(state.headers, customHeaders);`);
 			code.push(`${tab(2)}delete options.headers['cookie'];`);
@@ -1032,6 +1099,30 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.responseBody = response.responseBody;`);
 			code.push(`${tab(2)}state.headers = response.headers;`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
+		} else if (node.type === 'FILE_READ') {
+			code.push(`${tab(2)}const content = fs.readFileSync(path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}\`));`);
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.status = 'SUCCESS';`);
+			code.push(`${tab(2)}state.fileContent = content;`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
+		} else if (node.type === 'FILE_WRITE') {
+			code.push(`${tab(2)}fs.writeFileSync(path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}}\`), state.fileContent);`);
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.status = 'SUCCESS';`);
+			code.push(`${tab(2)}state.responseBody = { message: 'File Write Successful' };`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
+		} else if (node.type === 'MARKETPLACE') {
+			const nodeData = await commonUtils.getCustomNode(node.options.node._id);
+			code.push(`${tab(2)}async function execute(state, node) {`);
+			code = code.concat(ResetNodeVariables(flowData));
+			code.push(`${tab(3)}${nodeData.code}`);
+			code.push(`${tab(2)}}`);
+			code.push(`${tab(2)}let response = await execute(state, node);`);
+			code.push(`${tab(2)}state.statusCode = _.defaultTo(response.statusCode, 200);`);
+			code.push(`${tab(2)}state.status = _.defaultTo(response.status, 'SUCCESS');`);
+			code.push(`${tab(2)}state.headers = _.defaultTo(response.headers, state.headers);`);
+			code.push(`${tab(2)}state.responseBody = response.responseBody;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'CONNECTOR' && node.options.connector && node.options.connector._id) {
 			const connector = await commonUtils.getConnector(node.options.connector._id);
