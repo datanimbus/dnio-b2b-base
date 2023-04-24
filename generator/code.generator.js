@@ -1095,10 +1095,10 @@ async function generateNodes(pNode) {
 		} else if (node.type === 'CODEBLOCK' && node.options.code) {
 			code.push(`${tab(2)}${node.options.code}`);
 			code.push(`${tab(2)}let response = await execute(state, node);`);
-			code.push(`${tab(2)}state.statusCode = 200;`);
-			code.push(`${tab(2)}state.status = 'SUCCESS';`);
+			code.push(`${tab(2)}state.statusCode = _.defaultTo(response.statusCode, 200);`);
+			code.push(`${tab(2)}state.status = _.defaultTo(response.status, 'SUCCESS');`);
+			code.push(`${tab(2)}state.headers = _.defaultTo(response.headers, state.headers);`);
 			code.push(`${tab(2)}state.responseBody = response.responseBody;`);
-			code.push(`${tab(2)}state.headers = response.headers;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FILE_READ') {
 			code.push(`${tab(2)}const content = fs.readFileSync(path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}\`));`);
