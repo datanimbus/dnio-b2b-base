@@ -417,13 +417,13 @@ function generateCode(node, nodes, isErrorNode) {
 		code.push(`${tab(2)}if (!isResponseSent) {`);
 		code.push(`${tab(2)}isResponseSent = true;`);
 		if (node.options.contentType == 'application/xml') {
-			code.push(`${tab(2)}state.xmlContent = xmlBuilder.build(state.body);`);
+			code.push(`${tab(2)}state.xmlContent = xmlBuilder.build({ROOT:state.body});`);
 			code.push(`${tab(2)}res.set('Content-Type','application/xml');`);
-			code.push(`${tab(2)}res.status(state.statusCode).write(state.xmlContent).end();`);
+			code.push(`${tab(2)}res.status(state.statusCode).end(state.xmlContent);`);
 		} else if (node.options.contentType == 'multipart/form-data') {
 			// code.push(`${tab(2)}fs.writeFileSync(state.body);`);
 			code.push(`${tab(2)}res.set('Content-Type','application/octet-stream');`);
-			code.push(`${tab(2)}res.status(state.statusCode).write(state.body).end();`);
+			code.push(`${tab(2)}res.status(state.statusCode).end(state.body);`);
 		} else {
 			code.push(`${tab(2)}res.status(state.statusCode).json(state.body);`);
 		}
