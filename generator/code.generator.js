@@ -102,6 +102,7 @@ function parseFlow(dataJson) {
 	code.push('const { v4: uuid } = require(\'uuid\');');
 	code.push('const _ = require(\'lodash\');');
 	code.push('const cron = require(\'node-cron\');');
+	code.push('const solace = require(\'solclientjs\');');
 
 	code.push('');
 	code.push('const stateUtils = require(\'./state.utils\');');
@@ -567,6 +568,7 @@ async function parseNodes(dataJson) {
 	code.push('const J2XParser = require(\'fast-xml-parser\').j2xParser;');
 	code.push('const { mssql, mysql, psql } = require(\'@appveen/rest-crud\');');
 	code.push('const Mustache = require(\'mustache\');');
+	code.push('const solace = require(\'solclientjs\');');
 	code.push('');
 	code.push('const httpClient = require(\'./http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
