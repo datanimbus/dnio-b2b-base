@@ -1116,7 +1116,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.responseBody = { message: 'File Write Successful' };`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
-		} else if (node.type === 'MARKETPLACE') {
+		} else if (node.type === 'PLUGIN') {
 			const nodeData = await commonUtils.getCustomNode(node.options.node._id);
 			code.push(`${tab(2)}async function execute(state, node) {`);
 			// code = code.concat(ResetNodeVariables(flowData));
