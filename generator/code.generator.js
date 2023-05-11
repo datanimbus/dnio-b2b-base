@@ -104,6 +104,8 @@ function parseFlow(dataJson) {
 	code.push('const cron = require(\'node-cron\');');
 	code.push('const solace = require(\'solclientjs\');');
 	code.push('const { Kafka } = require(\'kafkajs\');');
+	code.push('const tf = require(\'@tensorflow/tfjs-node\');');
+
 
 	code.push('');
 	code.push('const stateUtils = require(\'./state.utils\');');
@@ -150,18 +152,34 @@ function parseFlow(dataJson) {
 		code.push(`${tab(0)}cron.schedule('${(inputNode.options.cron || '1 * * * *')}', async () => {`);
 		code.push(`${tab(1)}try {`);
 		code.push(`${tab(2)}const date = new Date();`);
-		code.push(`${tab(2)}const options = {};`);
-		code.push(`${tab(2)}options.method = 'POST';`);
-		// code.push(`${tab(2)}options.url = 'http://localhost:${config.port}/api/b2b${api}';`);
-		code.push(`${tab(2)}options.url = '${config.get('bm')}/b2b/pipes${api}';`);
-		code.push(`${tab(2)}options.json = { triggerTime: date.toISOString() };`);
-		code.push(`${tab(2)}logger.trace({ options });`);
-		code.push(`${tab(2)}let response = await httpClient.request(options);`);
+		code.push(`${tab(2)}const payload = { triggerTime: date.toISOString() };`);
+		code.push(`${tab(2)}makeRequestToThisFlow(payload);`);
 		code.push(`${tab(1)}} catch (err) {`);
 		code.push(`${tab(2)}logger.error(err);`);
 		code.push(`${tab(1)}}`);
 		code.push(`${tab(0)}});`);
+	} else if (inputNode.type === 'PLUGIN') {
+		code.push(`${tab(0)}try {`);
+		code.push(`${tab(1)}const payload = { message: 'Work in Progress' };`);
+		code.push(`${tab(2)}makeRequestToThisFlow(payload);`);
+		code.push(`${tab(0)}} catch (err) {`);
+		code.push(`${tab(1)}logger.error(err);`);
+		code.push(`${tab(0)}}`);
 	}
+
+	code.push(`${tab(0)}async function makeRequestToThisFlow(payload){`);
+	code.push(`${tab(1)}try {`);
+	code.push(`${tab(2)}const options = {};`);
+	code.push(`${tab(2)}options.method = 'POST';`);
+	code.push(`${tab(2)}options.url = '${config.get('bm')}/b2b/pipes${api}';`);
+	code.push(`${tab(2)}options.json = payload;`);
+	code.push(`${tab(2)}logger.trace({ options });`);
+	code.push(`${tab(2)}let response = await httpClient.request(options);`);
+	code.push(`${tab(2)}logger.trace('Response From Flow: ', response);`);
+	code.push(`${tab(1)}} catch (err) {`);
+	code.push(`${tab(2)}logger.error(err);`);
+	code.push(`${tab(1)}}`);
+	code.push(`${tab(0)}});`);
 
 	code.push('async function handleRequest(req, res) {');
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
@@ -571,6 +589,7 @@ async function parseNodes(dataJson) {
 	code.push('const Mustache = require(\'mustache\');');
 	code.push('const solace = require(\'solclientjs\');');
 	code.push('const { Kafka } = require(\'kafkajs\');');
+	code.push('const tf = require(\'@tensorflow/tfjs-node\');');
 	code.push('');
 	code.push('const httpClient = require(\'./http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
