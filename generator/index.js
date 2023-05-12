@@ -2,9 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const mkdirp = require('mkdirp');
 const log4js = require('log4js');
+const { exec } = require('child_process');
 
 const codeGen = require('./code.generator');
 const schemaUtils = require('./schema.utils');
+const commonUtils = require('../common.utils');
 
 const logger = log4js.getLogger(global.loggerName);
 
@@ -33,12 +35,19 @@ async function createProject(flowJSON) {
 				}
 			});
 		}
+		const routerJSContent = await codeGen.parseFlow(flowJSON);
 		const nodeUtilsContent = await codeGen.parseNodes(flowJSON);
-		fs.writeFileSync(path.join(folderPath, 'route.js'), codeGen.parseFlow(flowJSON));
+		fs.writeFileSync(path.join(folderPath, 'route.js'), routerJSContent);
 		fs.writeFileSync(path.join(folderPath, 'node.utils.js'), nodeUtilsContent);
 		fs.writeFileSync(path.join(folderPath, 'file.utils.js'), codeGen.parseDataStructuresForFileUtils(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'validation.utils.js'), codeGen.parseDataStructures(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'flow.json'), JSON.stringify(flowJSON));
+		const npmLibraries = await commonUtils.getAllLibraries();
+		let code = [];
+		npmLibraries.forEach((item) => {
+			code.push(item.command);
+		});
+		exec(code.join(' && ')).on('message', console.log);
 
 		// fs.rmdirSync(path.join(folderPath, 'generator'), { recursive: true });
 
