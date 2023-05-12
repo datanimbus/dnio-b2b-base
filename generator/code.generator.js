@@ -1,5 +1,4 @@
 // const log4js = require('log4js');
-const { randomInt } = require('crypto');
 const _ = require('lodash');
 const { v4: uuid } = require('uuid');
 const config = require('../config');
@@ -185,7 +184,7 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(1)}} catch (err) {`);
 	code.push(`${tab(2)}logger.error(err);`);
 	code.push(`${tab(1)}}`);
-	code.push(`${tab(0)}});`);
+	code.push(`${tab(0)}}`);
 
 	code.push('async function handleRequest(req, res) {');
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
@@ -1011,7 +1010,6 @@ async function generateNodes(pNode) {
 			node.mappings.forEach(mappingData => {
 				const formulaCode = [];
 				const formulaID = 'formula_' + _.snakeCase(uuid());
-				// const formulaID = 'formula_' + randomInt(1000);
 				mappingData.formulaID = formulaID;
 				formulaCode.push('// eslint-disable-next-line no-inner-declarations, camelcase');
 				formulaCode.push(`function ${formulaID}(data) {`);

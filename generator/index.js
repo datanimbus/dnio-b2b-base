@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const mkdirp = require('mkdirp');
 const log4js = require('log4js');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 
 const codeGen = require('./code.generator');
 const schemaUtils = require('./schema.utils');
@@ -47,7 +47,11 @@ async function createProject(flowJSON) {
 		npmLibraries.forEach((item) => {
 			code.push(item.command);
 		});
-		exec(code.join(' && ')).on('message', console.log);
+		if (code && code.length > 0) {
+			fs.writeFileSync('install.sh', code.join(' && '));
+			const cp = execFile('sh install.sh');
+			cp.on('message', data => console.log(data));
+		}
 
 		// fs.rmdirSync(path.join(folderPath, 'generator'), { recursive: true });
 
