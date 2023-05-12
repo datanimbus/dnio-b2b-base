@@ -78,7 +78,7 @@ function ResetNodeVariables(flowData, init) {
  * 
  * @param {any} dataJson 
  */
-function parseFlow(dataJson) {
+async function parseFlow(dataJson) {
 	visitedNodes = [];
 	flowData = dataJson;
 	if (flowData && flowData.errorNode && flowData.errorNode.onSuccess && flowData.errorNode.onSuccess.length > 0) {
@@ -105,8 +105,14 @@ function parseFlow(dataJson) {
 	code.push('const solace = require(\'solclientjs\');');
 	code.push('const { Kafka } = require(\'kafkajs\');');
 	code.push('const tf = require(\'@tensorflow/tfjs-node\');');
-
-
+	code.push('const chokidar = require(\'chokidar\');');
+	code.push('');
+	const npmLibraries = await commonUtils.getAllLibraries();
+	npmLibraries.forEach((item) => {
+		if (item.code) {
+			code.push(`${item.code};`);
+		}
+	});
 	code.push('');
 	code.push('const stateUtils = require(\'./state.utils\');');
 	code.push('const nodeUtils = require(\'./node.utils\');');
@@ -590,6 +596,7 @@ async function parseNodes(dataJson) {
 	code.push('const solace = require(\'solclientjs\');');
 	code.push('const { Kafka } = require(\'kafkajs\');');
 	code.push('const tf = require(\'@tensorflow/tfjs-node\');');
+	code.push('const chokidar = require(\'chokidar\');');
 	code.push('');
 	code.push('const httpClient = require(\'./http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
@@ -599,6 +606,12 @@ async function parseNodes(dataJson) {
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('');
+	const npmLibraries = await commonUtils.getAllLibraries();
+	npmLibraries.forEach((item) => {
+		if (item.code) {
+			code.push(`${item.code};`);
+		}
+	});
 
 	const formulas = await commonUtils.getAllFormulas();
 	formulas.forEach((item) => {
@@ -608,6 +621,7 @@ async function parseNodes(dataJson) {
 			code.push('}');
 		}
 	});
+
 	const tempCode = await generateNodes(dataJson);
 	return _.concat(code, tempCode).join('\n');
 }
