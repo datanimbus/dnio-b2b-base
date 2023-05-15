@@ -159,7 +159,7 @@ async function getAllLibraries() {
 			throw response.body;
 		}
 		options = {};
-		options.url = `${config.baseUrlUSR}/admin/flow/utils/node-library?count=` + response.body;
+		options.url = `${config.baseUrlBM}/admin/flow/utils/node-library?count=` + response.body;
 		options.method = 'GET';
 		options.headers = {};
 		options.headers['Content-Type'] = 'application/json';
