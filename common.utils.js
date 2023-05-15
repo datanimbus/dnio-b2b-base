@@ -145,9 +145,30 @@ async function getAllFormulas() {
 
 async function getAllLibraries() {
 	try {
-		const client = await MongoClient.connect(config.mongoAuthorUrl, config.mongoAuthorOptions);
-		const docs = await client.db(config.mongoAuthorOptions.dbName).collection('config.b2b.libraries').find({}).toArray();
-		return docs;
+		// const client = await MongoClient.connect(config.mongoAuthorUrl, config.mongoAuthorOptions);
+		// const docs = await client.db(config.mongoAuthorOptions.dbName).collection('config.b2b.libraries').find({}).toArray();
+		// return docs;
+		let options = {};
+		options.url = `${config.baseUrlBM}/admin/flow/utils/node-library/count`;
+		options.method = 'GET';
+		options.headers = {};
+		options.headers['Content-Type'] = 'application/json';
+		options.headers['Authorization'] = 'JWT ' + global.BM_TOKEN;
+		let response = await httpClient.request(options);
+		if (response.statusCode !== 200) {
+			throw response.body;
+		}
+		options = {};
+		options.url = `${config.baseUrlUSR}/admin/flow/utils/node-library?count=` + response.body;
+		options.method = 'GET';
+		options.headers = {};
+		options.headers['Content-Type'] = 'application/json';
+		options.headers['Authorization'] = 'JWT ' + global.BM_TOKEN;
+		response = await httpClient.request(options);
+		if (response.statusCode !== 200) {
+			throw response.body;
+		}
+		return response.body;
 	} catch (err) {
 		logger.error(err);
 		throw err;

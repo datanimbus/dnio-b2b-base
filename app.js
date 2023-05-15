@@ -9,43 +9,55 @@ const JWT = require('jsonwebtoken');
 
 const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
 
-const config = require('./config');
+let config = require('./config');
 const codeGen = require('./generator/index');
 const httpClient = require('./http-client');
 
-const token = JWT.sign({ name: 'DS_BM', _id: 'admin', isSuperAdmin: true }, config.RBAC_JWT_KEY);
-global.BM_TOKEN = token;
-
-httpClient.request({
-	url: config.baseUrlBM + '/' + config.app + '/flow/' + config.flowId,
-	method: 'GET',
-	headers: {
-		'Content-Type': 'application/json',
-		'Authorization': 'JWT ' + token
-	}
-}).then(async (res) => {
-	if (res.statusCode !== 200) {
-		throw res.body;
-	}
-	const flowData = res.body;
-	config.appNamespace = flowData.namespace;
-	config.imageTag = flowData._id + ':' + flowData.version;
-	config.appDB = config.DATA_STACK_NAMESPACE + '-' + flowData.app;
-	if (flowData.inputNode && flowData.inputNode.options && flowData.inputNode.options.timeout) {
-		config.serverTimeout = flowData.inputNode.options.timeout;
-	}
+(async () => {
 	try {
-		await codeGen.createProject(flowData);
-		initialize();
+		const configRes = await httpClient.request({
+			url: config.baseUrlBM + '/internal/env',
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+		Object.keys(configRes.body).forEach(env => {
+			process.env[env] = process.env[env] ? process.env[env] : configRes.body[env];
+		});
+		config = require('./config');
+		const token = JWT.sign({ name: 'DS_BM', _id: 'admin', isSuperAdmin: true }, config.RBAC_JWT_KEY);
+		global.BM_TOKEN = token;
+		const res = await httpClient.request({
+			url: config.baseUrlBM + '/' + config.app + '/flow/' + config.flowId,
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'JWT ' + token
+			}
+		});
+		if (res.statusCode !== 200) {
+			throw res.body;
+		}
+		const flowData = res.body;
+		config.appNamespace = flowData.namespace;
+		config.imageTag = flowData._id + ':' + flowData.version;
+		config.appDB = config.DATA_STACK_NAMESPACE + '-' + flowData.app;
+		if (flowData.inputNode && flowData.inputNode.options && flowData.inputNode.options.timeout) {
+			config.serverTimeout = flowData.inputNode.options.timeout;
+		}
+		try {
+			await codeGen.createProject(flowData);
+			initialize();
+		} catch (err) {
+			console.log('Error Creating Files');
+			console.log(err);
+		}
 	} catch (err) {
-		console.log('Error Creating Files');
+		console.log('Error Requesting BM');
 		console.log(err);
 	}
-
-}).catch(err => {
-	console.log('Error Requesting BM');
-	console.log(err);
-});
+})();
 
 
 
