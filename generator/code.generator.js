@@ -164,13 +164,19 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(1)}}`);
 		code.push(`${tab(0)}});`);
 	} else if (inputNode.type === 'PLUGIN') {
+		const nodeData = await commonUtils.getCustomNode(inputNode.options.plugin._id);
 		code.push(`${tab(0)}try {`);
-		code.push(`${tab(1)}const payload = { message: 'Work in Progress' };`);
-		code.push(`${tab(2)}makeRequestToThisFlow(payload);`);
+		code.push(`${tab(1)}(async () => {`);
+		code.push(`${tab(2)}${nodeData.code}`);
+		code.push(`${tab(1)}})();`);
 		code.push(`${tab(0)}} catch (err) {`);
 		code.push(`${tab(1)}logger.error(err);`);
 		code.push(`${tab(0)}}`);
 	}
+
+	code.push(`${tab(0)}function process(payload){`);
+	code.push(`${tab(1)}return makeRequestToThisFlow(payload);`);
+	code.push(`${tab(0)}}`);
 
 	code.push(`${tab(0)}async function makeRequestToThisFlow(payload){`);
 	code.push(`${tab(1)}try {`);
