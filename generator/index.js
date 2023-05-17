@@ -44,21 +44,27 @@ async function createProject(flowJSON) {
 		fs.writeFileSync(path.join(folderPath, 'flow.json'), JSON.stringify(flowJSON));
 		const npmLibraries = await commonUtils.getAllLibraries();
 		await new Promise((resolve, reject) => {
-			let code = [];
-			npmLibraries.forEach((item) => {
-				code.push(item.command);
-			});
-			if (code && code.length > 0) {
-				fs.writeFileSync('install.sh', code.join(' && '));
-				execSync('chmod 777 install.sh');
-				const cp = execFile('sh install.sh');
-				cp.stdout.on('data', (data) => logger.info(data));
-				cp.stderr.on('data', (data) => logger.error(data));
-				cp.on('message', data => logger.info(data));
-				cp.on('close', (code) => {
-					logger.info('Child Process Closed:', code);
-					resolve();
+			try {
+				let code = [];
+				npmLibraries.forEach((item) => {
+					code.push(item.command);
 				});
+				if (code && code.length > 0) {
+					fs.writeFileSync('install.sh', code.join(' && '));
+					execSync('chmod 777 install.sh');
+					const cp = execFile('sh install.sh');
+					cp.stdout.on('data', (data) => logger.info(data));
+					cp.stderr.on('data', (data) => logger.error(data));
+					cp.on('message', data => logger.info(data));
+					cp.on('close', (code) => {
+						logger.info('Child Process Closed:', code);
+						resolve();
+					});
+				}
+			} catch (err) {
+				logger.error('NPM INSTALL FAILED');
+				logger.error(err);
+				reject(err);
 			}
 		});
 
