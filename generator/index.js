@@ -52,6 +52,8 @@ async function createProject(flowJSON) {
 				if (code && code.length > 0) {
 					fs.writeFileSync('install.sh', code.join(' && '));
 					execSync('chmod 777 install.sh');
+					logger.info('These libraries will be installed now:');
+					execSync('cat install.sh');
 					const cp = exec('./install.sh');
 					cp.stdout.on('data', (data) => {
 						logger.info(data);
