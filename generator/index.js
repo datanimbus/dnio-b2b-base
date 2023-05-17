@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const mkdirp = require('mkdirp');
 const log4js = require('log4js');
-const { execFile, execSync } = require('child_process');
+const { exec, execSync } = require('child_process');
 
 const codeGen = require('./code.generator');
 const schemaUtils = require('./schema.utils');
@@ -52,11 +52,18 @@ async function createProject(flowJSON) {
 				if (code && code.length > 0) {
 					fs.writeFileSync('install.sh', code.join(' && '));
 					execSync('chmod 777 install.sh');
-					const cp = execFile('sh install.sh');
-					cp.stdout.on('data', (data) => logger.info(data));
-					cp.stderr.on('data', (data) => logger.error(data));
-					cp.on('message', data => logger.info(data));
-					cp.on('close', (code) => {
+					const cp = exec('./install.sh');
+					cp.stdout.on('data', (data) => {
+						logger.info(data);
+					});
+					cp.stderr.on('data', (data) => {
+						logger.error(data);
+					});
+					cp.on('error', (err) => {
+						logger.error(err);
+						reject(err);
+					});
+					cp.on('exit', (code) => {
 						logger.info('Child Process Closed:', code);
 						resolve();
 					});
