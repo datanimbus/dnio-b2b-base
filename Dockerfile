@@ -1,9 +1,9 @@
 FROM node:18
 
 RUN apt update
-RUN apt upgrade
+RUN apt upgrade -y
 
-RUN set -ex; apt add --no-cache --virtual .fetch-deps curl tar git openssl ;
+RUN set -ex; apt add -y --no-cache --virtual .fetch-deps curl tar git openssl ;
 
 WORKDIR /tmp/app
 
