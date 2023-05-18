@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "@appveen/rest-crud": "git@github.com:appveen/rest-crud.git",
-    "@tensorflow/tfjs": "^4.5.0",
+    "@tensorflow/tfjs-node": "^4.6.0",
     "ajv": "^6.12.6",
     "async": "^3.2.4",
     "chokidar": "^3.5.3",
