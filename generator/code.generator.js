@@ -741,6 +741,8 @@ async function generateNodes(pNode) {
 				if (config.isK8sEnv()) {
 					if (node.options.get) {
 						const params = [];
+						code.push(`${tab(2)}let filter = Mustache.render(\`${_.trim(JSON.stringify(node.options.filter),'"')}\`, node);`);
+						code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: filter }`);
 						if (node.options.select && node.options.select != '*') {
 							params.push(`select=${(node.options.select)}`);
 						}
@@ -760,9 +762,8 @@ async function generateNodes(pNode) {
 						if (typeof node.options.filter == 'object') {
 							node.options.filter = JSON.stringify(node.options.filter);
 						}
-						params.push(`filter=${(node.options.filter)}`);
+						params.push('filter=${filter}');
 						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/?${params.join('&')}\`;`);
-
 						// code.push(`${tab(2)}let filter = Mustache.render(\`${JSON.stringify(node.options.filter)}\`, node);`);
 						// code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: filter }`);
 					} else if (node.options.delete) {
@@ -773,25 +774,31 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}state.url = Mustache.render(state.url, node);`);
 				} else {
 					if (node.options.get) {
-						if (!node.options.select || node.options.select == '*') {
-							node.options.select = '';
+						const params = [];
+						let temp = 
+						code.push(`${tab(2)}let filter = Mustache.render(\`${_.trim(JSON.stringify(node.options.filter),'"')}\`, node);`);
+						code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: filter }`);
+						if (node.options.select && node.options.select != '*') {
+							params.push(`select=${(node.options.select)}`);
 						}
-						if (!node.options.count) {
-							node.options.count = 10;
+						if (node.options.count) {
+							params.push(`count=${(node.options.count)}`);
 						}
-						if (!node.options.page) {
-							node.options.page = 1;
+						if (node.options.page) {
+							params.push(`page=${(node.options.page)}`);
 						}
 						if (!node.options.sort) {
 							node.options.sort = '_metadata.lastUpdated';
 						}
+						params.push(`sort=${(node.options.sort)}`);
 						if (!node.options.filter) {
 							node.options.filter = '{}';
 						}
 						if (typeof node.options.filter == 'object') {
 							node.options.filter = JSON.stringify(node.options.filter);
 						}
-						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + \`/?select=${node.options.select}&sort=${node.options.sort}&count=${node.options.count}&page=${node.options.page}&filter=${(node.options.filter)}\`;`);
+						params.push('filter=${filter}');
+						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + \`/?${params.join('&')}\`;`);
 					} else if (node.options.delete) {
 						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + \`/${(node.options.documentId)}\`;`);
 					} else {
@@ -801,8 +808,6 @@ async function generateNodes(pNode) {
 				}
 				if (node.options.get) {
 					code.push(`${tab(2)}state.method = 'GET';`);
-					code.push(`${tab(2)}let filter = Mustache.render(\`${JSON.stringify(node.options.filter)}\`, node);`);
-					code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: filter };`);
 				} else if (node.options.delete) {
 					code.push(`${tab(2)}state.method = 'DELETE';`);
 				} else {
