@@ -236,8 +236,8 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(1)}XLSX.writeFile(workBook, reqFile.tempFilePath, { bookType: "csv" });`);
 		}
 
-		if (dataFormat.formatType === 'CSV' || dataFormat.formatType == 'EXCEL') {
-			code.push(`${tab(1)}logger.debug('Parsing request file to ${inputNode.options.contentType}');`);
+		if (dataFormat.formatType === 'CSV' || dataFormat.formatType == 'EXCEL' || dataFormat.formatType === 'DELIMITER') {
+			code.push(`${tab(1)}logger.debug('Parsing request file to ${dataFormat.formatType}');`);
 			let rowDelimiter = '';
 			if (dataFormat.lineSeparator === '\\\\n') {
 				rowDelimiter = '\\n';
@@ -256,6 +256,7 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(3)}skipLines: 0,`);
 			code.push(`${tab(3)}rowDelimiter: '${rowDelimiter}',`);
 			code.push(`${tab(3)}delimiter: '${dataFormat.character}',`);
+			code.push(`${tab(3)}ignoreEmpty: true,`);
 			if (dataFormat.strictValidation) {
 				code.push(`${tab(3)}strictColumnHandling: true,`);
 			} else {
@@ -775,7 +776,7 @@ async function generateNodes(pNode) {
 				} else {
 					if (node.options.get) {
 						const params = [];
-						let temp = 
+						let temp =
 						code.push(`${tab(2)}let filter = Mustache.render(\`${_.trim(JSON.stringify(node.options.filter),'"')}\`, node);`);
 						code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: filter }`);
 						if (node.options.select && node.options.select != '*') {
@@ -1159,7 +1160,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.responseBody = { message: 'File Write Successful' };`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'PLUGIN') {
-			const nodeData = await commonUtils.getCustomNode(node.options.node._id);
+			const nodeData = await commonUtils.getCustomNode(node.options.plugin._id);
 			code.push(`${tab(2)}async function execute(state, node) {`);
 			// code = code.concat(ResetNodeVariables(flowData));
 			code.push(`${tab(3)}${nodeData.code}`);
