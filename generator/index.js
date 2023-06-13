@@ -82,6 +82,7 @@ async function createProject(flowJSON) {
 		logger.info('Project Created!');
 	} catch (e) {
 		logger.error('Project Error!', e);
+		process.exit(0);
 	}
 }
 
