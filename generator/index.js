@@ -43,7 +43,7 @@ async function createProject(flowJSON) {
 		fs.writeFileSync(path.join(folderPath, 'file.utils.js'), codeGen.parseDataStructuresForFileUtils(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'validation.utils.js'), codeGen.parseDataStructures(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'flow.json'), JSON.stringify(flowJSON));
-		if (config.b2bAllowNpmInstall) {
+		if (config.b2bAllowNpmInstall === 'true') {
 			const npmLibraries = await commonUtils.getAllLibraries();
 			await new Promise((resolve, reject) => {
 				try {
