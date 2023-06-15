@@ -741,7 +741,7 @@ async function generateNodes(pNode) {
 				if (config.isK8sEnv()) {
 					if (node.options.get) {
 						const params = [];
-						code.push(`${tab(2)}let filter = Mustache.render(\`${_.trim(JSON.stringify(node.options.filter),'"')}\`, node);`);
+						code.push(`${tab(2)}let filter = Mustache.render(\`${_.trim(JSON.stringify(node.options.filter), '"')}\`, node);`);
 						code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: filter }`);
 						if (node.options.select && node.options.select != '*') {
 							params.push(`select=${(node.options.select)}`);
@@ -775,8 +775,7 @@ async function generateNodes(pNode) {
 				} else {
 					if (node.options.get) {
 						const params = [];
-						let temp = 
-						code.push(`${tab(2)}let filter = Mustache.render(\`${_.trim(JSON.stringify(node.options.filter),'"')}\`, node);`);
+						code.push(`${tab(2)}let filter = Mustache.render(\`${_.trim(JSON.stringify(node.options.filter), '"')}\`, node);`);
 						code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: filter }`);
 						if (node.options.select && node.options.select != '*') {
 							params.push(`select=${(node.options.select)}`);
@@ -1018,46 +1017,130 @@ async function generateNodes(pNode) {
 			// code.push(`${tab(2)}return { statusCode: state.statusCode, body: state.body, headers: state.headers };`);
 		} else if ((node.type === 'TRANSFORM' || node.type === 'MAPPING') && node.mappings) {
 			code.push(`${tab(2)}let newBody = {};`);
-			node.mappings.forEach(mappingData => {
-				const formulaCode = [];
-				const formulaID = 'formula_' + _.snakeCase(uuid());
-				mappingData.formulaID = formulaID;
-				formulaCode.push('// eslint-disable-next-line no-inner-declarations, camelcase');
-				formulaCode.push(`function ${formulaID}(data) {`);
-				mappingData.source.forEach((source, i) => {
-					formulaCode.push(`let input${i + 1} =  _.get(data, '${source.dataPath}');`);
-				});
-				if (mappingData.formula) {
-					if (mappingData.formula.indexOf('\n') > -1 || mappingData.formula.indexOf('return ') > -1) {
-						formulaCode.push(`${mappingData.formula.replace(/{{/g, '_.get(node, \'').replace(/}}/g, '\')')}`);
-						// formulaCode.push(`${mappingData.formula.replace(/{{(.*)}}/g, '_.get(node, \'$1\')')}`);
-						// formulaCode.push(`return eval(Mustache.render(\`${mappingData.formula}\`));`);
-					} else {
-						formulaCode.push(`return ${mappingData.formula.replace(/{{/g, '_.get(node, \'').replace(/}}/g, '\')')};`);
-						// formulaCode.push(`return ${mappingData.formula.replace(/{{(.*)}}/g, '_.get(node, \'$1\')')};`);
-						// formulaCode.push(`return eval(Mustache.render('return ${mappingData.formula}'));`);
-					}
-
-				} else if (mappingData.source && mappingData.source.length > 0) {
-					formulaCode.push('return input1;');
+			let parsedDataPaths = [];
+			let parsedFormulas = [];
+			node.mappings.forEach((item, i) => {
+				if (parsedDataPaths.indexOf(item.target.dataPath) > -1) {
+					return;
 				}
-				formulaCode.push('}');
-				code.push(formulaCode.join('\n'));
+				parsedDataPaths.push(item.target.dataPath);
+				if (item.target.type == 'Array') {
+					if (item.source && item.source.length > 0) {
+						item.source.forEach((src) => {
+							code.push(`let val_${i} = _.get(node, '${src.nodeId + '.responseBody.' + src.dataPath}');`);
+							code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
+						});
+					} else {
+						code.push(`let val_${i} = [];`);
+						let arrayItems = node.mappings.filter(e => e.target.dataPath.startsWith(item.target.dataPath) && e.target.dataPath != item.target.dataPath);
+						console.log(arrayItems);
+						code = code.concat(generateArrayMappingCode(`val_${i}`, arrayItems));
+						code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
+					}
+				} else {
+					code.push(`let val_${i} = function() {`);
+					if (item.formulaConfig && item.formulaConfig.length > 0) {
+						let formula = item.formulaConfig[0];
+						if (parsedFormulas.indexOf(formula._id) > -1) {
+							return;
+						}
+						parsedFormulas.push(formula._id);
+						if (formula.params && formula.params.length > 0) {
+							formula.params.forEach(param => {
+								if (param.substituteVal) {
+									code.push(`let ${param.name} = _.get(node, '${param.substituteVal.nodeId}.responseBody.${param.substituteVal.dataPath}');`);
+								}
+								// else if (param.substituteFn) {
+
+								// }
+							});
+						}
+						code.push(formula.code);
+					} else {
+						if (item.source && item.source.length > 0) {
+							item.source.forEach((src) => {
+								code.push(`\treturn _.get(node, '${src.nodeId + '.responseBody.' + src.dataPath}');`);
+							});
+						}
+					}
+					code.push('};');
+					code.push(`_.set(newBody, '${item.target.dataPath}', val_${i}());`);
+				}
 			});
-			code.push(`${tab(2)}if (Array.isArray(state.body)) {`);
-			code.push(`${tab(2)}newBody = [];`);
-			code.push(`${tab(3)}state.body.forEach(item => {`);
-			code.push(`${tab(2)}let tempBody = {};`);
-			node.mappings.forEach(mappingData => {
-				code.push(`${tab(4)}_.set(tempBody, '${mappingData.target.dataPath}', ${mappingData.formulaID}(item));`);
-			});
-			code.push(`${tab(2)}newBody.push(tempBody);`);
-			code.push(`${tab(3)}});`);
-			code.push(`${tab(2)}} else {`);
-			node.mappings.forEach(mappingData => {
-				code.push(`${tab(3)}_.set(newBody, '${mappingData.target.dataPath}', ${mappingData.formulaID}(state.body));`);
-			});
-			code.push(`${tab(2)}}`);
+
+
+			let generateArrayMappingCode = function (varName, arrayItems) {
+				let arrayCode = [];
+				let arrayItemsVars = [];
+				if (arrayItems && arrayItems.length > 0) {
+					arrayItems.forEach((item, i) => {
+						parsedDataPaths.push(item.target.dataPath);
+						let targetPathSegs = item.target.dataPath.split('[#].');
+						if (item.source && item.source.length > 0) {
+							item.source.forEach((src) => {
+								let sourcePathSegs = src.dataPath.split('[#].');
+								let sourceVarName = _.camelCase(src.nodeId + '.' + sourcePathSegs[0]);
+								let targetVarName = _.camelCase(src.nodeId + '.' + sourcePathSegs[0]);
+								arrayItemsVars.push(targetVarName);
+								arrayItemsVars = _.uniq(arrayItemsVars);
+								if (i == 0) {
+									arrayCode.push(`let source_${sourceVarName} = _.get(node,'${src.nodeId}.responseBody.${sourcePathSegs[0]}') || [];`);
+									arrayCode.push(`source_${sourceVarName}.map((item,i) => {`);
+									arrayCode.push('const temp = {};');
+								}
+								// arrayCode.push(`_.set(temp, '${targetPathSegs[1]}', _.get(item,'${sourcePathSegs[1]}'));`);
+								arrayCode.push(`_.set(temp, \`${item.target.dataPath.replace('#', '${i}')}\`, _.get(node,\`${src.nodeId}.responseBody.${src.dataPath.replace('#', '${i}')}\`));`);
+								if (i == arrayItems.length - 1) {
+									arrayCode.push(`${varName}.push(temp);`);
+									arrayCode.push('return temp;');
+									arrayCode.push('});');
+								}
+							});
+						}
+					});
+				}
+				return arrayCode;
+			};
+
+			// node.mappings.forEach(mappingData => {
+			// 	const formulaCode = [];
+			// 	const formulaID = 'formula_' + _.snakeCase(uuid());
+			// 	mappingData.formulaID = formulaID;
+			// 	formulaCode.push('// eslint-disable-next-line no-inner-declarations, camelcase');
+			// 	formulaCode.push(`function ${formulaID}(data) {`);
+			// 	mappingData.source.forEach((source, i) => {
+			// 		formulaCode.push(`let input${i + 1} =  _.get(data, '${source.dataPath}');`);
+			// 	});
+			// 	if (mappingData.formula) {
+			// 		if (mappingData.formula.indexOf('\n') > -1 || mappingData.formula.indexOf('return ') > -1) {
+			// 			formulaCode.push(`${mappingData.formula.replace(/{{/g, '_.get(node, \'').replace(/}}/g, '\')')}`);
+			// 			// formulaCode.push(`${mappingData.formula.replace(/{{(.*)}}/g, '_.get(node, \'$1\')')}`);
+			// 			// formulaCode.push(`return eval(Mustache.render(\`${mappingData.formula}\`));`);
+			// 		} else {
+			// 			formulaCode.push(`return ${mappingData.formula.replace(/{{/g, '_.get(node, \'').replace(/}}/g, '\')')};`);
+			// 			// formulaCode.push(`return ${mappingData.formula.replace(/{{(.*)}}/g, '_.get(node, \'$1\')')};`);
+			// 			// formulaCode.push(`return eval(Mustache.render('return ${mappingData.formula}'));`);
+			// 		}
+			// 	} else if (mappingData.source && mappingData.source.length > 0) {
+			// 		formulaCode.push('return input1;');
+			// 	}
+			// 	formulaCode.push('}');
+			// 	code.push(formulaCode.join('\n'));
+			// });
+			// code.push(`${tab(2)}if (Array.isArray(state.body)) {`);
+			// code.push(`${tab(2)}newBody = [];`);
+			// code.push(`${tab(3)}state.body.forEach(item => {`);
+			// code.push(`${tab(2)}let tempBody = {};`);
+			// node.mappings.forEach(mappingData => {
+			// 	code.push(`${tab(4)}_.set(tempBody, '${mappingData.target.dataPath}', ${mappingData.formulaID}(item));`);
+			// });
+			// code.push(`${tab(2)}newBody.push(tempBody);`);
+			// code.push(`${tab(3)}});`);
+			// code.push(`${tab(2)}} else {`);
+			// node.mappings.forEach(mappingData => {
+			// 	code.push(`${tab(3)}_.set(newBody, '${mappingData.target.dataPath}', ${mappingData.formulaID}(state.body));`);
+			// });
+			// code.push(`${tab(2)}}`);
 
 			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id && node.dataStructure.outgoing.strictValidation) {
 				code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, newBody);`);
@@ -1068,14 +1151,12 @@ async function generateNodes(pNode) {
 				code.push(`${tab(3)}logger.error(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Error ${(node._id)} \`, errors);`);
 				code.push(`${tab(3)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${(node._id)} Node with not 200\`);`);
 				code.push(`${tab(3)}return _.cloneDeep(state);`);
-				// code.push(`${tab(3)}return { statusCode: 400, body: { message: errors }, headers: response.headers };`);
 				code.push(`${tab(2)}}`);
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.responseBody = _.cloneDeep(newBody);`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
-			// code.push(`${tab(2)}return { statusCode: 200, body: newBody, headers: state.headers };`);
 		} else if (node.type === 'UNWIND') {
 			if (node.options.body && !_.isEmpty(node.options.body)) {
 				if (typeof node.options.body == 'object') {
