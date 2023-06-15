@@ -20,6 +20,15 @@ function isK8sEnv() {
 	return process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT;
 }
 
+function parseBoolean(val) {
+    if (typeof val === 'boolean') return val;
+    else if (typeof val === 'string') {
+        return val.toLowerCase() === 'true';
+    } else {
+        return false;
+    }
+}
+
 function get(_service) {
 	if (isK8sEnv()) {
 		if (_service == 'ne') return `http://ne.${DATA_STACK_NAMESPACE}`;
@@ -100,7 +109,8 @@ const e = {
 	},
 	encryptionKey: process.env.ENCRYPTION_KEY || '34857057658800771270426551038148',
 	get,
-	serverTimeout: process.env.SERVER_TIMEOUT || '60'
+	serverTimeout: process.env.SERVER_TIMEOUT || '60',
+	b2bAllowNpmInstall: parseBoolean(process.env.B2B_ALLOW_NPM_INSTALL) || true
 };
 
 module.exports = e;
