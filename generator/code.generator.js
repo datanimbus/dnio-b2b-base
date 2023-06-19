@@ -85,7 +85,20 @@ async function parseFlow(dataJson) {
 	}
 	const inputNode = dataJson.inputNode;
 	const nodes = dataJson.nodes;
+	let apiHasParams = false;
+	let params = [];
 	let api = '/' + dataJson.app + inputNode.options.path;
+	if (api.match(/.*{(.*)}.*/)) {
+		let tempPath = api;
+		api = api.replace(/}/g, '').replace(/{/g, ':');
+		apiHasParams = true;
+		let tempPathSegment = tempPath.split('/').filter(_d => _d != '');
+		tempPathSegment.forEach((_k, i) => {
+			if (_k.startsWith('{') && _k.endsWith('}')) {
+				params.push(_k.replace('{', '').replace('}', ''));
+			}
+		});
+	}
 	let code = [];
 	code.push('/* eslint-disable camelcase */');
 	code.push('/* eslint-disable quotes */');
@@ -144,14 +157,11 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(0)}router.use(express.json({ inflate: true, limit: '100mb' }));`);
 		// code.push(`${tab(0)}router.use(express.raw());`);
 	}
-
-	if (inputNode.options && inputNode.options.method) {
-		let method = inputNode.options.method.toLowerCase();
-		code.push(`router.${method}('${api}', handleRequest);`);
+	if (!inputNode.options.method) {
+		inputNode.options.method = 'POST';
 	}
-	else {
-		code.push(`router.post('${api}', handleRequest);`);
-	}
+	let method = inputNode.options.method.toLowerCase();
+	code.push(`router.${method}('${api}', handleRequest);`);
 
 	if (inputNode.type === 'TIMER') {
 		code.push(`${tab(0)}cron.schedule('${(inputNode.options.cron || '1 * * * *')}', async () => {`);
@@ -325,6 +335,19 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}metaData.totalRecords = 1;`);
 		code.push(`${tab(1)}}`);
 		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: metaData });`);
+	}
+
+	if (apiHasParams) {
+		params.forEach(p => {
+			code.push(`${tab(1)}if (!req.params['${p}']) {`);
+			code.push(`${tab(2)}state.statusCode = 400;`);
+			code.push(`${tab(2)}state.status = 'ERROR';`);
+			code.push(`${tab(2)}state.responseBody = { message: "Request Param '${p}' Not Found in the request"};`);
+			code.push(`${tab(2)}node['${inputNode._id}'] = state;`);
+			code.push(`${tab(2)}isResponseSent = true;`);
+			code.push(`${tab(2)}return res.status((state.statusCode || 400)).json(state.responseBody);`);
+			code.push(`${tab(1)}}`);
+		});
 	}
 
 	// code.push(`${tab(2)}response = { statusCode: 200, body: state.body, headers: state.headers };`);
