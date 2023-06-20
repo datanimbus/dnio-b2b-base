@@ -24,6 +24,7 @@ function getState(req, nodeId, isChild, contentType) {
 		data.body = req.body;
 	}
 	logger.trace(`State :: ${nodeId} :: Body :: ${JSON.stringify(req.body)}`);
+	data.params = req.params;
 	data.query = req.query;
 	logger.trace(`State :: ${nodeId} :: Query :: ${JSON.stringify(req.query)}`);
 	data.interactionId = req.query.interactionId;
