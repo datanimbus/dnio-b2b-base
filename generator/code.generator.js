@@ -751,15 +751,19 @@ async function generateNodes(pNode) {
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
-				if (node.options.body && !_.isEmpty(node.options.body)) {
-					// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
-					if (typeof node.options.body == 'object') {
-						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-					} else {
-						code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
-					}
-					code.push(`${tab(2)}state.body = customBody;`);
-				}
+				// if (node.options.body && !_.isEmpty(node.options.body)) {
+				// 	// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+				// 	if (typeof node.options.body == 'object') {
+				// 		code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+				// 	} else {
+				// 		code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+				// 	}
+				// 	code.push(`${tab(2)}state.body = customBody;`);
+				// }
+				code.push(`${tab(2)}let newBody = {};`);
+				generateMappingCode(node, code);
+				code.push(`${tab(2)}state.body = newBody;`);
+				code.push(`${tab(2)}customBody = newBody;`);
 			} else if (node.type === 'DATASERVICE' && node.options.dataService && node.options.dataService._id) {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${node.options.dataService._id}');`);
 				if (config.isK8sEnv()) {
@@ -841,15 +845,11 @@ async function generateNodes(pNode) {
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
-				if ((node.options.update || node.options.insert) && node.options.body) {
-					// code.push(`${tab(2)}customBody = ${node.options.body};`);
-					// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
-					if (typeof node.options.body == 'object') {
-						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-					} else {
-						code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
-					}
-					code.push(`${tab(2)}state.body = customBody;`);
+				if ((node.options.update || node.options.insert)) {
+					code.push(`${tab(2)}let newBody = {};`);
+					generateMappingCode(node, code);
+					code.push(`${tab(2)}state.body = newBody;`);
+					code.push(`${tab(2)}customBody = newBody;`);
 				}
 
 				/** ---------------RE-TRY LOGIC STARTS--------------- */
@@ -912,15 +912,19 @@ async function generateNodes(pNode) {
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
-				if (node.options.body && !_.isEmpty(node.options.body)) {
-					// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
-					if (typeof node.options.body == 'object') {
-						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-					} else {
-						code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
-					}
-					code.push(`${tab(2)}state.body = customBody;`);
-				}
+				// if (node.options.body && !_.isEmpty(node.options.body)) {
+				// 	// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+				// 	if (typeof node.options.body == 'object') {
+				// 		code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+				// 	} else {
+				// 		code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+				// 	}
+				// 	code.push(`${tab(2)}state.body = customBody;`);
+				// }
+				code.push(`${tab(2)}let newBody = {};`);
+				generateMappingCode(node, code);
+				code.push(`${tab(2)}state.body = newBody;`);
+				code.push(`${tab(2)}customBody = newBody;`);
 			} else if (node.type === 'FLOW') {
 				code.push(`${tab(2)}const flow = await commonUtils.getFlow('${node.options._id}');`);
 				code.push(`${tab(2)}logger.trace({ flow });`);
@@ -931,15 +935,19 @@ async function generateNodes(pNode) {
 				if (node.options.headers && !_.isEmpty(node.options.headers)) {
 					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
 				}
-				if (node.options.body && !_.isEmpty(node.options.body)) {
-					// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
-					if (typeof node.options.body == 'object') {
-						code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-					} else {
-						code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
-					}
-					code.push(`${tab(2)}state.body = customBody;`);
-				}
+				// if (node.options.body && !_.isEmpty(node.options.body)) {
+				// 	// code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+				// 	if (typeof node.options.body == 'object') {
+				// 		code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+				// 	} else {
+				// 		code.push(`${tab(2)}customBody = ${parseBody(node.options.body)};`);
+				// 	}
+				// 	code.push(`${tab(2)}state.body = customBody;`);
+				// }
+				code.push(`${tab(2)}let newBody = {};`);
+				generateMappingCode(node, code);
+				code.push(`${tab(2)}state.body = newBody;`);
+				code.push(`${tab(2)}customBody = newBody;`);
 			}
 			code.push(`${tab(2)}options.headers = _.merge(state.headers, customHeaders);`);
 			code.push(`${tab(2)}delete options.headers['cookie'];`);
@@ -1041,90 +1049,7 @@ async function generateNodes(pNode) {
 			// code.push(`${tab(2)}return { statusCode: state.statusCode, body: state.body, headers: state.headers };`);
 		} else if ((node.type === 'TRANSFORM' || node.type === 'MAPPING') && node.mappings) {
 			code.push(`${tab(2)}let newBody = {};`);
-			let parsedDataPaths = [];
-			let parsedFormulas = [];
-			node.mappings.forEach((item, i) => {
-				if (parsedDataPaths.indexOf(item.target.dataPath) > -1) {
-					return;
-				}
-				parsedDataPaths.push(item.target.dataPath);
-				if (item.target.type == 'Array') {
-					if (item.source && item.source.length > 0) {
-						item.source.forEach((src) => {
-							code.push(`let val_${i} = _.get(node, '${src.nodeId + '.responseBody.' + src.dataPath}');`);
-							code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
-						});
-					} else {
-						code.push(`let val_${i} = [];`);
-						let arrayItems = node.mappings.filter(e => e.target.dataPath.startsWith(item.target.dataPath) && e.target.dataPath != item.target.dataPath);
-						console.log(arrayItems);
-						code = code.concat(generateArrayMappingCode(`val_${i}`, arrayItems));
-						code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
-					}
-				} else {
-					code.push(`let val_${i} = function() {`);
-					if (item.formulaConfig && item.formulaConfig.length > 0) {
-						let formula = item.formulaConfig[0];
-						if (parsedFormulas.indexOf(formula._id) > -1) {
-							return;
-						}
-						parsedFormulas.push(formula._id);
-						if (formula.params && formula.params.length > 0) {
-							formula.params.forEach(param => {
-								if (param.substituteVal) {
-									code.push(`let ${param.name} = _.get(node, '${param.substituteVal.nodeId}.responseBody.${param.substituteVal.dataPath}');`);
-								}
-								// else if (param.substituteFn) {
-
-								// }
-							});
-						}
-						code.push(formula.code);
-					} else {
-						if (item.source && item.source.length > 0) {
-							item.source.forEach((src) => {
-								code.push(`\treturn _.get(node, '${src.nodeId + '.responseBody.' + src.dataPath}');`);
-							});
-						}
-					}
-					code.push('};');
-					code.push(`_.set(newBody, '${item.target.dataPath}', val_${i}());`);
-				}
-			});
-
-
-			let generateArrayMappingCode = function (varName, arrayItems) {
-				let arrayCode = [];
-				let arrayItemsVars = [];
-				if (arrayItems && arrayItems.length > 0) {
-					arrayItems.forEach((item, i) => {
-						parsedDataPaths.push(item.target.dataPath);
-						let targetPathSegs = item.target.dataPath.split('[#].');
-						if (item.source && item.source.length > 0) {
-							item.source.forEach((src) => {
-								let sourcePathSegs = src.dataPath.split('[#].');
-								let sourceVarName = _.camelCase(src.nodeId + '.' + sourcePathSegs[0]);
-								let targetVarName = _.camelCase(src.nodeId + '.' + sourcePathSegs[0]);
-								arrayItemsVars.push(targetVarName);
-								arrayItemsVars = _.uniq(arrayItemsVars);
-								if (i == 0) {
-									arrayCode.push(`let source_${sourceVarName} = _.get(node,'${src.nodeId}.responseBody.${sourcePathSegs[0]}') || [];`);
-									arrayCode.push(`source_${sourceVarName}.map((item,i) => {`);
-									arrayCode.push('const temp = {};');
-								}
-								// arrayCode.push(`_.set(temp, '${targetPathSegs[1]}', _.get(item,'${sourcePathSegs[1]}'));`);
-								arrayCode.push(`_.set(temp, \`${item.target.dataPath.replace('#', '${i}')}\`, _.get(node,\`${src.nodeId}.responseBody.${src.dataPath.replace('#', '${i}')}\`));`);
-								if (i == arrayItems.length - 1) {
-									arrayCode.push(`${varName}.push(temp);`);
-									arrayCode.push('return temp;');
-									arrayCode.push('});');
-								}
-							});
-						}
-					});
-				}
-				return arrayCode;
-			};
+			generateMappingCode(node, code);
 
 			// node.mappings.forEach(mappingData => {
 			// 	const formulaCode = [];
@@ -1609,7 +1534,92 @@ function parseDataStructuresForFileUtils(dataJson) {
 }
 
 
+function generateMappingCode(node, code) {
+	let parsedDataPaths = [];
+	let parsedFormulas = [];
+	node.mappings.forEach((item, i) => {
+		if (parsedDataPaths.indexOf(item.target.dataPath) > -1) {
+			return;
+		}
+		parsedDataPaths.push(item.target.dataPath);
+		if (item.target.type == 'Array') {
+			if (item.source && item.source.length > 0) {
+				item.source.forEach((src) => {
+					code.push(`let val_${i} = _.get(node, '${src.nodeId + '.responseBody.' + src.dataPath}');`);
+					code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
+				});
+			} else {
+				code.push(`let val_${i} = [];`);
+				let arrayItems = node.mappings.filter(e => e.target.dataPath.startsWith(item.target.dataPath) && e.target.dataPath != item.target.dataPath);
+				console.log(arrayItems);
+				code = code.concat(generateArrayMappingCode(`val_${i}`, arrayItems));
+				code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
+			}
+		} else {
+			code.push(`let val_${i} = function() {`);
+			if (item.formulaConfig && item.formulaConfig.length > 0) {
+				let formula = item.formulaConfig[0];
+				if (parsedFormulas.indexOf(formula._id) > -1) {
+					return;
+				}
+				parsedFormulas.push(formula._id);
+				if (formula.params && formula.params.length > 0) {
+					formula.params.forEach(param => {
+						if (param.substituteVal) {
+							code.push(`let ${param.name} = _.get(node, '${param.substituteVal.nodeId}.responseBody.${param.substituteVal.dataPath}');`);
+						}
+						// else if (param.substituteFn) {
 
+						// }
+					});
+				}
+				code.push(formula.code);
+			} else {
+				if (item.source && item.source.length > 0) {
+					item.source.forEach((src) => {
+						code.push(`\treturn _.get(node, '${src.nodeId + '.responseBody.' + src.dataPath}');`);
+					});
+				}
+			}
+			code.push('};');
+			code.push(`_.set(newBody, '${item.target.dataPath}', val_${i}());`);
+		}
+	});
+
+
+	let generateArrayMappingCode = function (varName, arrayItems) {
+		let arrayCode = [];
+		let arrayItemsVars = [];
+		if (arrayItems && arrayItems.length > 0) {
+			arrayItems.forEach((item, i) => {
+				parsedDataPaths.push(item.target.dataPath);
+				let targetPathSegs = item.target.dataPath.split('[#].');
+				if (item.source && item.source.length > 0) {
+					item.source.forEach((src) => {
+						let sourcePathSegs = src.dataPath.split('[#].');
+						let sourceVarName = _.camelCase(src.nodeId + '.' + sourcePathSegs[0]);
+						let targetVarName = _.camelCase(src.nodeId + '.' + sourcePathSegs[0]);
+						arrayItemsVars.push(targetVarName);
+						arrayItemsVars = _.uniq(arrayItemsVars);
+						if (i == 0) {
+							arrayCode.push(`let source_${sourceVarName} = _.get(node,'${src.nodeId}.responseBody.${sourcePathSegs[0]}') || [];`);
+							arrayCode.push(`source_${sourceVarName}.map((item,i) => {`);
+							arrayCode.push('const temp = {};');
+						}
+						// arrayCode.push(`_.set(temp, '${targetPathSegs[1]}', _.get(item,'${sourcePathSegs[1]}'));`);
+						arrayCode.push(`_.set(temp, \`${item.target.dataPath.replace('#', '${i}')}\`, _.get(node,\`${src.nodeId}.responseBody.${src.dataPath.replace('#', '${i}')}\`));`);
+						if (i == arrayItems.length - 1) {
+							arrayCode.push(`${varName}.push(temp);`);
+							arrayCode.push('return temp;');
+							arrayCode.push('});');
+						}
+					});
+				}
+			});
+		}
+		return arrayCode;
+	};
+}
 
 module.exports.parseFlow = parseFlow;
 module.exports.parseNodes = parseNodes;
