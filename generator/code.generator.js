@@ -1535,6 +1535,38 @@ function parseDataStructuresForFileUtils(dataJson) {
 
 
 function generateMappingCode(node, code) {
+	let generateArrayMappingCode = function (varName, arrayItems) {
+		let arrayCode = [];
+		let arrayItemsVars = [];
+		if (arrayItems && arrayItems.length > 0) {
+			arrayItems.forEach((item, i) => {
+				parsedDataPaths.push(item.target.dataPath);
+				let targetPathSegs = item.target.dataPath.split('[#].');
+				if (item.source && item.source.length > 0) {
+					item.source.forEach((src) => {
+						let sourcePathSegs = src.dataPath.split('[#].');
+						let sourceVarName = _.camelCase(src.nodeId + '.' + sourcePathSegs[0]);
+						let targetVarName = _.camelCase(src.nodeId + '.' + sourcePathSegs[0]);
+						arrayItemsVars.push(targetVarName);
+						arrayItemsVars = _.uniq(arrayItemsVars);
+						if (i == 0) {
+							arrayCode.push(`let source_${sourceVarName} = _.get(node,'${src.nodeId}.responseBody.${sourcePathSegs[0]}') || [];`);
+							arrayCode.push(`source_${sourceVarName}.map((item,i) => {`);
+							arrayCode.push('const temp = {};');
+						}
+						// arrayCode.push(`_.set(temp, '${targetPathSegs[1]}', _.get(item,'${sourcePathSegs[1]}'));`);
+						arrayCode.push(`_.set(temp, \`${item.target.dataPath.replace('#', '${i}')}\`, _.get(node,\`${src.nodeId}.responseBody.${src.dataPath.replace('#', '${i}')}\`));`);
+						if (i == arrayItems.length - 1) {
+							arrayCode.push(`${varName}.push(temp);`);
+							arrayCode.push('return temp;');
+							arrayCode.push('});');
+						}
+					});
+				}
+			});
+		}
+		return arrayCode;
+	};
 	let parsedDataPaths = [];
 	let parsedFormulas = [];
 	node.mappings.forEach((item, i) => {
@@ -1585,40 +1617,6 @@ function generateMappingCode(node, code) {
 			code.push(`_.set(newBody, '${item.target.dataPath}', val_${i}());`);
 		}
 	});
-
-
-	let generateArrayMappingCode = function (varName, arrayItems) {
-		let arrayCode = [];
-		let arrayItemsVars = [];
-		if (arrayItems && arrayItems.length > 0) {
-			arrayItems.forEach((item, i) => {
-				parsedDataPaths.push(item.target.dataPath);
-				let targetPathSegs = item.target.dataPath.split('[#].');
-				if (item.source && item.source.length > 0) {
-					item.source.forEach((src) => {
-						let sourcePathSegs = src.dataPath.split('[#].');
-						let sourceVarName = _.camelCase(src.nodeId + '.' + sourcePathSegs[0]);
-						let targetVarName = _.camelCase(src.nodeId + '.' + sourcePathSegs[0]);
-						arrayItemsVars.push(targetVarName);
-						arrayItemsVars = _.uniq(arrayItemsVars);
-						if (i == 0) {
-							arrayCode.push(`let source_${sourceVarName} = _.get(node,'${src.nodeId}.responseBody.${sourcePathSegs[0]}') || [];`);
-							arrayCode.push(`source_${sourceVarName}.map((item,i) => {`);
-							arrayCode.push('const temp = {};');
-						}
-						// arrayCode.push(`_.set(temp, '${targetPathSegs[1]}', _.get(item,'${sourcePathSegs[1]}'));`);
-						arrayCode.push(`_.set(temp, \`${item.target.dataPath.replace('#', '${i}')}\`, _.get(node,\`${src.nodeId}.responseBody.${src.dataPath.replace('#', '${i}')}\`));`);
-						if (i == arrayItems.length - 1) {
-							arrayCode.push(`${varName}.push(temp);`);
-							arrayCode.push('return temp;');
-							arrayCode.push('});');
-						}
-					});
-				}
-			});
-		}
-		return arrayCode;
-	};
 }
 
 module.exports.parseFlow = parseFlow;
