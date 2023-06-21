@@ -831,7 +831,7 @@ async function generateNodes(pNode) {
 					} else {
 						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}';`);
 					}
-					code.push(`${tab(2)}state.url = Mustache.render(state.url, node);`);
+					// code.push(`${tab(2)}state.url = Mustache.render(state.url, node);`);
 				}
 				if (node.options.get) {
 					code.push(`${tab(2)}state.method = 'GET';`);
