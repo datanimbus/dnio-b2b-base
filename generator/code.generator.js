@@ -1535,6 +1535,8 @@ function parseDataStructuresForFileUtils(dataJson) {
 
 
 function generateMappingCode(node, code) {
+	let parsedDataPaths = [];
+	let parsedFormulas = [];
 	let generateArrayMappingCode = function (varName, arrayItems) {
 		let arrayCode = [];
 		let arrayItemsVars = [];
@@ -1555,7 +1557,7 @@ function generateMappingCode(node, code) {
 							arrayCode.push('const temp = {};');
 						}
 						// arrayCode.push(`_.set(temp, '${targetPathSegs[1]}', _.get(item,'${sourcePathSegs[1]}'));`);
-						arrayCode.push(`_.set(temp, \`${item.target.dataPath.replace('#', '${i}')}\`, _.get(node,\`${src.nodeId}.responseBody.${src.dataPath.replace('#', '${i}')}\`));`);
+						arrayCode.push(`_.set(temp, \`${item.target.dataPath.split('[#].')[1]}\`, _.get(node,\`${src.nodeId}.responseBody.${src.dataPath.replace('#', '${i}')}\`));`);
 						if (i == arrayItems.length - 1) {
 							arrayCode.push(`${varName}.push(temp);`);
 							arrayCode.push('return temp;');
@@ -1567,24 +1569,27 @@ function generateMappingCode(node, code) {
 		}
 		return arrayCode;
 	};
-	let parsedDataPaths = [];
-	let parsedFormulas = [];
 	node.mappings.forEach((item, i) => {
 		if (parsedDataPaths.indexOf(item.target.dataPath) > -1) {
 			return;
 		}
 		parsedDataPaths.push(item.target.dataPath);
 		if (item.target.type == 'Array') {
+			let arrayItems = node.mappings.filter(e => e.target.dataPath.startsWith(item.target.dataPath) && e.target.dataPath != item.target.dataPath);
 			if (item.source && item.source.length > 0) {
 				item.source.forEach((src) => {
 					code.push(`let val_${i} = _.get(node, '${src.nodeId + '.responseBody.' + src.dataPath}');`);
 					code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
 				});
+				arrayItems.forEach(e => {
+					parsedDataPaths.push(e.target.dataPath);
+				});
 			} else {
 				code.push(`let val_${i} = [];`);
-				let arrayItems = node.mappings.filter(e => e.target.dataPath.startsWith(item.target.dataPath) && e.target.dataPath != item.target.dataPath);
-				console.log(arrayItems);
-				code = code.concat(generateArrayMappingCode(`val_${i}`, arrayItems));
+				let temps = generateArrayMappingCode(`val_${i}`, arrayItems);
+				temps.forEach(e => {
+					code.push(e);
+				});
 				code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
 			}
 		} else {
