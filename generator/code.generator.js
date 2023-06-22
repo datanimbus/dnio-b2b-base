@@ -1539,28 +1539,25 @@ function generateMappingCode(node, code) {
 	let parsedFormulas = [];
 	let generateArrayMappingCode = function (varName, arrayItems) {
 		let arrayCode = [];
-		let arrayItemsVars = [];
 		if (arrayItems && arrayItems.length > 0) {
 			arrayItems.forEach((item, i) => {
 				parsedDataPaths.push(item.target.dataPath);
-				let targetPathSegs = item.target.dataPath.split('[#].');
 				if (item.source && item.source.length > 0) {
 					item.source.forEach((src) => {
-						let sourcePathSegs = src.dataPath.split('[#].');
-						let sourceVarName = _.camelCase(src.nodeId + '.' + sourcePathSegs[0]);
-						let targetVarName = _.camelCase(src.nodeId + '.' + sourcePathSegs[0]);
-						arrayItemsVars.push(targetVarName);
-						arrayItemsVars = _.uniq(arrayItemsVars);
+						let dataPathSegs = JSON.parse(JSON.stringify(src.dataPathSegs));
+						let dataPathSegsIndex = dataPathSegs.indexOf('[#]');
+						let removedPathSegments = dataPathSegs.splice(dataPathSegsIndex);
+						let sourceVarName = _.camelCase(src.nodeId + '.' + dataPathSegs.join('.'));
 						if (i == 0) {
-							arrayCode.push(`let source_${sourceVarName} = _.get(node,'${src.nodeId}.responseBody.${sourcePathSegs[0]}') || [];`);
+							dataPathSegs.unshift('responseBody');
+							dataPathSegs.unshift(src.nodeId);
+							arrayCode.push(`let source_${sourceVarName} = _.get(node, ${JSON.stringify(dataPathSegs)}) || [];`);
 							arrayCode.push(`source_${sourceVarName}.map((item,i) => {`);
-							arrayCode.push('const temp = {};');
 						}
-						// arrayCode.push(`_.set(temp, '${targetPathSegs[1]}', _.get(item,'${sourcePathSegs[1]}'));`);
-						arrayCode.push(`_.set(temp, \`${item.target.dataPath.split('[#].')[1]}\`, _.get(node,\`${src.nodeId}.responseBody.${src.dataPath.replace('#', '${i}')}\`));`);
+						src.dataPathSegs.unshift('responseBody');
+						src.dataPathSegs.unshift(src.nodeId);
+						arrayCode.push(`_.set(newBody, ${JSON.stringify(item.target.dataPathSegs).replace(/"\[#\]"/, 'i')}, _.get(node, ${JSON.stringify(src.dataPathSegs).replace(/"\[#\]"/, 'i')}));`);
 						if (i == arrayItems.length - 1) {
-							arrayCode.push(`${varName}.push(temp);`);
-							arrayCode.push('return temp;');
 							arrayCode.push('});');
 						}
 					});
@@ -1578,19 +1575,22 @@ function generateMappingCode(node, code) {
 			let arrayItems = node.mappings.filter(e => e.target.dataPath.startsWith(item.target.dataPath) && e.target.dataPath != item.target.dataPath);
 			if (item.source && item.source.length > 0) {
 				item.source.forEach((src) => {
-					code.push(`let val_${i} = _.get(node, '${src.nodeId + '.responseBody.' + src.dataPath}');`);
+					let temp = JSON.parse(JSON.stringify(src.dataPathSegs));
+					temp.unshift('responseBody');
+					temp.unshift(src.nodeId);
+					code.push(`let val_${i} = _.get(node, ${JSON.stringify(temp)});`);
 					code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
 				});
 				arrayItems.forEach(e => {
 					parsedDataPaths.push(e.target.dataPath);
 				});
 			} else {
-				code.push(`let val_${i} = [];`);
+				// code.push(`let val_${i} = [];`);
 				let temps = generateArrayMappingCode(`val_${i}`, arrayItems);
 				temps.forEach(e => {
 					code.push(e);
 				});
-				code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
+				// code.push(`_.set(newBody, ${JSON.stringify(item.target.dataPathSegs)}, val_${i});`);
 			}
 		} else {
 			code.push(`let val_${i} = function() {`);
@@ -1603,7 +1603,10 @@ function generateMappingCode(node, code) {
 				if (formula.params && formula.params.length > 0) {
 					formula.params.forEach(param => {
 						if (param.substituteVal) {
-							code.push(`let ${param.name} = _.get(node, '${param.substituteVal.nodeId}.responseBody.${param.substituteVal.dataPath}');`);
+							let temp = JSON.parse(JSON.stringify(param.substituteVal.dataPathSegs));
+							temp.unshift('responseBody');
+							temp.unshift(param.substituteVal.nodeId);
+							code.push(`let ${param.name} = _.get(node, ${JSON.stringify(temp)});`);
 						}
 						// else if (param.substituteFn) {
 
@@ -1614,12 +1617,15 @@ function generateMappingCode(node, code) {
 			} else {
 				if (item.source && item.source.length > 0) {
 					item.source.forEach((src) => {
-						code.push(`\treturn _.get(node, '${src.nodeId + '.responseBody.' + src.dataPath}');`);
+						let temp = JSON.parse(JSON.stringify(src.dataPathSegs));
+						temp.unshift('responseBody');
+						temp.unshift(src.nodeId);
+						code.push(`\treturn _.get(node, ${JSON.stringify(temp)});`);
 					});
 				}
 			}
 			code.push('};');
-			code.push(`_.set(newBody, '${item.target.dataPath}', val_${i}());`);
+			code.push(`_.set(newBody, ${JSON.stringify(item.target.dataPathSegs)}, val_${i}());`);
 		}
 	});
 }
