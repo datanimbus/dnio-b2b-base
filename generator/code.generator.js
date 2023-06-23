@@ -1544,7 +1544,7 @@ function generateMappingCode(node, code) {
 				parsedDataPaths.push(item.target.dataPath);
 				if (item.source && item.source.length > 0) {
 					item.source.forEach((src) => {
-						let dataPathSegs = JSON.parse(JSON.stringify(src.dataPathSegs));
+						let dataPathSegs = JSON.parse(JSON.stringify(src.dataPathSegs || []));
 						let dataPathSegsIndex = dataPathSegs.indexOf('[#]');
 						let removedPathSegments = dataPathSegs.splice(dataPathSegsIndex);
 						let sourceVarName = _.camelCase(src.nodeId + '.' + dataPathSegs.join('.'));
@@ -1575,7 +1575,7 @@ function generateMappingCode(node, code) {
 			let arrayItems = node.mappings.filter(e => e.target.dataPath.startsWith(item.target.dataPath) && e.target.dataPath != item.target.dataPath);
 			if (item.source && item.source.length > 0) {
 				item.source.forEach((src) => {
-					let temp = JSON.parse(JSON.stringify(src.dataPathSegs));
+					let temp = JSON.parse(JSON.stringify(src.dataPathSegs || []));
 					temp.unshift('responseBody');
 					temp.unshift(src.nodeId);
 					code.push(`let val_${i} = _.get(node, ${JSON.stringify(temp)});`);
@@ -1617,7 +1617,7 @@ function generateMappingCode(node, code) {
 			} else {
 				if (item.source && item.source.length > 0) {
 					item.source.forEach((src) => {
-						let temp = JSON.parse(JSON.stringify(src.dataPathSegs));
+						let temp = JSON.parse(JSON.stringify(src.dataPathSegs || []));
 						temp.unshift('responseBody');
 						temp.unshift(src.nodeId);
 						code.push(`\treturn _.get(node, ${JSON.stringify(temp)});`);
