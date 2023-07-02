@@ -1539,6 +1539,7 @@ function generateMappingCode(node, code) {
 	let parsedFormulas = [];
 	let generateArrayMappingCode = function (varName, arrayItems) {
 		let arrayCode = [];
+		let flag = false;
 		if (arrayItems && arrayItems.length > 0) {
 			arrayItems.forEach((item, i) => {
 				parsedDataPaths.push(item.target.dataPath);
@@ -1548,6 +1549,7 @@ function generateMappingCode(node, code) {
 						let dataPathSegsIndex = dataPathSegs.indexOf('[#]');
 						let removedPathSegments = dataPathSegs.splice(dataPathSegsIndex);
 						let sourceVarName = _.camelCase(src.nodeId + '.' + dataPathSegs.join('.'));
+						flag = true;
 						if (i == 0) {
 							dataPathSegs.unshift('responseBody');
 							dataPathSegs.unshift(src.nodeId);
@@ -1557,12 +1559,15 @@ function generateMappingCode(node, code) {
 						src.dataPathSegs.unshift('responseBody');
 						src.dataPathSegs.unshift(src.nodeId);
 						arrayCode.push(`_.set(newBody, ${JSON.stringify(item.target.dataPathSegs).replace(/"\[#\]"/, 'i')}, _.get(node, ${JSON.stringify(src.dataPathSegs).replace(/"\[#\]"/, 'i')}));`);
-						if (i == arrayItems.length - 1) {
-							arrayCode.push('});');
-						}
+						// if (i == arrayItems.length - 1) {
+						// 	arrayCode.push('});');
+						// }
 					});
 				}
 			});
+			if (flag) {
+				arrayCode.push('});');
+			}
 		}
 		return arrayCode;
 	};
