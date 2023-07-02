@@ -1183,10 +1183,63 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.fileContent = content;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FILE_WRITE') {
-			code.push(`${tab(2)}fs.writeFileSync(path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}}\`), state.fileContent);`);
+			code.push(`${tab(2)}fs.writeFileSync(path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}}\`), _.get(node, "${node.options.fileContent}")));`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.responseBody = { message: 'File Write Successful' };`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
+		} else if (node.type === 'CONVERT_CSV_JSON'
+			|| node.type === 'CONVERT_JSON_JSON'
+			|| node.type === 'CONVERT_JSON_XML'
+			|| node.type === 'CONVERT_XML_JSON'
+			|| node.type === 'CONVERT_JSON_CSV') {
+			code.push(`${tab(2)}let newBody = {};`);
+			// generateMappingCode(node, code);
+			/**	
+			 * **********************************************************
+			 * Incompete code for CONVERTER
+			 * **********************************************************
+			 */
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.status = 'SUCCESS';`);
+			code.push(`${tab(2)}state.responseBody = newBody;`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
+		} else if (node.type.startsWith('PARSE_')) {
+			code.push(`${tab(2)}let content = _.get(node, '${node.options.fileContent}');`);
+			if (node.type === 'PARSE_JSON') {
+				code.push(`${tab(2)}let newBody = JSON.parse(content);`);
+			} else if (node.type === 'PARSE_XML') {
+				code.push(`${tab(2)}let newBody = xmlParser.parse(content);`);
+			} else if (node.type === 'PARSE_CSV' || node.type === 'PARSE_EXCEL') {
+				if (node.type === 'PARSE_EXCEL') {
+					// code.push(`${tab(2)}const workBook = XLSX.readFile(reqFile.tempFilePath);`);
+					// code.push(`${tab(2)}XLSX.writeFile(workBook, reqFile.tempFilePath, { bookType: "csv" });`);
+					/**	
+					 * **********************************************************
+					 * Incompete code for PARSE_EXCEL
+					 * **********************************************************
+					 */
+				}
+				code.push('let newBody = await new Promise((resolve, reject) => {');
+				code.push('    const data = [];');
+				code.push('    try {');
+				code.push(`        fastcsv.parseString(content, { headers: true, delimiter: '${node.options.delimiter || ','}' })`);
+				code.push('            .on(\'data\', (row) => {');
+				code.push('                data.push(row);');
+				code.push('            })');
+				code.push('            .on(\'end\', () => {');
+				code.push('                resolve(data);');
+				code.push('            }).on(\'error\', (err) => {');
+				code.push('                reject(err);');
+				code.push('            });');
+				code.push('    } catch (err) {');
+				code.push('        reject(err);');
+				code.push('    }');
+				code.push('});');
+			}
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.status = 'SUCCESS';`);
+			code.push(`${tab(2)}state.responseBody = newBody;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'PLUGIN') {
 			const nodeData = await commonUtils.getCustomNode(node.options.plugin._id);
