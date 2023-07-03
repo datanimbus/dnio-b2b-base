@@ -1588,6 +1588,9 @@ function parseDataStructuresForFileUtils(dataJson) {
 
 
 function generateMappingCode(node, code) {
+	if (!node.mappings) {
+		node.mappings = [];
+	}
 	let parsedDataPaths = [];
 	let parsedFormulas = [];
 	let generateArrayMappingCode = function (varName, arrayItems) {
