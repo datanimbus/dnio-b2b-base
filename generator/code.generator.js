@@ -1699,9 +1699,6 @@ function generateMappingCode(node, code, useAbsolutePath) {
 						}
 						src.dataPathSegs.unshift(src.nodeId);
 						arrayCode.push(`_.set(newBody, ${JSON.stringify(item.target.dataPathSegs).replace(/"\[#\]"/, 'i')}, _.get(node, ${JSON.stringify(src.dataPathSegs).replace(/"\[#\]"/, 'i')}));`);
-						// if (i == arrayItems.length - 1) {
-						// 	arrayCode.push('});');
-						// }
 					});
 				}
 			});
@@ -1711,6 +1708,31 @@ function generateMappingCode(node, code, useAbsolutePath) {
 		}
 		return arrayCode;
 	};
+	function generateFormulaCode(formula, parentName) {
+		let tempCode = [];
+		if (formula.params && formula.params.length > 0) {
+			formula.params.forEach(param => {
+				param.var = `var_${param.name}_${uuid().split('-').pop()}`;
+				if (param.substituteVal) {
+					let temp = JSON.parse(JSON.stringify(param.substituteVal.dataPathSegs));
+					if (param.substituteVal.isConstant) {
+						tempCode.push(`let ${param.var} = _.get(node, ${JSON.stringify(temp)});`);
+					} else {
+						tempCode.push(`let ${param.var} = _.get(data, ${JSON.stringify(temp)});`);
+					}
+				} else if (param.substituteFn) {
+					// tempCode.push(`let ${param.name} = ${param.substituteFn.name};`);
+					tempCode = tempCode.concat(generateFormulaCode(param.substituteFn, param.var));
+				}
+			});
+		}
+		if (parentName) {
+			tempCode.push(`let ${parentName} = ${formula.name}(${formula.params.map(e => e.var)});`);
+		} else {
+			tempCode.push(`return ${formula.name}(${formula.params.map(e => e.var)});`);
+		}
+		return tempCode;
+	}
 	node.mappings.forEach((item, i) => {
 		if (parsedDataPaths.indexOf(item.target.dataPath) > -1) {
 			return;
@@ -1747,22 +1769,10 @@ function generateMappingCode(node, code, useAbsolutePath) {
 					return;
 				}
 				parsedFormulas.push(formula._id);
-				if (formula.params && formula.params.length > 0) {
-					formula.params.forEach(param => {
-						if (param.substituteVal) {
-							let temp = JSON.parse(JSON.stringify(param.substituteVal.dataPathSegs));
-							if (useAbsolutePath) {
-								temp.unshift('responseBody');
-							}
-							temp.unshift(param.substituteVal.nodeId);
-							code.push(`let ${param.name} = _.get(node, ${JSON.stringify(temp)});`);
-						}
-						// else if (param.substituteFn) {
-
-						// }
-					});
-				}
-				code.push(formula.code);
+				let temp = generateFormulaCode(formula);
+				temp.forEach(item => {
+					code.push(item);
+				});
 			} else {
 				if (item.source && item.source.length > 0) {
 					item.source.forEach((src) => {
@@ -1815,6 +1825,32 @@ function generateConverterCode(node, code) {
 		}
 		return arrayCode;
 	};
+
+	function generateFormulaCode(formula, parentName) {
+		let tempCode = [];
+		if (formula.params && formula.params.length > 0) {
+			formula.params.forEach(param => {
+				param.var = `var_${param.name}_${uuid().split('-').pop()}`;
+				if (param.substituteVal) {
+					let temp = JSON.parse(JSON.stringify(param.substituteVal.dataPathSegs));
+					if (param.substituteVal.isConstant) {
+						tempCode.push(`let ${param.var} = _.get(node, ${JSON.stringify(temp)});`);
+					} else {
+						tempCode.push(`let ${param.var} = _.get(data, ${JSON.stringify(temp)});`);
+					}
+				} else if (param.substituteFn) {
+					// tempCode.push(`let ${param.name} = ${param.substituteFn.name};`);
+					tempCode = tempCode.concat(generateFormulaCode(param.substituteFn, param.var));
+				}
+			});
+		}
+		if (parentName) {
+			tempCode.push(`let ${parentName} = ${formula.name}(${formula.params.map(e => e.var)});`);
+		} else {
+			tempCode.push(`return ${formula.name}(${formula.params.map(e => e.var)});`);
+		}
+		return tempCode;
+	}
 	node.mappings.forEach((item, i) => {
 		if (parsedDataPaths.indexOf(item.target.dataPath) > -1) {
 			return;
@@ -1847,22 +1883,10 @@ function generateConverterCode(node, code) {
 					return;
 				}
 				parsedFormulas.push(formula._id);
-				if (formula.params && formula.params.length > 0) {
-					formula.params.forEach(param => {
-						if (param.substituteVal) {
-							let temp = JSON.parse(JSON.stringify(param.substituteVal.dataPathSegs));
-							if (param.substituteVal.isConstant) {
-								code.push(`let ${param.name} = _.get(node, ${JSON.stringify(temp)});`);
-							} else {
-								code.push(`let ${param.name} = _.get(data, ${JSON.stringify(temp)});`);
-							}
-						}
-						// else if (param.substituteFn) {
-
-						// }
-					});
-				}
-				code.push(formula.code);
+				let temp = generateFormulaCode(formula);
+				temp.forEach(item => {
+					code.push(item);
+				});
 			} else {
 				if (item.source && item.source.length > 0) {
 					item.source.forEach((src) => {
