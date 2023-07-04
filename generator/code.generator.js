@@ -236,9 +236,14 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}return;`);
 		code.push(`${tab(1)}}`);
 		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: reqFile });`);
+		if (!inputNode.dataStructure.outgoing) {
+			inputNode.dataStructure.outgoing = {
+				_id: uuid()
+			};
+		}
 		const dataFormat = dataJson.dataStructures[inputNode.dataStructure.outgoing._id] || { _id: inputNode.dataStructure.outgoing._id };
 		if (!dataFormat.formatType) {
-			dataFormat.formatType = 'JSON';
+			dataFormat.formatType = 'BINARY';
 		}
 		inputNode.dataStructure.outgoing = dataFormat;
 		if (dataFormat.formatType == 'EXCEL') {
