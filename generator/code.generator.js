@@ -70,6 +70,15 @@ function ResetNodeVariables(flowData, init) {
 	if (flowData.errorNode && flowData.errorNode._id) {
 		code.push(`${tab(1)}${init ? 'let ' : ''}${flowData.errorNode._id} = node['${flowData.errorNode._id}'];`);
 	}
+	code.push('node[\'CONSTANTS\'] = {};');
+	const constants = flowData.constants;
+	constants.forEach((item) => {
+		if (item.dataType == 'String') {
+			code.push(`node['CONSTANTS']['${item.key}'] = '${item.value}';`);
+		} else {
+			code.push(`node['CONSTANTS']['${item.key}'] = ${item.value};`);
+		}
+	});
 	return code;
 }
 
@@ -767,8 +776,18 @@ async function generateNodes(pNode) {
 				// }
 				code.push(`${tab(2)}let newBody = {};`);
 				generateMappingCode(node, code);
-				code.push(`${tab(2)}state.body = newBody;`);
-				code.push(`${tab(2)}customBody = newBody;`);
+				if (node.mappingType == 'custom') {
+					code.push(`${tab(2)}state.body = newBody;`);
+					code.push(`${tab(2)}customBody = newBody;`);
+				} else {
+					code.push(`${tab(2)}state.body = newBody.body;`);
+					code.push(`${tab(2)}customBody = newBody.body;`);
+					code.push(`${tab(2)}customHeaders = newBody.headers || {};`);
+				}
+				// code.push(`${tab(2)}let newBody = {};`);
+				// generateMappingCode(node, code);
+				// code.push(`${tab(2)}state.body = newBody;`);
+				// code.push(`${tab(2)}customBody = newBody;`);
 			} else if (node.type === 'DATASERVICE' && node.options.dataService && node.options.dataService._id) {
 				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${node.options.dataService._id}');`);
 				if (config.isK8sEnv()) {
@@ -853,8 +872,14 @@ async function generateNodes(pNode) {
 				if ((node.options.update || node.options.insert)) {
 					code.push(`${tab(2)}let newBody = {};`);
 					generateMappingCode(node, code);
-					code.push(`${tab(2)}state.body = newBody;`);
-					code.push(`${tab(2)}customBody = newBody;`);
+					if (node.mappingType == 'custom') {
+						code.push(`${tab(2)}state.body = newBody;`);
+						code.push(`${tab(2)}customBody = newBody;`);
+					} else {
+						code.push(`${tab(2)}state.body = newBody.body;`);
+						code.push(`${tab(2)}customBody = newBody.body;`);
+						code.push(`${tab(2)}customHeaders = newBody.headers || {};`);
+					}
 				}
 
 				/** ---------------RE-TRY LOGIC STARTS--------------- */
@@ -928,8 +953,14 @@ async function generateNodes(pNode) {
 				// }
 				code.push(`${tab(2)}let newBody = {};`);
 				generateMappingCode(node, code);
-				code.push(`${tab(2)}state.body = newBody;`);
-				code.push(`${tab(2)}customBody = newBody;`);
+				if (node.mappingType == 'custom') {
+					code.push(`${tab(2)}state.body = newBody;`);
+					code.push(`${tab(2)}customBody = newBody;`);
+				} else {
+					code.push(`${tab(2)}state.body = newBody.body;`);
+					code.push(`${tab(2)}customBody = newBody.body;`);
+					code.push(`${tab(2)}customHeaders = newBody.headers || {};`);
+				}
 			} else if (node.type === 'FLOW') {
 				code.push(`${tab(2)}const flow = await commonUtils.getFlow('${node.options._id}');`);
 				code.push(`${tab(2)}logger.trace({ flow });`);
@@ -951,8 +982,14 @@ async function generateNodes(pNode) {
 				// }
 				code.push(`${tab(2)}let newBody = {};`);
 				generateMappingCode(node, code);
-				code.push(`${tab(2)}state.body = newBody;`);
-				code.push(`${tab(2)}customBody = newBody;`);
+				if (node.mappingType == 'custom') {
+					code.push(`${tab(2)}state.body = newBody;`);
+					code.push(`${tab(2)}customBody = newBody;`);
+				} else {
+					code.push(`${tab(2)}state.body = newBody.body;`);
+					code.push(`${tab(2)}customBody = newBody.body;`);
+					code.push(`${tab(2)}customHeaders = newBody.headers || {};`);
+				}
 			}
 			code.push(`${tab(2)}options.headers = _.merge(state.headers, customHeaders);`);
 			code.push(`${tab(2)}delete options.headers['cookie'];`);
@@ -1188,7 +1225,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.fileContent = content;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FILE_WRITE') {
-			code.push(`${tab(2)}fs.writeFileSync(path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}}\`), _.get(node, "${node.options.fileContent}")));`);
+			code.push(`${tab(2)}fs.writeFileSync(path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}}\`), _.get(node, '${node.options.fileContent}')));`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.responseBody = { message: 'File Write Successful' };`);
@@ -1198,16 +1235,28 @@ async function generateNodes(pNode) {
 			|| node.type === 'CONVERT_JSON_XML'
 			|| node.type === 'CONVERT_XML_JSON'
 			|| node.type === 'CONVERT_JSON_CSV') {
-			code.push(`${tab(2)}let newBody = {};`);
-			// generateMappingCode(node, code);
-			/**	
-			 * **********************************************************
-			 * Incompete code for CONVERTER
-			 * **********************************************************
-			 */
+			code.push(`${tab(2)}let wasBodyArray = true;`);
+			code.push(`${tab(2)}let newBody = [];`);
+
+			code.push(`${tab(2)}let sourceBody = _.get(node, ['${node.options.source._id}','responseBody']);`);
+			code.push(`${tab(2)}if (!Array.isArray(sourceBody)) {`);
+			code.push(`${tab(3)}wasBodyArray = false;`);
+			code.push(`${tab(3)}sourceBody = [sourceBody];`);
+			code.push(`${tab(2)}}`);
+
+			code.push(`${tab(2)}sourceBody.forEach((data, index) => {`);
+			code.push(`${tab(3)}let newData = {};`);
+			generateConverterCode(node, code);
+			code.push(`${tab(3)}newBody.push(newData);`);
+			code.push(`${tab(2)}});`);
+
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
+			code.push(`${tab(2)}if (wasBodyArray) {`);
 			code.push(`${tab(2)}state.responseBody = newBody;`);
+			code.push(`${tab(2)}} else {`);
+			code.push(`${tab(2)}state.responseBody = newBody[0];`);
+			code.push(`${tab(2)}}`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type.startsWith('PARSE_')) {
 			code.push(`${tab(2)}let content = _.get(node, '${node.options.fileContent}');`);
@@ -1245,6 +1294,28 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.responseBody = newBody;`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
+		} else if (node.type.startsWith('FORMAT_')) {
+			code.push(`${tab(2)}let body = _.get(node, '${node.options.source}');`);
+			if (node.type === 'FORMAT_JSON') {
+				code.push(`${tab(2)}let content = JSON.stringify(body);`);
+			} else if (node.type === 'FORMAT_XML') {
+				code.push(`${tab(2)}let content = xmlBuilder.build({ ROOT: body });`);
+			} else if (node.type === 'FORMAT_CSV' || node.type === 'FORMAT_EXCEL') {
+				code.push(`let content = fastcsv.writeToString(body, { headers: true, delimiter: '${node.options.delimiter || ','}' });`);
+				if (node.type === 'FORMAT_EXCEL') {
+					// code.push(`${tab(2)}const workBook = XLSX.readFile(reqFile.tempFilePath);`);
+					// code.push(`${tab(2)}XLSX.writeFile(workBook, reqFile.tempFilePath, { bookType: "csv" });`);
+					/**	
+					 * **********************************************************
+					 * Incompete code for FORMAT_EXCEL
+					 * **********************************************************
+					 */
+				}
+			}
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.status = 'SUCCESS';`);
+			code.push(`${tab(2)}state.fileContent = content;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'PLUGIN') {
 			const nodeData = await commonUtils.getCustomNode(node.options.plugin._id);
@@ -1692,6 +1763,102 @@ function generateMappingCode(node, code) {
 			}
 			code.push('};');
 			code.push(`_.set(newBody, ${JSON.stringify(item.target.dataPathSegs)}, val_${i}());`);
+		}
+	});
+}
+
+
+function generateConverterCode(node, code) {
+	if (!node.mappings) {
+		node.mappings = [];
+	}
+	let parsedDataPaths = [];
+	let parsedFormulas = [];
+	let generateArrayConverterCode = function (varName, arrayItems) {
+		let arrayCode = [];
+		let flag = false;
+		if (arrayItems && arrayItems.length > 0) {
+			arrayItems.forEach((item, i) => {
+				parsedDataPaths.push(item.target.dataPath);
+				if (item.source && item.source.length > 0) {
+					item.source.forEach((src) => {
+						let dataPathSegs = JSON.parse(JSON.stringify(src.dataPathSegs || []));
+						let dataPathSegsIndex = dataPathSegs.indexOf('[#]');
+						let removedPathSegments = dataPathSegs.splice(dataPathSegsIndex);
+						let sourceVarName = _.camelCase(src.nodeId + '.' + dataPathSegs.join('.'));
+						flag = true;
+						if (i == 0) {
+							arrayCode.push(`let source_${sourceVarName} = _.get(data, ${JSON.stringify(dataPathSegs)}) || [];`);
+							arrayCode.push(`source_${sourceVarName}.map((item, i) => {`);
+						}
+						arrayCode.push(`_.set(newData, ${JSON.stringify(item.target.dataPathSegs).replace(/"\[#\]"/, 'i')}, _.get(item, ${JSON.stringify(src.dataPathSegs).replace(/"\[#\]"/, 'i')}));`);
+					});
+				}
+			});
+			if (flag) {
+				arrayCode.push('});');
+			}
+		}
+		return arrayCode;
+	};
+	node.mappings.forEach((item, i) => {
+		if (parsedDataPaths.indexOf(item.target.dataPath) > -1) {
+			return;
+		}
+		parsedDataPaths.push(item.target.dataPath);
+		if (item.target.type == 'Array') {
+			let arrayItems = node.mappings.filter(e => e.target.dataPath.startsWith(item.target.dataPath) && e.target.dataPath != item.target.dataPath);
+			if (item.source && item.source.length > 0) {
+				item.source.forEach((src) => {
+					let temp = JSON.parse(JSON.stringify(src.dataPathSegs || []));
+					code.push(`let val_${i} = _.get(data, ${JSON.stringify(temp)});`);
+					code.push(`_.set(newData, '${item.target.dataPath}', val_${i});`);
+				});
+				arrayItems.forEach(e => {
+					parsedDataPaths.push(e.target.dataPath);
+				});
+			} else {
+				// code.push(`let val_${i} = [];`);
+				let temps = generateArrayConverterCode(`val_${i}`, arrayItems);
+				temps.forEach(e => {
+					code.push(e);
+				});
+				// code.push(`_.set(newData, ${JSON.stringify(item.target.dataPathSegs)}, val_${i});`);
+			}
+		} else {
+			code.push(`let val_${i} = function() {`);
+			if (item.formulaConfig && item.formulaConfig.length > 0) {
+				let formula = item.formulaConfig[0];
+				if (parsedFormulas.indexOf(formula._id) > -1) {
+					return;
+				}
+				parsedFormulas.push(formula._id);
+				if (formula.params && formula.params.length > 0) {
+					formula.params.forEach(param => {
+						if (param.substituteVal) {
+							let temp = JSON.parse(JSON.stringify(param.substituteVal.dataPathSegs));
+							if (param.substituteVal.isConstant) {
+								code.push(`let ${param.name} = _.get(node, ${JSON.stringify(temp)});`);
+							} else {
+								code.push(`let ${param.name} = _.get(data, ${JSON.stringify(temp)});`);
+							}
+						}
+						// else if (param.substituteFn) {
+
+						// }
+					});
+				}
+				code.push(formula.code);
+			} else {
+				if (item.source && item.source.length > 0) {
+					item.source.forEach((src) => {
+						let temp = JSON.parse(JSON.stringify(src.dataPathSegs || []));
+						code.push(`\treturn _.get(data, ${JSON.stringify(temp)});`);
+					});
+				}
+			}
+			code.push('};');
+			code.push(`_.set(newData, ${JSON.stringify(item.target.dataPathSegs)}, val_${i}());`);
 		}
 	});
 }
