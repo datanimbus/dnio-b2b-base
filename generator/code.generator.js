@@ -277,7 +277,9 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(2)}const fileStream = fs.createReadStream(reqFile.tempFilePath);`);
 			code.push(`${tab(2)}fastcsv.parseStream(fileStream, {`);
 			code.push(`${tab(3)}headers: fileUtils.getHeaderOf${inputNode.dataStructure.outgoing._id}(),`);
-			code.push(`${tab(3)}skipLines: 0,`);
+			code.push(`${tab(3)}skipLines: ${inputNode.options.skipLines || 0},`);
+			code.push(`${tab(3)}skipRows: ${inputNode.options.skipRows || 0},`);
+			code.push(`${tab(3)}maxRows: ${inputNode.options.maxRows || 0},`);
 			code.push(`${tab(3)}rowDelimiter: '${rowDelimiter}',`);
 			code.push(`${tab(3)}delimiter: '${dataFormat.character}',`);
 			code.push(`${tab(3)}ignoreEmpty: true,`);
