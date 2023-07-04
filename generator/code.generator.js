@@ -775,11 +775,12 @@ async function generateNodes(pNode) {
 				// 	code.push(`${tab(2)}state.body = customBody;`);
 				// }
 				code.push(`${tab(2)}let newBody = {};`);
-				generateMappingCode(node, code);
 				if (node.mappingType == 'custom') {
+					generateMappingCode(node, code, true);
 					code.push(`${tab(2)}state.body = newBody;`);
 					code.push(`${tab(2)}customBody = newBody;`);
 				} else {
+					generateMappingCode(node, code, false);
 					code.push(`${tab(2)}state.body = newBody.body;`);
 					code.push(`${tab(2)}customBody = newBody.body;`);
 					code.push(`${tab(2)}customHeaders = newBody.headers || {};`);
@@ -871,11 +872,12 @@ async function generateNodes(pNode) {
 				}
 				if ((node.options.update || node.options.insert)) {
 					code.push(`${tab(2)}let newBody = {};`);
-					generateMappingCode(node, code);
 					if (node.mappingType == 'custom') {
+						generateMappingCode(node, code, true);
 						code.push(`${tab(2)}state.body = newBody;`);
 						code.push(`${tab(2)}customBody = newBody;`);
 					} else {
+						generateMappingCode(node, code, false);
 						code.push(`${tab(2)}state.body = newBody.body;`);
 						code.push(`${tab(2)}customBody = newBody.body;`);
 						code.push(`${tab(2)}customHeaders = newBody.headers || {};`);
@@ -952,11 +954,12 @@ async function generateNodes(pNode) {
 				// 	code.push(`${tab(2)}state.body = customBody;`);
 				// }
 				code.push(`${tab(2)}let newBody = {};`);
-				generateMappingCode(node, code);
 				if (node.mappingType == 'custom') {
+					generateMappingCode(node, code, true);
 					code.push(`${tab(2)}state.body = newBody;`);
 					code.push(`${tab(2)}customBody = newBody;`);
 				} else {
+					generateMappingCode(node, code, false);
 					code.push(`${tab(2)}state.body = newBody.body;`);
 					code.push(`${tab(2)}customBody = newBody.body;`);
 					code.push(`${tab(2)}customHeaders = newBody.headers || {};`);
@@ -981,11 +984,12 @@ async function generateNodes(pNode) {
 				// 	code.push(`${tab(2)}state.body = customBody;`);
 				// }
 				code.push(`${tab(2)}let newBody = {};`);
-				generateMappingCode(node, code);
 				if (node.mappingType == 'custom') {
+					generateMappingCode(node, code, true);
 					code.push(`${tab(2)}state.body = newBody;`);
 					code.push(`${tab(2)}customBody = newBody;`);
 				} else {
+					generateMappingCode(node, code, false);
 					code.push(`${tab(2)}state.body = newBody.body;`);
 					code.push(`${tab(2)}customBody = newBody.body;`);
 					code.push(`${tab(2)}customHeaders = newBody.headers || {};`);
@@ -1091,7 +1095,7 @@ async function generateNodes(pNode) {
 			// code.push(`${tab(2)}return { statusCode: state.statusCode, body: state.body, headers: state.headers };`);
 		} else if ((node.type === 'TRANSFORM' || node.type === 'MAPPING') && node.mappings) {
 			code.push(`${tab(2)}let newBody = {};`);
-			generateMappingCode(node, code);
+			generateMappingCode(node, code, true);
 
 			// node.mappings.forEach(mappingData => {
 			// 	const formulaCode = [];
@@ -1663,7 +1667,7 @@ function parseDataStructuresForFileUtils(dataJson) {
 }
 
 
-function generateMappingCode(node, code) {
+function generateMappingCode(node, code, useAbsolutePath) {
 	if (!node.mappings) {
 		node.mappings = [];
 	}
@@ -1683,12 +1687,16 @@ function generateMappingCode(node, code) {
 						let sourceVarName = _.camelCase(src.nodeId + '.' + dataPathSegs.join('.'));
 						flag = true;
 						if (i == 0) {
-							dataPathSegs.unshift('responseBody');
+							if (useAbsolutePath) {
+								dataPathSegs.unshift('responseBody');
+							}
 							dataPathSegs.unshift(src.nodeId);
 							arrayCode.push(`let source_${sourceVarName} = _.get(node, ${JSON.stringify(dataPathSegs)}) || [];`);
 							arrayCode.push(`source_${sourceVarName}.map((item,i) => {`);
 						}
-						src.dataPathSegs.unshift('responseBody');
+						if (useAbsolutePath) {
+							src.dataPathSegs.unshift('responseBody');
+						}
 						src.dataPathSegs.unshift(src.nodeId);
 						arrayCode.push(`_.set(newBody, ${JSON.stringify(item.target.dataPathSegs).replace(/"\[#\]"/, 'i')}, _.get(node, ${JSON.stringify(src.dataPathSegs).replace(/"\[#\]"/, 'i')}));`);
 						// if (i == arrayItems.length - 1) {
@@ -1713,7 +1721,9 @@ function generateMappingCode(node, code) {
 			if (item.source && item.source.length > 0) {
 				item.source.forEach((src) => {
 					let temp = JSON.parse(JSON.stringify(src.dataPathSegs || []));
-					temp.unshift('responseBody');
+					if (useAbsolutePath) {
+						temp.unshift('responseBody');
+					}
 					temp.unshift(src.nodeId);
 					code.push(`let val_${i} = _.get(node, ${JSON.stringify(temp)});`);
 					code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
@@ -1741,7 +1751,9 @@ function generateMappingCode(node, code) {
 					formula.params.forEach(param => {
 						if (param.substituteVal) {
 							let temp = JSON.parse(JSON.stringify(param.substituteVal.dataPathSegs));
-							temp.unshift('responseBody');
+							if (useAbsolutePath) {
+								temp.unshift('responseBody');
+							}
 							temp.unshift(param.substituteVal.nodeId);
 							code.push(`let ${param.name} = _.get(node, ${JSON.stringify(temp)});`);
 						}
@@ -1755,7 +1767,9 @@ function generateMappingCode(node, code) {
 				if (item.source && item.source.length > 0) {
 					item.source.forEach((src) => {
 						let temp = JSON.parse(JSON.stringify(src.dataPathSegs || []));
-						temp.unshift('responseBody');
+						if (useAbsolutePath) {
+							temp.unshift('responseBody');
+						}
 						temp.unshift(src.nodeId);
 						code.push(`\treturn _.get(node, ${JSON.stringify(temp)});`);
 					});
