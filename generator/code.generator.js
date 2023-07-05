@@ -785,7 +785,9 @@ async function generateNodes(pNode) {
 					generateMappingCode(node, code, false);
 					code.push(`${tab(2)}state.body = newBody.body;`);
 					code.push(`${tab(2)}customBody = newBody.body;`);
-					code.push(`${tab(2)}customHeaders = newBody.headers || {};`);
+					code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
+					code.push(`${tab(3)}customHeaders = newBody.headers || {};`);
+					code.push(`${tab(2)}}`);
 				}
 				// code.push(`${tab(2)}let newBody = {};`);
 				// generateMappingCode(node, code);
@@ -882,7 +884,9 @@ async function generateNodes(pNode) {
 						generateMappingCode(node, code, false);
 						code.push(`${tab(2)}state.body = newBody.body;`);
 						code.push(`${tab(2)}customBody = newBody.body;`);
-						code.push(`${tab(2)}customHeaders = newBody.headers || {};`);
+						code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
+						code.push(`${tab(3)}customHeaders = newBody.headers || {};`);
+						code.push(`${tab(2)}}`);
 					}
 				}
 
@@ -964,7 +968,9 @@ async function generateNodes(pNode) {
 					generateMappingCode(node, code, false);
 					code.push(`${tab(2)}state.body = newBody.body;`);
 					code.push(`${tab(2)}customBody = newBody.body;`);
-					code.push(`${tab(2)}customHeaders = newBody.headers || {};`);
+					code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
+					code.push(`${tab(3)}customHeaders = newBody.headers || {};`);
+					code.push(`${tab(2)}}`);
 				}
 			} else if (node.type === 'FLOW') {
 				code.push(`${tab(2)}const flow = await commonUtils.getFlow('${node.options._id}');`);
@@ -994,7 +1000,9 @@ async function generateNodes(pNode) {
 					generateMappingCode(node, code, false);
 					code.push(`${tab(2)}state.body = newBody.body;`);
 					code.push(`${tab(2)}customBody = newBody.body;`);
-					code.push(`${tab(2)}customHeaders = newBody.headers || {};`);
+					code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
+					code.push(`${tab(3)}customHeaders = newBody.headers || {};`);
+					code.push(`${tab(2)}}`);
 				}
 			}
 			code.push(`${tab(2)}options.headers = _.merge(state.headers, customHeaders);`);
