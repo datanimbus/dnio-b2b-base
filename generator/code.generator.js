@@ -1718,21 +1718,21 @@ function generateMappingCode(node, code, useAbsolutePath) {
 		}
 		return arrayCode;
 	};
-	function generateFormulaCode(formula, parentName) {
+	function generateFormulaCode(formula, useAbsolutePath, parentName) {
 		let tempCode = [];
 		if (formula.params && formula.params.length > 0) {
 			formula.params.forEach(param => {
 				param.var = `var_${param.name}_${uuid().split('-').pop()}`;
 				if (param.substituteVal) {
 					let temp = JSON.parse(JSON.stringify(param.substituteVal.dataPathSegs));
-					if (param.substituteVal.isConstant) {
+					if (param.substituteVal.isConstant || useAbsolutePath) {
 						tempCode.push(`let ${param.var} = _.get(node, ${JSON.stringify(temp)});`);
 					} else {
 						tempCode.push(`let ${param.var} = _.get(data, ${JSON.stringify(temp)});`);
 					}
 				} else if (param.substituteFn) {
 					// tempCode.push(`let ${param.name} = ${param.substituteFn.name};`);
-					tempCode = tempCode.concat(generateFormulaCode(param.substituteFn, param.var));
+					tempCode = tempCode.concat(generateFormulaCode(param.substituteFn, useAbsolutePath, param.var));
 				}
 			});
 		}
@@ -1779,7 +1779,7 @@ function generateMappingCode(node, code, useAbsolutePath) {
 					return;
 				}
 				parsedFormulas.push(formula._id);
-				let temp = generateFormulaCode(formula);
+				let temp = generateFormulaCode(formula, useAbsolutePath);
 				temp.forEach(item => {
 					code.push(item);
 				});
