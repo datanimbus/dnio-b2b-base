@@ -1728,8 +1728,8 @@ function generateMappingCode(node, code, useAbsolutePath) {
 					if (param.substituteVal.isConstant) {
 						tempCode.push(`let ${param.var} = _.get(node, ${JSON.stringify(temp)});`);
 					} else {
-						temp.unshift(param.substituteVal.nodeId);
 						temp.unshift('responseBody');
+						temp.unshift(param.substituteVal.nodeId);
 						tempCode.push(`let ${param.var} = _.get(node, ${JSON.stringify(temp)});`);
 					}
 				} else if (param.substituteFn) {
