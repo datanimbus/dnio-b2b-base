@@ -323,6 +323,11 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(2)}state.body = xmlParser.parse(contents);`);
 			code.push(`${tab(2)}state.responseBody = xmlParser.parse(contents);`);
 		} else if (dataFormat.formatType === 'BINARY') {
+			code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
+			code.push(`${tab(2)}state.status = "SUCCESS";`);
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.body = contents;`);
+			code.push(`${tab(2)}state.responseBody = contents;`);
 			// code.push(`${tab(2)}fs.copyFileSync(reqFile.tempFilePath, path.join(process.cwd(), 'downloads', req['local']['output-file-name']));`);
 			// code.push(`${tab(2)}}`);
 			// code.push(`${tab(2)}}`);
