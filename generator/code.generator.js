@@ -734,7 +734,9 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}let customBody = state.body;`);
 			if (node.type === 'API' && node.options) {
 				// code.push(`${tab(2)}state.url = Mustache.render(\`${node.options.url}\`, node);`);
-
+				if (!node.options.url) {
+					node.options.url = '';
+				}
 				code.push(`${tab(2)}state.url = \`${node.options.url.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
 
 				// code.push(`${tab(2)}state.url = \`${parseDynamicVariable(node.options.url)}\`;`);
@@ -1693,7 +1695,9 @@ function generateMappingCode(node, code, useAbsolutePath) {
 					item.source.forEach((src) => {
 						let dataPathSegs = JSON.parse(JSON.stringify(src.dataPathSegs || []));
 						let dataPathSegsIndex = dataPathSegs.indexOf('[#]');
-						let removedPathSegments = dataPathSegs.splice(dataPathSegsIndex);
+						if (dataPathSegsIndex > -1) {
+							let removedPathSegments = dataPathSegs.splice(dataPathSegsIndex);
+						}
 						let sourceVarName = _.camelCase(src.nodeId + '.' + dataPathSegs.join('.'));
 						flag = true;
 						if (i == 0) {
@@ -1701,8 +1705,12 @@ function generateMappingCode(node, code, useAbsolutePath) {
 								dataPathSegs.unshift('responseBody');
 							}
 							dataPathSegs.unshift(src.nodeId);
-							arrayCode.push(`let source_${sourceVarName} = _.get(node, ${JSON.stringify(dataPathSegs)}) || [];`);
-							arrayCode.push(`source_${sourceVarName}.map((item,i) => {`);
+							if (dataPathSegsIndex > -1) {
+								arrayCode.push(`let source_${sourceVarName} = _.get(node, ${JSON.stringify(dataPathSegs)}) || [];`);
+							} else {
+								arrayCode.push(`let source_${sourceVarName} = [{}];`);
+							}
+							arrayCode.push(`source_${sourceVarName}.map((item, i) => {`);
 						}
 						if (useAbsolutePath) {
 							src.dataPathSegs.unshift('responseBody');
@@ -1725,6 +1733,10 @@ function generateMappingCode(node, code, useAbsolutePath) {
 				param.var = `var_${param.name}_${uuid().split('-').pop()}`;
 				if (param.substituteVal) {
 					let temp = JSON.parse(JSON.stringify(param.substituteVal.dataPathSegs));
+					let arrIndex = temp.indexOf('[#]');
+					if (arrIndex > -1) {
+						temp.splice(arrIndex, 1, 0);
+					}
 					if (param.substituteVal.isConstant) {
 						tempCode.push(`let ${param.var} = _.get(node, ${JSON.stringify(temp)});`);
 					} else {
@@ -1759,6 +1771,10 @@ function generateMappingCode(node, code, useAbsolutePath) {
 						temp.unshift('responseBody');
 					}
 					temp.unshift(src.nodeId);
+					let arrIndex = temp.indexOf('[#]');
+					if (arrIndex > -1) {
+						temp.splice(arrIndex, 1, 0);
+					}
 					code.push(`let val_${i} = _.get(node, ${JSON.stringify(temp)});`);
 					code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
 				});
@@ -1793,6 +1809,10 @@ function generateMappingCode(node, code, useAbsolutePath) {
 							temp.unshift('responseBody');
 						}
 						temp.unshift(src.nodeId);
+						let arrIndex = temp.indexOf('[#]');
+						if (arrIndex > -1) {
+							temp.splice(arrIndex, 1, 0);
+						}
 						code.push(`\treturn _.get(node, ${JSON.stringify(temp)});`);
 					});
 				}
@@ -1820,11 +1840,17 @@ function generateConverterCode(node, code) {
 					item.source.forEach((src) => {
 						let dataPathSegs = JSON.parse(JSON.stringify(src.dataPathSegs || []));
 						let dataPathSegsIndex = dataPathSegs.indexOf('[#]');
-						let removedPathSegments = dataPathSegs.splice(dataPathSegsIndex);
+						if (dataPathSegsIndex > -1) {
+							let removedPathSegments = dataPathSegs.splice(dataPathSegsIndex);
+						}
 						let sourceVarName = _.camelCase(src.nodeId + '.' + dataPathSegs.join('.'));
 						flag = true;
 						if (i == 0) {
-							arrayCode.push(`let source_${sourceVarName} = _.get(data, ${JSON.stringify(dataPathSegs)}) || [];`);
+							if (dataPathSegsIndex > -1) {
+								arrayCode.push(`let source_${sourceVarName} = _.get(data, ${JSON.stringify(dataPathSegs)}) || [];`);
+							} else {
+								arrayCode.push(`let source_${sourceVarName} = [{}];`);
+							}
 							arrayCode.push(`source_${sourceVarName}.map((item, i) => {`);
 						}
 						arrayCode.push(`_.set(newData, ${JSON.stringify(item.target.dataPathSegs).replace(/"\[#\]"/, 'i')}, _.get(item, ${JSON.stringify(src.dataPathSegs).replace(/"\[#\]"/, 'i')}));`);
@@ -1845,6 +1871,10 @@ function generateConverterCode(node, code) {
 				param.var = `var_${param.name}_${uuid().split('-').pop()}`;
 				if (param.substituteVal) {
 					let temp = JSON.parse(JSON.stringify(param.substituteVal.dataPathSegs));
+					let arrIndex = temp.indexOf('[#]');
+					if (arrIndex > -1) {
+						temp.splice(arrIndex, 1, 0);
+					}
 					if (param.substituteVal.isConstant) {
 						tempCode.push(`let ${param.var} = _.get(node, ${JSON.stringify(temp)});`);
 					} else {
@@ -1873,6 +1903,10 @@ function generateConverterCode(node, code) {
 			if (item.source && item.source.length > 0) {
 				item.source.forEach((src) => {
 					let temp = JSON.parse(JSON.stringify(src.dataPathSegs || []));
+					let arrIndex = temp.indexOf('[#]');
+					if (arrIndex > -1) {
+						temp.splice(arrIndex, 1, 0);
+					}
 					code.push(`let val_${i} = _.get(data, ${JSON.stringify(temp)});`);
 					code.push(`_.set(newData, '${item.target.dataPath}', val_${i});`);
 				});
@@ -1903,6 +1937,10 @@ function generateConverterCode(node, code) {
 				if (item.source && item.source.length > 0) {
 					item.source.forEach((src) => {
 						let temp = JSON.parse(JSON.stringify(src.dataPathSegs || []));
+						let arrIndex = temp.indexOf('[#]');
+						if (arrIndex > -1) {
+							temp.splice(arrIndex, 1, 0);
+						}
 						code.push(`\treturn _.get(data, ${JSON.stringify(temp)});`);
 					});
 				}
