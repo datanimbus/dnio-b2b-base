@@ -328,6 +328,7 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.body = contents;`);
 			code.push(`${tab(2)}state.responseBody = contents;`);
+			code.push(`${tab(2)}state.fileContent = contents;`);
 			// code.push(`${tab(2)}fs.copyFileSync(reqFile.tempFilePath, path.join(process.cwd(), 'downloads', req['local']['output-file-name']));`);
 			// code.push(`${tab(2)}}`);
 			// code.push(`${tab(2)}}`);
