@@ -32,7 +32,8 @@ function countDuplicates(nodeId, nodes) {
 
 function fixCondition(condition) {
 	if (condition) {
-		return condition.replace(/{{|}}/g, '')
+		// condition.replace(/{{|}}/g, '')
+		return condition.replace(/{{/g, '_.get(node, \'').replace(/}}/g, '\')')
 			.replace('= =', '==')
 			.replace('! =', '!=')
 			.replace('< =', '<=')
@@ -241,6 +242,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}state.status = "ERROR";`);
 		code.push(`${tab(2)}state.statusCode = 400;`);
 		code.push(`${tab(2)}state.body = { message: 'No files were uploaded' };`);
+		code.push(`${tab(2)}state.responseBody = { message: 'No files were uploaded' };`);
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 		code.push(`${tab(2)}return;`);
 		code.push(`${tab(1)}}`);
