@@ -382,7 +382,12 @@ async function parseFlow(dataJson) {
 	// code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(state.body));`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(state.headers));`);
 	let tempNodes = (inputNode.onSuccess || []);
+	let elseIndex = tempNodes.findIndex(e => !e.condition);
+	if (elseIndex > -1) {
+		tempNodes = tempNodes.concat(tempNodes.splice(elseIndex, 1));
+	}
 	for (let index = 0; index < tempNodes.length; index++) {
+		let last = tempNodes.length - 1 == index;
 		const ss = tempNodes[index];
 		const node = nodes.find(e => e._id === ss._id);
 		if (node) {
@@ -393,9 +398,23 @@ async function parseFlow(dataJson) {
 			// 	return;
 			// }
 			visitedNodes.push(node._id);
-			if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
-			code = code.concat(generateCode(node, nodes));
-			if (node.condition) code.push(`${tab(1)}}`);
+			if (inputNode.options.conditionType == 'parallel') {
+				code = code.concat(generateCode(node, nodes));
+			} else {
+				if (node.condition) {
+					code.push(`${tab(1)}if (${node.condition}) {`);
+					code = code.concat(generateCode(node, nodes));
+					if (last) {
+						code.push(`${tab(1)}} `);
+					} else {
+						code.push(`${tab(1)}} else `);
+					}
+				} else {
+					code.push(`${tab(1)}{`);
+					code = code.concat(generateCode(node, nodes));
+					code.push(`${tab(1)}} `);
+				}
+			}
 		}
 	}
 	if (!tempNodes || tempNodes.length == 0) {
@@ -414,7 +433,14 @@ async function parseFlow(dataJson) {
 	code = code.concat(ResetNodeVariables(flowData, true));
 	if (flowData && flowData.errorNode && flowData.errorNode.onSuccess && flowData.errorNode.onSuccess.length > 0) {
 		let errNodes = (flowData.errorNode.onSuccess || []);
+
+		let elseIndex = errNodes.findIndex(e => !e.condition);
+		if (elseIndex > -1) {
+			errNodes = errNodes.concat(errNodes.splice(elseIndex, 1));
+		}
+
 		for (let index = 0; index < errNodes.length; index++) {
+			let last = errNodes.length - 1 == index;
 			const ss = errNodes[index];
 			const node = nodes.find(e => e._id === ss._id);
 			if (node) {
@@ -425,9 +451,24 @@ async function parseFlow(dataJson) {
 				// 	return;
 				// }
 				visitedNodes.push(node._id);
-				if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
-				code = code.concat(generateCode(node, nodes, true));
-				if (node.condition) code.push(`${tab(1)}}`);
+
+				if (inputNode.options.conditionType == 'parallel') {
+					code = code.concat(generateCode(node, nodes, true));
+				} else {
+					if (node.condition) {
+						code.push(`${tab(1)}if (${node.condition}) {`);
+						code = code.concat(generateCode(node, nodes, true));
+						if (last) {
+							code.push(`${tab(1)}} `);
+						} else {
+							code.push(`${tab(1)}} else `);
+						}
+					} else {
+						code.push(`${tab(1)}{`);
+						code = code.concat(generateCode(node, nodes, true));
+						code.push(`${tab(1)}} `);
+					}
+				}
 			}
 		}
 		if (!errNodes || errNodes.length == 0) {
@@ -447,7 +488,12 @@ function generateCodeForLoop(node, nodes) {
 	code.push(`${tab(2)}tempState.responseBody = response.body;`);
 	if (node.onSuccess && node.onSuccess.length > 0) {
 		let tempNodes = (node.onSuccess || []);
+		let elseIndex = tempNodes.findIndex(e => !e.condition);
+		if (elseIndex > -1) {
+			tempNodes = tempNodes.concat(tempNodes.splice(elseIndex, 1));
+		}
 		for (let index = 0; index < tempNodes.length; index++) {
+			let last = tempNodes.length - 1 == index;
 			const ss = tempNodes[index];
 			const nextNode = nodes.find(e => e._id === ss._id);
 			if (nextNode) {
@@ -456,9 +502,24 @@ function generateCodeForLoop(node, nodes) {
 				}
 				if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
 					visitedNodes.push(nextNode._id);
-					if (nextNode.condition) code.push(`${tab(1)}if (${nextNode.condition}) {`);
-					code = code.concat(generateCodeForLoop(nextNode, nodes));
-					if (nextNode.condition) code.push(`${tab(1)}}`);
+
+					if (node.options.conditionType == 'parallel') {
+						code = code.concat(generateCodeForLoop(nextNode, nodes));
+					} else {
+						if (nextNode.condition) {
+							code.push(`${tab(1)}if (${nextNode.condition}) {`);
+							code = code.concat(generateCodeForLoop(nextNode, nodes));
+							if (last) {
+								code.push(`${tab(1)}} `);
+							} else {
+								code.push(`${tab(1)}} else `);
+							}
+						} else {
+							code.push(`${tab(1)}{`);
+							code = code.concat(generateCodeForLoop(nextNode, nodes));
+							code.push(`${tab(1)}} `);
+						}
+					}
 				}
 			}
 		}
@@ -588,7 +649,12 @@ function generateCode(node, nodes, isErrorNode) {
 	}
 	if (node.onSuccess && node.onSuccess.length > 0) {
 		let tempNodes = (node.onSuccess || []);
+		let elseIndex = tempNodes.findIndex(e => !e.condition);
+		if (elseIndex > -1) {
+			tempNodes = tempNodes.concat(tempNodes.splice(elseIndex, 1));
+		}
 		for (let index = 0; index < tempNodes.length; index++) {
+			let last = tempNodes.length - 1 == index;
 			const ss = tempNodes[index];
 			const nextNode = nodes.find(e => e._id === ss._id);
 			if (nextNode) {
@@ -597,9 +663,23 @@ function generateCode(node, nodes, isErrorNode) {
 				}
 				if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
 					visitedNodes.push(nextNode._id);
-					if (nextNode.condition) code.push(`${tab(1)}if (${nextNode.condition}) {`);
-					code = code.concat(generateCode(nextNode, nodes, isErrorNode));
-					if (nextNode.condition) code.push(`${tab(1)}}`);
+					if (node.options.conditionType == 'parallel') {
+						code = code.concat(generateCode(nextNode, nodes));
+					} else {
+						if (nextNode.condition) {
+							code.push(`${tab(1)}if (${nextNode.condition}) {`);
+							code = code.concat(generateCode(nextNode, nodes, isErrorNode));
+							if (last) {
+								code.push(`${tab(1)}} `);
+							} else {
+								code.push(`${tab(1)}} else `);
+							}
+						} else {
+							code.push(`${tab(1)}{`);
+							code = code.concat(generateCode(nextNode, nodes, isErrorNode));
+							code.push(`${tab(1)}} `);
+						}
+					}
 				}
 			}
 		}
