@@ -71,15 +71,6 @@ function ResetNodeVariables(flowData, init) {
 	if (flowData.errorNode && flowData.errorNode._id) {
 		code.push(`${tab(1)}${init ? 'let ' : ''}${flowData.errorNode._id} = node['${flowData.errorNode._id}'];`);
 	}
-	code.push('node[\'CONSTANTS\'] = {};');
-	const constants = flowData.constants;
-	constants.forEach((item) => {
-		if (item.dataType == 'String') {
-			code.push(`node['CONSTANTS']['${item.key}'] = '${item.value}';`);
-		} else {
-			code.push(`node['CONSTANTS']['${item.key}'] = ${item.value};`);
-		}
-	});
 	return code;
 }
 
@@ -167,6 +158,19 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(0)}router.use(express.json({ inflate: true, limit: '100mb' }));`);
 		// code.push(`${tab(0)}router.use(express.raw());`);
 	}
+
+
+	code.push('const CONSTANTS = {};');
+	const constants = flowData.constants;
+	constants.forEach((item) => {
+		if (item.dataType == 'String') {
+			code.push(`CONSTANTS['${item.key}'] = '${item.value}';`);
+		} else {
+			code.push(`CONSTANTS['${item.key}'] = ${item.value};`);
+		}
+	});
+
+
 	if (!inputNode.options.method) {
 		inputNode.options.method = 'POST';
 	}
@@ -218,6 +222,14 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(1)}let response = req;`);
 	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}', false, '${(inputNode.options.contentType || '')}');`);
 	code.push(`${tab(1)}let node = {};`);
+	code.push(`${tab(1)}node['CONSTANTS'] = {};`);
+	constants.forEach((item) => {
+		if (item.dataType == 'String') {
+			code.push(`${tab(1)}node['CONSTANTS']['${item.key}'] = '${item.value}';`);
+		} else {
+			code.push(`${tab(1)}node['CONSTANTS']['${item.key}'] = ${item.value};`);
+		}
+	});
 
 	code = code.concat(CreateNodeVariables(flowData));
 
@@ -432,6 +444,14 @@ async function parseFlow(dataJson) {
 	code.push('}');
 
 	code.push('async function handleError(response, req, res, txnId, remoteTxnId, state, node, isResponseSent) {');
+	code.push(`${tab(1)}node['CONSTANTS'] = {};`);
+	constants.forEach((item) => {
+		if (item.dataType == 'String') {
+			code.push(`${tab(1)}node['CONSTANTS']['${item.key}'] = '${item.value}';`);
+		} else {
+			code.push(`${tab(1)}node['CONSTANTS']['${item.key}'] = ${item.value};`);
+		}
+	});
 	code = code.concat(ResetNodeVariables(flowData, true));
 	if (flowData && flowData.errorNode && flowData.errorNode.onSuccess && flowData.errorNode.onSuccess.length > 0) {
 		let errNodes = (flowData.errorNode.onSuccess || []);
