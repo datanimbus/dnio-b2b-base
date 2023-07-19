@@ -1,8 +1,14 @@
 node_modules
-Dockerfile
+.vscode
+.idea
+.eslintrc.yml
 .gitignore
 .dockerignore
+.huskyrc
+.git
+Dockerfile
 LICENSE
 README.md
 .env
 index.js
+test
