@@ -1,7 +1,7 @@
 FROM node:18
 
-RUN apt update
-RUN apt upgrade -y
+# RUN apt update
+# RUN apt upgrade -y
 
 RUN apt install -y curl tar git openssl
 
