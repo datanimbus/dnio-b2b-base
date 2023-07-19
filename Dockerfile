@@ -1,9 +1,15 @@
-FROM node:18
+FROM node:18-alpine
 
 # RUN apt update
 # RUN apt upgrade -y
 
-RUN apt install -y curl tar git openssl
+# RUN apt install -y curl tar git openssl
+
+
+RUN apk update
+RUN apk upgrade
+
+RUN apk add curl tar git openssl
 
 WORKDIR /tmp/app
 
