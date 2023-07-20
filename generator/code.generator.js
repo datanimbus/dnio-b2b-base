@@ -121,12 +121,14 @@ async function parseFlow(dataJson) {
 	code.push('const chokidar = require(\'chokidar\');');
 	code.push('var builder = require(\'xmlbuilder\');');
 	code.push('');
-	const npmLibraries = await commonUtils.getAllLibraries();
-	npmLibraries.forEach((item) => {
-		if (item.code) {
-			code.push(`${item.code};`);
-		}
-	});
+	if (config.b2bAllowNpmInstall === 'true') {
+		const npmLibraries = await commonUtils.getAllLibraries();
+		npmLibraries.forEach((item) => {
+			if (item.code) {
+				code.push(`${item.code};`);
+			}
+		});
+	}
 	code.push('');
 	code.push('const stateUtils = require(\'./state.utils\');');
 	code.push('const nodeUtils = require(\'./node.utils\');');
@@ -761,12 +763,14 @@ async function parseNodes(dataJson) {
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('');
-	const npmLibraries = await commonUtils.getAllLibraries();
-	npmLibraries.forEach((item) => {
-		if (item.code) {
-			code.push(`${item.code};`);
-		}
-	});
+	if (config.b2bAllowNpmInstall === 'true') {
+		const npmLibraries = await commonUtils.getAllLibraries();
+		npmLibraries.forEach((item) => {
+			if (item.code) {
+				code.push(`${item.code};`);
+			}
+		});
+	}
 
 	const formulas = await commonUtils.getAllFormulas();
 	formulas.forEach((item) => {
