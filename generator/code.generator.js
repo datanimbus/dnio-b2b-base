@@ -119,6 +119,7 @@ async function parseFlow(dataJson) {
 	code.push('const { Kafka } = require(\'kafkajs\');');
 	code.push('const tf = require(\'@tensorflow/tfjs-node\');');
 	code.push('const chokidar = require(\'chokidar\');');
+	code.push('var builder = require(\'xmlbuilder\');');
 	code.push('');
 	const npmLibraries = await commonUtils.getAllLibraries();
 	npmLibraries.forEach((item) => {
@@ -750,6 +751,7 @@ async function parseNodes(dataJson) {
 	code.push('const { Kafka } = require(\'kafkajs\');');
 	code.push('const tf = require(\'@tensorflow/tfjs-node\');');
 	code.push('const chokidar = require(\'chokidar\');');
+	code.push('var builder = require(\'xmlbuilder\');');
 	code.push('');
 	code.push('const httpClient = require(\'./http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
