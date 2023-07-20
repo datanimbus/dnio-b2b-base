@@ -120,6 +120,7 @@ async function parseFlow(dataJson) {
 	code.push('const tf = require(\'@tensorflow/tfjs-node\');');
 	code.push('const chokidar = require(\'chokidar\');');
 	code.push('var builder = require(\'xmlbuilder\');');
+	code.push('var ldap = require(\'ldapjs\');');
 	code.push('');
 	if (config.b2bAllowNpmInstall === 'true') {
 		const npmLibraries = await commonUtils.getAllLibraries();
@@ -754,6 +755,7 @@ async function parseNodes(dataJson) {
 	code.push('const tf = require(\'@tensorflow/tfjs-node\');');
 	code.push('const chokidar = require(\'chokidar\');');
 	code.push('var builder = require(\'xmlbuilder\');');
+	code.push('var ldap = require(\'ldapjs\');');
 	code.push('');
 	code.push('const httpClient = require(\'./http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');

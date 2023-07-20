@@ -13,6 +13,7 @@
     "got": "^11.8.5",
     "jsonwebtoken": "^9.0.0",
     "kafkajs": "^2.2.4",
+    "ldapjs": "^3.0.3",
     "lodash": "^4.17.21",
     "log4js": "^6.9.1",
     "mkdirp": "^1.0.4",
