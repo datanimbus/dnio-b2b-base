@@ -355,12 +355,13 @@ async function uploadFileToDB(req, uploadFilePath, targetAgentId, targetAgentNam
 
 		logger.info(`Uploading file ${outputFileName} from flow ${config.flowId} to DB`);
 
-		const downloadFilePath = path.join(__dirname, 'downloads', outputFileName);
+		const downloadFilePath = path.join(process.cwd(), 'downloads', outputFileName);
 		let writeStream = fs.createWriteStream(downloadFilePath);
 
 		const fileData = fs.readFileSync(uploadFilePath);
 		const encryptedData = encryptDataGCM(fileData, config.encryptionKey);
-		writeStream.write(encryptedData);
+		const writeStatus = await writeStream.write(encryptedData);
+		logger.trace('File write status - ', writeStatus);
 
 		const fileDetails = await new Promise((resolve, reject) => {
 			fs.createReadStream(downloadFilePath).
@@ -432,7 +433,7 @@ function compress(data) {
 }
 
 function encryptDataGCM(data, key) {
-	const compressedData = compress(Buffer.from(data));
+	const compressedData = compress(data);
 	const hashedkey = createHash(key);
 	const nonce = crypto.randomBytes(12);
 	var cipher = crypto.createCipheriv(ALGORITHM, hashedkey, nonce);
