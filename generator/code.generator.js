@@ -1525,6 +1525,19 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FILE') {
 			code.push(`${tab(2)}let customBody = state.body;`);
+			code.push(`${tab(2)}let newBody = {};`);
+			if (node.mappingType == 'custom') {
+				generateMappingCode(node, code, true);
+				code.push(`${tab(2)}state.body = newBody;`);
+				code.push(`${tab(2)}customBody = newBody;`);
+			} else {
+				generateMappingCode(node, code, false);
+				code.push(`${tab(2)}state.body = newBody.body;`);
+				code.push(`${tab(2)}customBody = newBody.body;`);
+				code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
+				code.push(`${tab(3)}customHeaders = newBody.headers || {};`);
+				code.push(`${tab(2)}}`);
+			}
 			let ext = '.json';
 			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
 				if (dataFormat.formatType) {
