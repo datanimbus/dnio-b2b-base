@@ -567,7 +567,7 @@ function generateCode(node, nodes, isErrorNode) {
 	if (node.type === 'RESPONSE') {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
 		if (node.options && node.options.statusCode) {
-			code.push(`${tab(2)}state.statusCode = ${node.options.statusCode};`);
+			code.push(`${tab(2)}state.statusCode = \`${node.options.statusCode.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
 		}
 		code.push(`${tab(2)}state.status = 'SUCCESS';`);
 		if (node.options && node.options.body) {
