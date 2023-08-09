@@ -1922,9 +1922,9 @@ function generateMappingCode(node, code, useAbsolutePath) {
 			code.push(`let val_${i} = function() {`);
 			if (item.formulaConfig && item.formulaConfig.length > 0) {
 				let formula = item.formulaConfig[0];
-				if (parsedFormulas.indexOf(formula._id) > -1) {
-					return;
-				}
+				// if (parsedFormulas.indexOf(formula._id) > -1) {
+				// 	return;
+				// }
 				parsedFormulas.push(formula._id);
 				let temp = generateFormulaCode(formula);
 				temp.forEach(item => {
@@ -2054,9 +2054,9 @@ function generateConverterCode(node, code) {
 			code.push(`let val_${i} = function() {`);
 			if (item.formulaConfig && item.formulaConfig.length > 0) {
 				let formula = item.formulaConfig[0];
-				if (parsedFormulas.indexOf(formula._id) > -1) {
-					return;
-				}
+				// if (parsedFormulas.indexOf(formula._id) > -1) {
+				// 	return;
+				// }
 				parsedFormulas.push(formula._id);
 				let temp = generateFormulaCode(formula);
 				temp.forEach(item => {
