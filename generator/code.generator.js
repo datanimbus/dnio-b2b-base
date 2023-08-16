@@ -143,7 +143,7 @@ async function parseFlow(dataJson) {
 	// TODO: Method to be fixed.
 	// code.push(`router.${(inputNode.options.method || 'POST').toLowerCase()}('${api}', async function (req, res) {`);
 
-	if (inputNode.type === 'FILE' || (inputNode.options && inputNode.options.contentType === 'multipart/form-data')) {
+	if (inputNode.type === 'FILE' || (inputNode.options && inputNode.options.contentType === 'multipart/form-data') || nodes.some(node => node.type === 'FILE')) {
 		code.push(`${tab(0)}router.use(fileUpload({`);
 		code.push(`${tab(1)}useTempFiles: true,`);
 		code.push(`${tab(1)}tempFileDir: './uploads'`);
@@ -567,14 +567,16 @@ function generateCode(node, nodes, isErrorNode) {
 	if (node.type === 'RESPONSE') {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
 		if (node.options && node.options.statusCode) {
-			code.push(`${tab(2)}state.statusCode = \`${node.options.statusCode.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
+			code.push(`${tab(2)}state.statusCode = ${node.options.statusCode.replace(/{{/g, '_.get(node, \'').replace(/}}/g, '\')')};`);
 		}
 		code.push(`${tab(2)}state.status = 'SUCCESS';`);
 		if (node.options && node.options.body) {
 			if (typeof node.options.body == 'object') {
 				code.push(`${tab(2)}state.body = JSON.parse(\`${parseBody(node.options.body)}\`);`);
+				code.push(`${tab(2)}state.responseBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 			} else {
 				code.push(`${tab(2)}state.body = ${parseBody(node.options.body)};`);
+				code.push(`${tab(2)}state.responseBody = ${parseBody(node.options.body)};`);
 			}
 		}
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
@@ -587,7 +589,7 @@ function generateCode(node, nodes, isErrorNode) {
 		} else if (node.options.contentType == 'multipart/form-data') {
 			// code.push(`${tab(2)}fs.writeFileSync(state.body);`);
 			code.push(`${tab(2)}res.set('Content-Type','application/octet-stream');`);
-			code.push(`${tab(2)}res.status(state.statusCode).end(state.body);`);
+			code.push(`${tab(2)}res.status(state.statusCode).send(state.body);`);
 		} else {
 			code.push(`${tab(2)}res.status(state.statusCode).json(state.body);`);
 		}
