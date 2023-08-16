@@ -353,9 +353,10 @@ async function uploadFileToDB(req, uploadFilePath, targetAgentId, targetAgentNam
 		const dataDB = appcenterCon.useDb(dbname);
 		const gfsBucket = new mongoose.mongo.GridFSBucket(dataDB, { bucketName: 'b2b.files' });
 
-		logger.info(`Uploading file ${outputFileName} from flow ${config.flowId} to DB`);
+		const encryptedOutputFileName = 'ENC_' + outputFileName;
+		logger.info(`Uploading file ${encryptedOutputFileName} from flow ${config.flowId} to DB`);
 
-		const downloadFilePath = path.join(process.cwd(), 'downloads', outputFileName);
+		const downloadFilePath = path.join(process.cwd(), 'downloads', encryptedOutputFileName);
 		let writeStream = fs.createWriteStream(downloadFilePath);
 
 		const fileData = fs.readFileSync(uploadFilePath);

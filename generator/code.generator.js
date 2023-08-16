@@ -143,7 +143,7 @@ async function parseFlow(dataJson) {
 	// TODO: Method to be fixed.
 	// code.push(`router.${(inputNode.options.method || 'POST').toLowerCase()}('${api}', async function (req, res) {`);
 
-	if (inputNode.type === 'FILE' || (inputNode.options && inputNode.options.contentType === 'multipart/form-data') || nodes.some(node => node.type === 'FILE')) {
+	if (inputNode.type === 'FILE' || (inputNode.options && inputNode.options.contentType === 'multipart/form-data')) {
 		code.push(`${tab(0)}router.use(fileUpload({`);
 		code.push(`${tab(1)}useTempFiles: true,`);
 		code.push(`${tab(1)}tempFileDir: './uploads'`);
@@ -1542,8 +1542,10 @@ async function generateNodes(pNode) {
 			}
 			let ext = '.json';
 			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
-				if (dataFormat.formatType) {
+				if (dataFormat.formatType != 'EXCEL') {
 					ext = '.' + _.lowerCase(dataFormat.formatType);
+				} else {
+					ext = '.' + _.lowerCase(dataFormat.excelType);
 				}
 			}
 			code.push(`${tab(2)}let ext = '${ext}';`);
@@ -1559,7 +1561,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(4)} outputFileName = temp[0] + ext;`);
 			code.push(`${tab(3)}}`);
 			code.push(`${tab(2)}}`);
-			code.push(`${tab(2)}const uploadFilePath = path.join(process.cwd(), 'uploads', outputFileName);`);
+			code.push(`${tab(2)}const downloadFilePath = path.join(process.cwd(), 'downloads', outputFileName);`);
 			code.push(`${tab(2)}let fileDetails;`);
 
 			if (dataFormat.formatType === 'CSV' || dataFormat.formatType === 'DELIMITER' || dataFormat.formatType === 'EXCEL') {
@@ -1579,41 +1581,40 @@ async function generateNodes(pNode) {
 					rowDelimiter = '\\n';
 				}
 
+				code.push(`${tab(2)}const csvOutputStream = fs.createWriteStream(downloadFilePath);`);
+				code.push(`${tab(2)}const stream = fastcsv.format({ rowDelimiter: '${rowDelimiter}', delimiter: '${delimiter}', ${dataFormat.formatType === 'DELIMITER' ? 'quote: false' : ''} });`);
+				code.push(`${tab(2)}stream.pipe(csvOutputStream);`);
+				// code.push(`${tab(2)}const generateHeaders = ${node.meta.generateHeaders || false};`);
+				// code.push(`${tab(2)}if (generateHeaders) {`);
+				// code.push(`${tab(2)}stream.write(fileUtils.getHeaderOf${dataFormat._id}());`);
+				// code.push(`${tab(2)}}`);
+				code.push(`${tab(2)}if (Array.isArray(customBody)) {`);
+				code.push(`${tab(3)}customBody.forEach(data => {`);
+				code.push(`${tab(3)}stream.write(fileUtils.getValuesOf${dataFormat._id}(data));`);
+				code.push(`${tab(2)}});`);
+				code.push(`${tab(2)}} else {`);
+				code.push(`${tab(3)}stream.write(fileUtils.getValuesOf${dataFormat._id}(customBody));`);
+				code.push(`${tab(2)}}`);
+				code.push(`${tab(2)}stream.end();`);
+				code.push(`${tab(2)}csvOutputStream.on('close', async function() {`);
+
 				if (dataFormat.formatType === 'EXCEL') {
-					code.push(`${tab(2)}const wb = XLSX.readFile(uploadFilePath, { raw: true });`);
-					code.push(`${tab(2)}XLSX.writeFile(wb, uploadFilePath, { bookType: '${dataFormat.excelType.toLowerCase()}', type: 'string' });`);
-					code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, uploadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
-				} else {
-					code.push(`${tab(2)}const csvOutputStream = fs.createWriteStream(uploadFilePath);`);
-					code.push(`${tab(2)}const stream = fastcsv.format({ rowDelimiter: '${rowDelimiter}', delimiter: '${delimiter}', ${dataFormat.formatType === 'DELIMITER' ? 'quote: false' : ''} });`);
-					code.push(`${tab(2)}stream.pipe(csvOutputStream);`);
-					// code.push(`${tab(2)}const generateHeaders = ${node.meta.generateHeaders || false};`);
-					// code.push(`${tab(2)}if (generateHeaders) {`);
-					// code.push(`${tab(2)}stream.write(fileUtils.getHeaderOf${dataFormat._id}());`);
-					// code.push(`${tab(2)}}`);
-					code.push(`${tab(2)}if (Array.isArray(customBody)) {`);
-					code.push(`${tab(3)}customBody.forEach(data => {`);
-					code.push(`${tab(3)}stream.write(fileUtils.getValuesOf${dataFormat._id}(data));`);
-					code.push(`${tab(2)}});`);
-					code.push(`${tab(2)}} else {`);
-					code.push(`${tab(3)}stream.write(fileUtils.getValuesOf${dataFormat._id}(customBody));`);
-					code.push(`${tab(2)}}`);
-					code.push(`${tab(2)}stream.end();`);
-					code.push(`${tab(2)}csvOutputStream.on('close', async function() {`);
-					code.push(`${tab(3)}fileDetails = commonUtils.uploadFileToDB(req, uploadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
-					code.push(`${tab(2)}});`);
+					code.push(`${tab(2)}const wb = XLSX.readFile(downloadFilePath, { raw: true });`);
+					code.push(`${tab(2)}XLSX.writeFile(wb, downloadFilePath, { bookType: '${dataFormat.excelType.toLowerCase()}', type: 'string' });`);
 				}
+				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, downloadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
+				code.push(`${tab(2)}});`);
 			} else if (dataFormat.formatType === 'JSON') {
-				code.push(`${tab(2)}fs.writeFileSync(uploadFilePath, JSON.stringify(customBody), 'utf-8');`);
-				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, uploadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
+				code.push(`${tab(2)}fs.writeFileSync(downloadFilePath, JSON.stringify(customBody), 'utf-8');`);
+				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, downloadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
 			} else if (dataFormat.formatType === 'XML') {
 				code.push(`${tab(2)}let xmlContent = new XMLBuilder({format: true,arrayNodeName: '${dataFormat.rootNodeName}'}).build(customBody);`);
 				if (dataFormat.xmlInitFormat) {
 					code.push(`${tab(2)}const xmlInitFormat = '${dataFormat.xmlInitFormat}\\r\\n';`);
 					code.push(`${tab(2)}xmlContent = xmlInitFormat + xmlContent;`);
 				}
-				code.push(`${tab(2)}fs.writeFileSync(uploadFilePath, xmlContent, 'utf-8');`);
-				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, uploadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
+				code.push(`${tab(2)}fs.writeFileSync(downloadFilePath, xmlContent, 'utf-8');`);
+				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, downloadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.responseBody = fileDetails;`);
@@ -1767,7 +1768,7 @@ function parseDataStructuresForFileUtils(dataJson) {
 			code.push(`${tab(1)}const values = [];`);
 			definition.forEach(def => {
 				const properties = def.properties;
-				code.push(`${tab(1)}values.push(_.get(data, '${properties.dataKey}') || '');`);
+				code.push(`${tab(1)}values.push(_.get(data, '${properties.dataPath}') || '');`);
 			});
 			code.push(`${tab(1)}return values;`);
 			code.push('}');
