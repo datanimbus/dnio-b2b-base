@@ -439,7 +439,7 @@ function encryptDataGCM(data, key) {
 	const nonce = crypto.randomBytes(12);
 	var cipher = crypto.createCipheriv(ALGORITHM, hashedkey, nonce);
 	const encrypted = Buffer.concat([nonce, cipher.update(Buffer.from(compressedData).toString('base64')), cipher.final(), cipher.getAuthTag()]);
-	return encrypted;
+	return encrypted.toString("base64");
 }
 
 module.exports.getDataService = getDataService;
