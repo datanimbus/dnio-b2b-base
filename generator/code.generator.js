@@ -1633,7 +1633,7 @@ async function generateNodes(pNode) {
 
 				if (dataFormat.formatType === 'EXCEL') {
 					code.push(`${tab(2)}const wb = XLSX.readFile(downloadFilePath, { raw: true });`);
-					code.push(`${tab(2)}XLSX.writeFile(wb, downloadFilePath, { bookType: '${dataFormat.excelType.toLowerCase()}', type: 'string' });`);
+					code.push(`${tab(2)}XLSX.writeFile(wb, downloadFilePath, { bookType: '${ext}', type: 'string' });`);
 				}
 				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, downloadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
 				code.push(`${tab(2)}});`);
