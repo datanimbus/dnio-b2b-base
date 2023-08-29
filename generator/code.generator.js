@@ -1182,14 +1182,47 @@ async function generateNodes(pNode) {
 				code.push(`${tab(3)}finalHeader = response.headers;`);
 				code.push(`${tab(2)}}`);
 			} else {
-				code.push(`${tab(2)}logger.debug('Making Requests Once');`);
-				code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
-				code.push(`${tab(3)}options.json = customBody;`);
-				code.push(`${tab(2)}}`);
-				code.push(`${tab(4)}logger.trace(JSON.stringify(options, null, 4));`);
-				code.push(`${tab(2)}let response = await httpClient.request(options);`);
-				code.push(`${tab(2)}finalRecords = response.body;`);
-				code.push(`${tab(2)}finalHeader = response.headers;`);
+				if ((node.type === 'API' || node.type === 'FLOW') && node.options.multipleRequests) {
+					code.push(`${tab(2)}logger.debug('Making Multiple Requests');`);
+					code.push(`${tab(2)}if (!Array.isArray(customBody)) {`);
+					code.push(`${tab(3)}customBody = [customBody];`);
+					code.push(`${tab(2)}}`);
+					code.push(`${tab(3)}let promises = customBody.map(async (item) => {`);
+					code.push(`${tab(4)}try {`);
+					code.push(`${tab(5)}if (options.method == 'POST' || options.method == 'PUT') {`);
+					code.push(`${tab(6)}options.json = item;`);
+					code.push(`${tab(5)}}`);
+					code.push(`${tab(5)}logger.trace(JSON.stringify(options, null, 4));`);
+					code.push(`${tab(5)}return await httpClient.request(options);`);
+					code.push(`${tab(4)}} catch(err) {`);
+					code.push(`${tab(5)}if (err.response) {`);
+					code.push(`${tab(6)}return err.response;`);
+					code.push(`${tab(5)}}`);
+					code.push(`${tab(5)}if (err.body) {`);
+					code.push(`${tab(6)}if (!err.headers) {`);
+					code.push(`${tab(7)}err.headers = options.headers;`);
+					code.push(`${tab(6)}}`);
+					code.push(`${tab(6)}return err;`);
+					code.push(`${tab(5)}}`);
+					code.push(`${tab(5)}return { statusCode: 500, body: err, headers: options.headers };`);
+					code.push(`${tab(4)}}`);
+					code.push(`${tab(3)}});`);
+					code.push(`${tab(3)}promises = await Promise.all(promises);`);
+					code.push(`${tab(3)}let response = {};`);
+					code.push(`${tab(3)}response.body = promises;`);
+					code.push(`${tab(3)}response.headers = promises[0].headers;`);
+					code.push(`${tab(2)}finalRecords = response.body;`);
+					code.push(`${tab(2)}finalHeader = response.headers;`);
+				} else {
+					code.push(`${tab(2)}logger.debug('Making Request Once');`);
+					code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
+					code.push(`${tab(3)}options.json = customBody;`);
+					code.push(`${tab(2)}}`);
+					code.push(`${tab(4)}logger.trace(JSON.stringify(options, null, 4));`);
+					code.push(`${tab(2)}let response = await httpClient.request(options);`);
+					code.push(`${tab(2)}finalRecords = response.body;`);
+					code.push(`${tab(2)}finalHeader = response.headers;`);
+				}
 			}
 			// code.push(`${tab(2)}response = { statusCode: 200, body: finalRecords, headers: finalHeader }`);
 			code.push(`${tab(2)}state.statusCode = response.statusCode || 400;`);

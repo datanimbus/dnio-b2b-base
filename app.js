@@ -26,6 +26,10 @@ const httpClient = require('./http-client');
 			process.env[env] = process.env[env] ? process.env[env] : configRes.body[env];
 		});
 		config = require('./config');
+
+		if (!config.flowId) {
+			throw new Error('Flow ID not found in ENV');
+		}
 		const token = JWT.sign({ name: 'DS_BM', _id: 'admin', isSuperAdmin: true }, config.RBAC_JWT_KEY);
 		global.BM_TOKEN = token;
 		const res = await httpClient.request({
