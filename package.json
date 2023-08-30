@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@appveen/rest-crud": "git@github.com:appveen/rest-crud.git",
+    "@azure/storage-blob": "^12.15.0",
+    "@tensorflow/tfjs-core": "^4.10.0",
     "@tensorflow/tfjs-node": "^4.9.0",
     "ajv": "^6.12.6",
     "async": "^3.2.4",
