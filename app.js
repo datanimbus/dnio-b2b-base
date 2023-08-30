@@ -47,6 +47,11 @@ const httpClient = require('./http-client');
 		config.appNamespace = flowData.namespace;
 		config.imageTag = flowData._id + ':' + flowData.version;
 		config.appDB = config.DATA_STACK_NAMESPACE + '-' + flowData.app;
+		config.flowName = flowData.name;
+		config.port = flowData.port || 8080;
+		if (config.app !== flowData.app) {
+			config.app = flowData.app;
+		}
 		if (flowData.inputNode && flowData.inputNode.options && flowData.inputNode.options.timeout) {
 			config.serverTimeout = flowData.inputNode.options.timeout;
 		}

@@ -69,7 +69,7 @@ const e = {
 	hostname: process.env.HOSTNAME,
 	port: process.env.PORT || 8080,
 	httpsPort: process.env.HTTPS_PORT || 8443,
-	app: process.env.DATA_STACK_APP || 'Sushmitha',
+	app: process.env.DATA_STACK_APP || 'Adam',
 	appDB: process.env.DATA_DB || 'datastackB2B',
 	appNamespace: process.env.DATA_STACK_FLOW_NAMESPACE,
 	flowId: process.env.DATA_STACK_FLOW_ID || 'FLOW0012',

@@ -759,6 +759,8 @@ async function parseNodes(dataJson) {
 	code.push('var builder = require(\'xmlbuilder\');');
 	code.push('var ldap = require(\'ldapjs\');');
 	code.push('');
+	code.push('const storageEngine = require(\'./utils/storage.utils\')');
+	code.push('');
 	code.push('const httpClient = require(\'./http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
 	code.push('const stateUtils = require(\'./state.utils\');');
@@ -1554,6 +1556,39 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Query Result\`, result);`);
 				code.push(`${tab(2)}state.responseBody = result;`);
 				// code.push(`${tab(2)}await crud.disconnect();`);
+			} else if (connector.category == 'STORAGE') {
+				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
+				if (connector.type == 'AZBLOB') {
+					code.push(`${tab(2)}let reqfile = req.files.file;`);
+					code.push(`${tab(2)}`);
+					code.push(`${tab(2)}let file = {};`);
+					code.push(`${tab(2)}file.length = reqfile.size;`);
+					code.push(`${tab(2)}file.uploadDate = moment().format('YYYY-MM-DDTHH:mm:ss');`);
+					code.push(`${tab(2)}file.name = reqfile.name;`);
+					code.push(`${tab(2)}file.contentType = reqfile.mimetype;`);
+					code.push(`${tab(2)}file.path = reqfile.tempFilePath;`);
+					code.push(`${tab(2)}`);
+					code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File object details - \${JSON.stringify(file)}\`);`);
+					code.push(`${tab(2)}`);
+					code.push(`${tab(2)}let data = {};`);
+					code.push(`${tab(2)}data.file = file;`);
+					code.push(`${tab(2)}data.connectionString = connectorConfig.connectionString;`);
+					code.push(`${tab(2)}data.containerName = connectorConfig.container;`);
+					code.push(`${tab(2)}data.blobName = \`${config.app}/${config.flowId}_${config.flowName}/\${reqfile.name}\`;`);
+					code.push(`${tab(2)}data.metadata = {`);
+					code.push(`${tab(3)}'dnio_app': '${config.app}',`);
+					code.push(`${tab(3)}'dnio_flowName': '${config.flowName}',`);
+					code.push(`${tab(3)}'dnio_txn_id': req.header('data-stack-txn-id'),`);
+					code.push(`${tab(3)}'dnio_remote_txn_id': req.header('data-stack-remote-txn-id'),`);
+					code.push(`${tab(3)}'dnio_filename': reqfile.name`);
+					code.push(`${tab(2)}};`);
+					code.push(`${tab(2)}`);
+					code.push(`${tab(2)}let result = await storageEngine.uploadFileAzBlob(data);`);
+					code.push(`${tab(2)}`);
+					code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File upload response - \${JSON.stringify(result)}\`);`);
+					code.push(`${tab(2)}`);
+					code.push(`${tab(2)}state.responseBody = result;`);
+				}
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);

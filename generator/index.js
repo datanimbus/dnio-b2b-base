@@ -71,6 +71,8 @@ async function createProject(flowJSON) {
 							logger.info('Child Process Closed:', code);
 							resolve();
 						});
+					} else {
+						resolve();
 					}
 				} catch (err) {
 					logger.error('NPM INSTALL FAILED');
