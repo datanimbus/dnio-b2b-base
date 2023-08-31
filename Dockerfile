@@ -30,6 +30,7 @@ COPY lib.middlewares.js lib.middlewares.js
 COPY schema.utils.js schema.utils.js
 COPY state.utils.js state.utils.js
 
+COPY utils/storage.utils.js utils/storage.utils.js
 COPY generator/code.generator.js generator/code.generator.js
 COPY generator/index.js generator/index.js
 COPY generator/schema.utils.js generator/schema.utils.js
