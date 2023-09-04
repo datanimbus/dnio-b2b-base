@@ -920,7 +920,7 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}state.body = newBody.body;`);
 					code.push(`${tab(2)}customBody = newBody.body;`);
 					code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
-					code.push(`${tab(3)}customHeaders = newBody.headers || {};`);
+					code.push(`${tab(3)}customHeaders = _.merge(newBody.headers, customHeaders) || {};`);
 					code.push(`${tab(2)}}`);
 				}
 				// code.push(`${tab(2)}let newBody = {};`);
@@ -1019,7 +1019,7 @@ async function generateNodes(pNode) {
 						code.push(`${tab(2)}state.body = newBody.body;`);
 						code.push(`${tab(2)}customBody = newBody.body;`);
 						code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
-						code.push(`${tab(3)}customHeaders = newBody.headers || {};`);
+						code.push(`${tab(3)}customHeaders = _.merge(newBody.headers, customHeaders) || {};`);
 						code.push(`${tab(2)}}`);
 					}
 				}
@@ -1103,11 +1103,11 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}state.body = newBody.body;`);
 					code.push(`${tab(2)}customBody = newBody.body;`);
 					code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
-					code.push(`${tab(3)}customHeaders = newBody.headers || {};`);
+					code.push(`${tab(3)}customHeaders = _.merge(newBody.headers, customHeaders) || {};`);
 					code.push(`${tab(2)}}`);
 				}
 			} else if (node.type === 'FLOW') {
-				code.push(`${tab(2)}const flow = await commonUtils.getFlow('${node.options._id}');`);
+				code.push(`${tab(2)}const flow = await commonUtils.getFlow('${node.options.flow._id}');`);
 				code.push(`${tab(2)}logger.trace({ flow });`);
 				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/b2b/pipes/\${flow.app}/\${flow.inputNode.options.path}\`;`);
 				code.push(`${tab(2)}state.method = \`\${flow.inputNode.options.method || 'POST'}\`;`);
@@ -1135,7 +1135,7 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}state.body = newBody.body;`);
 					code.push(`${tab(2)}customBody = newBody.body;`);
 					code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
-					code.push(`${tab(3)}customHeaders = newBody.headers || {};`);
+					code.push(`${tab(3)}customHeaders = _.merge(newBody.headers, customHeaders) || {};`);
 					code.push(`${tab(2)}}`);
 				}
 			}
@@ -1617,7 +1617,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}state.body = newBody.body;`);
 				code.push(`${tab(2)}customBody = newBody.body;`);
 				code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
-				code.push(`${tab(3)}customHeaders = newBody.headers || {};`);
+				code.push(`${tab(3)}customHeaders = _.merge(newBody.headers, customHeaders) || {};`);
 				code.push(`${tab(2)}}`);
 			}
 			let ext = '.json';
