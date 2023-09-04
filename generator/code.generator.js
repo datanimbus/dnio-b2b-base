@@ -173,6 +173,10 @@ async function parseFlow(dataJson) {
 			code.push(`CONSTANTS['${item.key}'] = ${item.value};`);
 		}
 	});
+	code.push(`${tab(0)}const ENV = {};`);
+	code.push(`${tab(1)}Object.key(process.env).forEach((key)=>{`);
+	code.push(`${tab(2)}ENV[key] = process.env[key];`);
+	code.push(`${tab(1)}});`);
 
 
 	if (!inputNode.options.method) {
@@ -227,6 +231,7 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}', false, '${(inputNode.options.contentType || '')}');`);
 	code.push(`${tab(1)}let node = {};`);
 	code.push(`${tab(1)}node['CONSTANTS'] = {};`);
+	code.push(`${tab(1)}node['ENV'] = {};`);
 	constants.forEach((item) => {
 		if (item.dataType == 'String') {
 			code.push(`${tab(1)}node['CONSTANTS']['${item.key}'] = '${item.value}';`);
@@ -234,6 +239,9 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(1)}node['CONSTANTS']['${item.key}'] = ${item.value};`);
 		}
 	});
+	code.push(`${tab(1)}Object.key(process.env).forEach((key)=>{`);
+	code.push(`${tab(2)}node['ENV'][key] = process.env[key];`);
+	code.push(`${tab(1)}});`);
 
 	code = code.concat(CreateNodeVariables(flowData));
 
