@@ -120,21 +120,29 @@ function initialize() {
 			// global.job.cancel();
 			// global.pullJob.cancel();
 			// clearInterval(global.pullJob)
-			const intVal = setInterval(() => {
+			let intVal = setInterval(() => {
 				// Waiting For all pending requests to finish;
 				if (global.activeRequest === 0) {
 					// Closing Express Server;
+					clearInterval(intVal);
 					server.close(() => {
 						logger.info('Server Stopped.');
-						// Waiting For all DB Operations to finish;
-						Promise.all(global.dbPromises).then(() => {
-							process.exit(0);
-						}).catch(err => {
-							logger.error(err);
-							process.exit(0);
-						});
+						intVal = setInterval(() => {
+							let queueLen = global.interactionQueue.length();
+							if (queueLen != 0) {
+								logger.info('Waiting for Interactions Data to be Stored:', queueLen);
+								return;
+							}
+							clearInterval(intVal);
+							// Waiting For all DB Operations to finish;
+							Promise.all(global.dbPromises).then(() => {
+								process.exit(0);
+							}).catch(err => {
+								logger.error(err);
+								process.exit(0);
+							});
+						}, 2000);
 					});
-					clearInterval(intVal);
 				} else {
 					logger.info('Waiting for request to complete, Active Requests:', global.activeRequest);
 				}

@@ -8,6 +8,8 @@ const config = require('./config');
 const logger = log4js.getLogger(global.loggerName);
 const interactionQueue = Async.priorityQueue(processInteraction);
 
+global.interactionQueue = interactionQueue;
+
 function getState(req, nodeId, isChild, contentType) {
 	const data = {};
 	data._id = uuid();
