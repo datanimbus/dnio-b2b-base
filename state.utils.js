@@ -23,6 +23,7 @@ function getState(req, nodeId, isChild, contentType) {
 	} else {
 		data.body = req.body;
 	}
+	// data.fileContent = req.fileContent;
 	logger.trace(`State :: ${nodeId} :: Body :: ${JSON.stringify(req.body)}`);
 	data.params = req.params;
 	data.query = req.query;

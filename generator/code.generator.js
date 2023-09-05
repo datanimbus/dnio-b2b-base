@@ -174,7 +174,7 @@ async function parseFlow(dataJson) {
 		}
 	});
 	code.push(`${tab(0)}const ENV = {};`);
-	code.push(`${tab(1)}Object.key(process.env).forEach((key)=>{`);
+	code.push(`${tab(1)}Object.keys(process.env).forEach((key)=>{`);
 	code.push(`${tab(2)}ENV[key] = process.env[key];`);
 	code.push(`${tab(1)}});`);
 
@@ -206,7 +206,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(0)}}`);
 	}
 
-	code.push(`${tab(0)}function process(payload){`);
+	code.push(`${tab(0)}function StartProcess(payload){`);
 	code.push(`${tab(1)}return makeRequestToThisFlow(payload);`);
 	code.push(`${tab(0)}}`);
 
@@ -239,7 +239,7 @@ async function parseFlow(dataJson) {
 		}
 	});
 	code.push(`${tab(1)}node['ENV'] = {};`);
-	code.push(`${tab(1)}Object.key(process.env).forEach((key)=>{`);
+	code.push(`${tab(1)}Object.keys(process.env).forEach((key)=>{`);
 	code.push(`${tab(2)}node['ENV'][key] = process.env[key];`);
 	code.push(`${tab(1)}});`);
 
@@ -476,7 +476,7 @@ async function parseFlow(dataJson) {
 		}
 	});
 	code.push(`${tab(1)}node['ENV'] = {};`);
-	code.push(`${tab(1)}Object.key(process.env).forEach((key)=>{`);
+	code.push(`${tab(1)}Object.keys(process.env).forEach((key)=>{`);
 	code.push(`${tab(2)}node['ENV'][key] = process.env[key];`);
 	code.push(`${tab(1)}});`);
 	code = code.concat(ResetNodeVariables(flowData, true));
@@ -782,7 +782,7 @@ async function parseNodes(dataJson) {
 	code.push('var builder = require(\'xmlbuilder\');');
 	code.push('var ldap = require(\'ldapjs\');');
 	code.push('');
-	code.push('const storageEngine = require(\'./utils/storage.utils\')');
+	code.push('const storageEngine = require(\'./utils/storage.utils\');');
 	code.push('');
 	code.push('const httpClient = require(\'./http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
@@ -1486,7 +1486,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}state.body = {};`);
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
 				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath)}\`;`);
-				code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}')';`);
+				code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
 
 				code.push(`${tab(2)}let newBody = {};`);
 				generateMappingCode(node, code, false);
@@ -1494,7 +1494,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}state.body.targetFilePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
 				code.push(`${tab(2)}fs.writeFileSync(sourceFilePath, newBody.fileContent);`);
 				code.push(`${tab(2)}await commonUtils.sftpPutFile(connectorConfig, sourceFilePath);`);
-				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Path \${state.body.sourceFilePath} \`);`);
+				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Uploaded to: \${sourceFilePath} \`);`);
 			} else if (connector.category == 'DB') {
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
 				if (connector.type == 'MSSQL') {

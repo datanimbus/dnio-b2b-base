@@ -97,7 +97,7 @@ async function getConnector(connectorId) {
 async function getCustomNode(nodeId) {
 	try {
 		const options = {};
-		options.url = `${config.baseUrlBM}/admin/node/${nodeId}`;
+		options.url = `${config.baseUrlBM}/${config.app}/node/${nodeId}`;
 		options.method = 'GET';
 		options.headers = {};
 		options.headers['Content-Type'] = 'application/json';
@@ -117,7 +117,7 @@ async function getCustomNode(nodeId) {
 async function getAllFormulas() {
 	try {
 		let options = {};
-		options.url = `${config.baseUrlUSR}/admin/metadata/mapper/formula/count`;
+		options.url = `${config.baseUrlUSR}/${config.app}/formula/count`;
 		options.method = 'GET';
 		options.headers = {};
 		options.headers['Content-Type'] = 'application/json';
@@ -127,7 +127,7 @@ async function getAllFormulas() {
 			throw response.body;
 		}
 		options = {};
-		options.url = `${config.baseUrlUSR}/admin/metadata/mapper/formula?count=` + response.body;
+		options.url = `${config.baseUrlUSR}/${config.app}/formula?count=` + response.body;
 		options.method = 'GET';
 		options.headers = {};
 		options.headers['Content-Type'] = 'application/json';
@@ -230,9 +230,11 @@ async function sftpPutFile(configData, filePath) {
 			throw new Error('No File Name provided');
 		}
 		logger.info('Trying SFTP Upload');
+		let status = await sftp.mkdir(configData.folderPath, true);
+		logger.info('Creating Folder if not exists: ', status);
 		const temp = await sftp.fastPut(filePath, configData.folderPath + '/' + configData.fileName);
 		logger.info('SFTP Upload Done!');
-		logger.info(temp);
+		logger.debug(temp);
 		return filePath;
 	} catch (err) {
 		logger.error(err);
