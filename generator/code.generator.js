@@ -1477,40 +1477,17 @@ async function generateNodes(pNode) {
 		} else if (node.type === 'CONNECTOR' && node.options.connector && node.options.connector._id) {
 			const connector = await commonUtils.getConnector(node.options.connector._id);
 			if (connector.type == 'SFTP') {
-				code.push(`${tab(2)}const body = state.body;`);
 				code.push(`${tab(2)}state.body = {};`);
-				let ext = '.json';
-				if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
-					if (node.dataStructure.outgoing.formatType) {
-						ext = '.' + _.lowerCase(node.dataStructure.outgoing.formatType);
-					}
-				}
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
-				code.push(`${tab(2)}connectorConfig.directoryPath = \`${parseDynamicVariable(node.options.directoryPath)}\`;`);
-				code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}') + '${ext}';`);
-				code.push(`${tab(2)}state.body.sourceFilePath = path.join(__dirname, 'SFTP-Files', connectorConfig.fileName);`);
-				code.push(`${tab(2)}state.body.targetFilePath = path.join(connectorConfig.directoryPath, connectorConfig.fileName);`);
-				let fileCreated = false;
-				if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
-					if (node.dataStructure.outgoing.formatType) {
-						if (node.dataStructure.outgoing.formatType == 'CSV') {
-							fileCreated = true;
-							code.push(`${tab(2)}const headers = fileUtils.getHeaderOf${node.dataStructure.outgoing._id}();`);
-							code.push(`${tab(2)}await commonUtils.writeDataToCSV(state.body.sourceFilePath, body, headers);`);
-						} else if (node.dataStructure.outgoing.formatType == 'XML') {
-							fileCreated = true;
-							code.push(`${tab(2)}state.xmlContent = xmlBuilder.build(body);`);
-							code.push(`${tab(2)}fs.writeFileSync(state.body.sourceFilePath, state.xmlContent);`);
-						} else if (node.dataStructure.outgoing.formatType == 'EXCEL') {
-							fileCreated = true;
-							code.push(`${tab(2)}await commonUtils.writeDataToXLS(state.body.sourceFilePath, body);`);
-						}
-					}
-				}
-				if (!fileCreated) {
-					code.push(`${tab(2)}fs.writeFileSync(state.body.sourceFilePath, JSON.stringify(body));`);
-				}
-				code.push(`${tab(2)}await commonUtils.sftpPutFile(connectorConfig, state.body.sourceFilePath);`);
+				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath)}\`;`);
+				code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}')';`);
+
+				code.push(`${tab(2)}let newBody = {};`);
+				generateMappingCode(node, code, false);
+				code.push(`${tab(2)}const sourceFilePath = path.join(__dirname, 'SFTP-Files', connectorConfig.fileName);`);
+				code.push(`${tab(2)}state.body.targetFilePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
+				code.push(`${tab(2)}fs.writeFileSync(sourceFilePath, newBody.fileContent);`);
+				code.push(`${tab(2)}await commonUtils.sftpPutFile(connectorConfig, sourceFilePath);`);
 				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Path \${state.body.sourceFilePath} \`);`);
 			} else if (connector.category == 'DB') {
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
@@ -1535,22 +1512,28 @@ async function generateNodes(pNode) {
 			} else if (connector.category == 'STORAGE') {
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
 				if (connector.type == 'AZBLOB') {
-					code.push(`${tab(2)}let reqfile = req.files.file;`);
-					code.push(`${tab(2)}`);
-					code.push(`${tab(2)}let file = {};`);
-					code.push(`${tab(2)}file.length = reqfile.size;`);
-					code.push(`${tab(2)}file.uploadDate = moment().format('YYYY-MM-DDTHH:mm:ss');`);
-					code.push(`${tab(2)}file.name = reqfile.name;`);
-					code.push(`${tab(2)}file.contentType = reqfile.mimetype;`);
-					code.push(`${tab(2)}file.path = reqfile.tempFilePath;`);
-					code.push(`${tab(2)}`);
-					code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File object details - \${JSON.stringify(file)}\`);`);
-					code.push(`${tab(2)}`);
+					// code.push(`${tab(2)}let reqfile = req.files.file;`);
+					// code.push(`${tab(2)}`);
+					// code.push(`${tab(2)}let file = {};`);
+					// code.push(`${tab(2)}file.length = reqfile.size;`);
+					// code.push(`${tab(2)}file.uploadDate = moment().format('YYYY-MM-DDTHH:mm:ss');`);
+					// code.push(`${tab(2)}file.name = reqfile.name;`);
+					// code.push(`${tab(2)}file.contentType = reqfile.mimetype;`);
+					// code.push(`${tab(2)}file.path = reqfile.tempFilePath;`);
+					// code.push(`${tab(2)}`);
+					// code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File object details - \${JSON.stringify(file)}\`);`);
+					// code.push(`${tab(2)}`);
 					code.push(`${tab(2)}let data = {};`);
-					code.push(`${tab(2)}data.file = file;`);
+					code.push(`${tab(2)}let newBody = {};`);
+					generateMappingCode(node, code, false);
+					code.push(`${tab(2)}data.fileContent = newBody.fileContent;`);
 					code.push(`${tab(2)}data.connectionString = connectorConfig.connectionString;`);
 					code.push(`${tab(2)}data.containerName = connectorConfig.container;`);
-					code.push(`${tab(2)}data.blobName = \`${config.app}/${config.flowId}_${config.flowName}/\${reqfile.name}\`;`);
+					if (node.options.folderPath) {
+						code.push(`${tab(2)}data.blobName = \`${node.options.folderPath}/${node.options.fileName.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
+					} else {
+						code.push(`${tab(2)}data.blobName = \`${config.app}/${config.flowId}_${config.flowName}/${node.options.fileName.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
+					}
 					code.push(`${tab(2)}data.metadata = {`);
 					code.push(`${tab(3)}'dnio_app': '${config.app}',`);
 					code.push(`${tab(3)}'dnio_flowName': '${config.flowName}',`);
@@ -1559,7 +1542,7 @@ async function generateNodes(pNode) {
 					code.push(`${tab(3)}'dnio_filename': reqfile.name`);
 					code.push(`${tab(2)}};`);
 					code.push(`${tab(2)}`);
-					code.push(`${tab(2)}let result = await storageEngine.uploadFileAzBlob(data);`);
+					code.push(`${tab(2)}let result = await storageEngine.uploadDataAzBlob(data);`);
 					code.push(`${tab(2)}`);
 					code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File upload response - \${JSON.stringify(result)}\`);`);
 					code.push(`${tab(2)}`);

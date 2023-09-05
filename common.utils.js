@@ -193,12 +193,12 @@ async function sftpFetchFile(configData) {
 		if (configData.filePattern) {
 			const fileName = configData.filePattern;
 			filePath = path.join(__dirname, 'SFTP-Files', fileName);
-			await sftp.fastGet(configData.directoryPath + '/' + configData.filePattern, filePath);
+			await sftp.fastGet(configData.folderPath + '/' + configData.filePattern, filePath);
 		} else {
-			const fileList = await sftp.list(configData.directoryPath);
+			const fileList = await sftp.list(configData.folderPath);
 			const fileName = fileList[0].name;
 			filePath = path.join(__dirname, 'SFTP-Files', fileName);
-			await sftp.fastGet(configData.directoryPath + '/' + fileName, filePath);
+			await sftp.fastGet(configData.folderPath + '/' + fileName, filePath);
 		}
 		return filePath;
 	} catch (err) {
@@ -223,13 +223,15 @@ async function sftpPutFile(configData, filePath) {
 			options.passphrase = configData.passphrase;
 		}
 		await sftp.connect(options);
-		if (!configData.directoryPath) {
+		if (!configData.folderPath) {
 			throw new Error('No Directory Path provided');
 		}
 		if (!configData.fileName) {
 			throw new Error('No File Name provided');
 		}
-		const temp = await sftp.fastPut(filePath, configData.directoryPath + '/' + configData.fileName);
+		logger.info('Trying SFTP Upload');
+		const temp = await sftp.fastPut(filePath, configData.folderPath + '/' + configData.fileName);
+		logger.info('SFTP Upload Done!');
 		logger.info(temp);
 		return filePath;
 	} catch (err) {
@@ -439,7 +441,7 @@ function encryptDataGCM(data, key) {
 	const nonce = crypto.randomBytes(12);
 	var cipher = crypto.createCipheriv(ALGORITHM, hashedkey, nonce);
 	const encrypted = Buffer.concat([nonce, cipher.update(Buffer.from(compressedData).toString('base64')), cipher.final(), cipher.getAuthTag()]);
-	return encrypted.toString("base64");
+	return encrypted.toString('base64');
 }
 
 module.exports.getDataService = getDataService;
