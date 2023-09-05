@@ -282,12 +282,14 @@ async function parseFlow(dataJson) {
 		}
 		inputNode.dataStructure.outgoing = dataFormat;
 		if (dataFormat.formatType == 'EXCEL') {
+			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Converting EXCEL to CSV \`);`);
 			code.push(`${tab(1)}const workBook = XLSX.readFile(reqFile.tempFilePath);`);
 			code.push(`${tab(1)}XLSX.writeFile(workBook, reqFile.tempFilePath, { bookType: "csv" });`);
+			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] EXCEL to CSV Conversion Done! \`);`);
 		}
 
 		if (dataFormat.formatType === 'CSV' || dataFormat.formatType == 'EXCEL' || dataFormat.formatType === 'DELIMITER') {
-			code.push(`${tab(1)}logger.debug('Parsing request file to ${dataFormat.formatType}');`);
+			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Parsing File\`);`);
 			let rowDelimiter = '';
 			if (dataFormat.lineSeparator === '\\\\n') {
 				rowDelimiter = '\\n';
@@ -333,6 +335,7 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(3)}state.responseBody = records;`);
 			code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
 			code.push(`${tab(2)}state.fileContent = contents;`);
+			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
 			// code.push(`${tab(3)}logger.trace('Parsed Data - ', state.body);`);
 			code.push(`${tab(3)}resolve(records);`);
 			code.push(`${tab(2)}});`);
@@ -345,6 +348,7 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(2)}state.body = JSON.parse(contents);`);
 			code.push(`${tab(2)}state.responseBody = JSON.parse(contents);`);
 			code.push(`${tab(2)}state.fileContent = contents;`);
+			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
 		} else if (dataFormat.formatType === 'XML') {
 			code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
 			code.push(`${tab(2)}state.status = "SUCCESS";`);
@@ -353,6 +357,7 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(2)}state.responseBody = xmlParser.parse(contents);`);
 			code.push(`${tab(2)}state.fileContent = contents;`);
 			code.push(`${tab(2)}state.xmlContent = contents;`);
+			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
 		} else if (dataFormat.formatType === 'BINARY') {
 			code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
 			code.push(`${tab(2)}state.status = "SUCCESS";`);
@@ -360,6 +365,7 @@ async function parseFlow(dataJson) {
 			// code.push(`${tab(2)}state.body = contents;`);
 			// code.push(`${tab(2)}state.responseBody = contents;`);
 			code.push(`${tab(2)}state.fileContent = contents;`);
+			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
 			// code.push(`${tab(2)}fs.copyFileSync(reqFile.tempFilePath, path.join(process.cwd(), 'downloads', req['local']['output-file-name']));`);
 			// code.push(`${tab(2)}}`);
 			// code.push(`${tab(2)}}`);
