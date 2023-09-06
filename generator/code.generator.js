@@ -1410,6 +1410,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}} else {`);
 			code.push(`${tab(2)}state.responseBody = newBody[0];`);
 			code.push(`${tab(2)}}`);
+			generateFileConvertorCode(node, code);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type.startsWith('PARSE_')) {
 			code.push(`${tab(2)}let content = _.get(node, '${node.options.fileContent}');`);
@@ -1561,96 +1562,10 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FILE') {
-			code.push(`${tab(2)}let customBody = state.body;`);
-			code.push(`${tab(2)}let newBody = {};`);
-			if (node.mappingType == 'custom') {
-				generateMappingCode(node, code, true);
-				code.push(`${tab(2)}state.body = newBody;`);
-				code.push(`${tab(2)}customBody = newBody;`);
-			} else {
-				generateMappingCode(node, code, false);
-				code.push(`${tab(2)}state.body = newBody.body;`);
-				code.push(`${tab(2)}customBody = newBody.body;`);
-				code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
-				code.push(`${tab(3)}customHeaders = _.merge(newBody.headers, customHeaders) || {};`);
-				code.push(`${tab(2)}}`);
-			}
-			let ext = '.json';
-			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
-				if (dataFormat.formatType != 'EXCEL') {
-					ext = '.' + _.lowerCase(dataFormat.formatType);
-				} else {
-					ext = '.' + _.lowerCase(dataFormat.excelType);
-				}
-			}
-			code.push(`${tab(2)}let ext = '${ext}';`);
-			code.push(`${tab(2)}let outputFileName;`);
-			code.push(`${tab(2)}if (req.header('output-file-name') != null && req.header('output-file-name') != '') {`);
-			code.push(`${tab(3)}outputFileName = req.header('output-file-name');`);
-			code.push(`${tab(2)}} else {`);
-			code.push(`${tab(3)}const remoteTxnId = req.header('data-stack-remote-txn-id');`);
-			code.push(`${tab(3)}const temp = remoteTxnId.split(".");`);
-			code.push(`${tab(3)}if (ext === temp[1]) {`);
-			code.push(`${tab(4)}outputFileName = req.header('data-stack-remote-txn-id').toString();`);
-			code.push(`${tab(3)}} else {`);
-			code.push(`${tab(4)} outputFileName = temp[0] + ext;`);
-			code.push(`${tab(3)}}`);
-			code.push(`${tab(2)}}`);
-			code.push(`${tab(2)}const downloadFilePath = path.join(process.cwd(), 'downloads', outputFileName);`);
-			code.push(`${tab(2)}let fileDetails;`);
-
-			if (dataFormat.formatType === 'CSV' || dataFormat.formatType === 'DELIMITER' || dataFormat.formatType === 'EXCEL') {
-				let delimiter = ',';
-				if (dataFormat.formatType === 'DELIMITER') {
-					delimiter = dataFormat.character;
-				}
-
-				let rowDelimiter = dataFormat.lineSeparator;
-				if (rowDelimiter === '\\\\n') {
-					rowDelimiter = '\\n';
-				} else if (rowDelimiter === '\\\\r\\\\n') {
-					rowDelimiter = '\\r\\n';
-				} else if (rowDelimiter === '\\\\r') {
-					rowDelimiter = '\\r';
-				} else {
-					rowDelimiter = '\\n';
-				}
-
-				code.push(`${tab(2)}const csvOutputStream = fs.createWriteStream(downloadFilePath);`);
-				code.push(`${tab(2)}const stream = fastcsv.format({ rowDelimiter: '${rowDelimiter}', delimiter: '${delimiter}', ${dataFormat.formatType === 'DELIMITER' ? 'quote: false' : ''} });`);
-				code.push(`${tab(2)}stream.pipe(csvOutputStream);`);
-				// code.push(`${tab(2)}const generateHeaders = ${node.meta.generateHeaders || false};`);
-				// code.push(`${tab(2)}if (generateHeaders) {`);
-				// code.push(`${tab(2)}stream.write(fileUtils.getHeaderOf${dataFormat._id}());`);
-				// code.push(`${tab(2)}}`);
-				code.push(`${tab(2)}if (Array.isArray(customBody)) {`);
-				code.push(`${tab(3)}customBody.forEach(data => {`);
-				code.push(`${tab(3)}stream.write(fileUtils.getValuesOf${dataFormat._id}(data));`);
-				code.push(`${tab(2)}});`);
-				code.push(`${tab(2)}} else {`);
-				code.push(`${tab(3)}stream.write(fileUtils.getValuesOf${dataFormat._id}(customBody));`);
-				code.push(`${tab(2)}}`);
-				code.push(`${tab(2)}stream.end();`);
-				code.push(`${tab(2)}csvOutputStream.on('close', async function() {`);
-
-				if (dataFormat.formatType === 'EXCEL') {
-					code.push(`${tab(2)}const wb = XLSX.readFile(downloadFilePath, { raw: true });`);
-					code.push(`${tab(2)}XLSX.writeFile(wb, downloadFilePath, { bookType: '${ext}', type: 'string' });`);
-				}
-				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, downloadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
-				code.push(`${tab(2)}});`);
-			} else if (dataFormat.formatType === 'JSON') {
-				code.push(`${tab(2)}fs.writeFileSync(downloadFilePath, JSON.stringify(customBody), 'utf-8');`);
-				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, downloadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
-			} else if (dataFormat.formatType === 'XML') {
-				code.push(`${tab(2)}let xmlContent = new XMLBuilder({format: true,arrayNodeName: '${dataFormat.rootNodeName}'}).build(customBody);`);
-				if (dataFormat.xmlInitFormat) {
-					code.push(`${tab(2)}const xmlInitFormat = '${dataFormat.xmlInitFormat}\\r\\n';`);
-					code.push(`${tab(2)}xmlContent = xmlInitFormat + xmlContent;`);
-				}
-				code.push(`${tab(2)}fs.writeFileSync(downloadFilePath, xmlContent, 'utf-8');`);
-				code.push(`${tab(2)}fileDetails = commonUtils.uploadFileToDB(req, downloadFilePath, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
-			}
+			code.push(`${tab(2)}const outputFileName = state.outputFileName;`);
+			code.push(`${tab(2)}logger.trace('out file name - ',outputFileName);`);
+			code.push(`${tab(2)}logger.trace('file content - ',state.fileContent);`);
+			code.push(`${tab(2)}let fileDetails = commonUtils.uploadFileToDB(req, state.fileContent, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.responseBody = fileDetails;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
@@ -2118,6 +2033,97 @@ function generateConverterCode(node, code) {
 	});
 }
 
+function generateFileConvertorCode(node, code) {
+	let dataFormat = node.dataStructure.outgoing;
+	let ext = '.json';
+	if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
+		if (dataFormat.formatType != 'EXCEL') {
+			ext = '.' + _.lowerCase(dataFormat.formatType);
+		} else {
+			ext = '.xlsx';
+		}
+	}
+	code.push(`${tab(2)}let ext = '${ext}';`);
+	code.push(`${tab(2)}let outputFileName;`);
+	code.push(`${tab(2)}if (req.header('output-file-name') != null && req.header('output-file-name') != '') {`);
+	code.push(`${tab(3)}outputFileName = req.header('output-file-name');`);
+	code.push(`${tab(2)}} else {`);
+	code.push(`${tab(3)}const remoteTxnId = req.header('data-stack-remote-txn-id');`);
+	code.push(`${tab(3)}const temp = remoteTxnId.split(".");`);
+	code.push(`${tab(3)}if (ext === temp[1]) {`);
+	code.push(`${tab(4)}outputFileName = req.header('data-stack-remote-txn-id').toString();`);
+	code.push(`${tab(3)}} else if(temp[0]) {`);
+	code.push(`${tab(4)} outputFileName = temp[0] + ext;`);
+	code.push(`${tab(3)}} else {`);
+	code.push(`${tab(4)} outputFileName = remoteTxnId + ext;`);
+	code.push(`${tab(3)}}`);
+	code.push(`${tab(2)}}`);
+	code.push(`${tab(2)}const downloadFilePath = path.join(process.cwd(), 'downloads', outputFileName);`);
+
+	if (dataFormat.formatType === 'CSV' || dataFormat.formatType === 'DELIMITER' || dataFormat.formatType === 'EXCEL') {
+		let delimiter = ',';
+		if (dataFormat.formatType === 'DELIMITER') {
+			delimiter = dataFormat.character;
+		}
+
+		let rowDelimiter = dataFormat.lineSeparator;
+		if (rowDelimiter === '\\\\n') {
+			rowDelimiter = '\\n';
+		} else if (rowDelimiter === '\\\\r\\\\n') {
+			rowDelimiter = '\\r\\n';
+		} else if (rowDelimiter === '\\\\r') {
+			rowDelimiter = '\\r';
+		} else {
+			rowDelimiter = '\\n';
+		}
+		code.push(`${tab(2)}const pr = await new Promise((resolve, reject) => {`);
+		code.push(`${tab(3)}const csvOutputStream = fs.createWriteStream(downloadFilePath);`);
+		code.push(`${tab(3)}const stream = fastcsv.format({ rowDelimiter: '${rowDelimiter}', delimiter: '${delimiter}', ${dataFormat.formatType === 'DELIMITER' ? 'quote: false' : ''} });`);
+		code.push(`${tab(3)}stream.pipe(csvOutputStream);`);
+		// code.push(`${tab(2)}const generateHeaders = ${node.meta.generateHeaders || false};`);
+		// code.push(`${tab(2)}if (generateHeaders) {`);
+		// code.push(`${tab(2)}stream.write(fileUtils.getHeaderOf${dataFormat._id}());`);
+		// code.push(`${tab(2)}}`);
+		code.push(`${tab(3)}if (Array.isArray(newBody)) {`);
+		code.push(`${tab(4)}newBody.forEach(data => {`);
+		code.push(`${tab(4)}stream.write(fileUtils.getValuesOf${dataFormat._id}(data));`);
+		code.push(`${tab(3)}});`);
+		code.push(`${tab(3)}} else {`);
+		code.push(`${tab(4)}stream.write(fileUtils.getValuesOf${dataFormat._id}(newBody));`);
+		code.push(`${tab(3)}}`);
+		code.push(`${tab(3)}stream.end();`);
+		code.push(`${tab(3)}csvOutputStream.on('error', err => {`);
+		code.push(`${tab(4)}state.status = "ERROR";`);
+		code.push(`${tab(4)}state.statusCode = 400;`);
+		code.push(`${tab(4)}state.body = err;`);
+		code.push(`${tab(4)}state.responseBody = err;`);
+		code.push(`${tab(4)}stateUtils.upsertState(req, state);`);
+		code.push(`${tab(4)}reject(err);`);
+		code.push(`${tab(3)}});`);
+		code.push(`${tab(3)}csvOutputStream.on('close', async function() {`);
+
+		if (dataFormat.formatType === 'EXCEL') {
+			code.push(`${tab(4)}const wb = XLSX.readFile(downloadFilePath, { raw: true });`);
+			code.push(`${tab(4)}XLSX.writeFile(wb, downloadFilePath, { bookType: 'xlsx', type: 'binary', compression: true });`);
+		}
+		code.push(`${tab(4)}resolve();`);
+		code.push(`${tab(3)}});`);
+		code.push(`${tab(2)}});`);
+	} else if (dataFormat.formatType === 'JSON') {
+		code.push(`${tab(2)}fs.writeFileSync(downloadFilePath, JSON.stringify(newBody), 'utf-8');`);
+		code.push(`${tab(2)}`);
+	} else if (dataFormat.formatType === 'XML') {
+		code.push(`${tab(2)}let xmlContent = new XMLBuilder({format: true,arrayNodeName: '${dataFormat.rootNodeName}'}).build(newBody);`);
+		if (dataFormat.xmlInitFormat) {
+			code.push(`${tab(2)}const xmlInitFormat = '${dataFormat.xmlInitFormat}\\r\\n';`);
+			code.push(`${tab(2)}xmlContent = xmlInitFormat + xmlContent;`);
+		}
+		code.push(`${tab(2)}fs.writeFileSync(downloadFilePath, xmlContent, 'utf-8');`);
+		code.push(`${tab(2)}`);
+	}
+	code.push(`${tab(2)}state.fileContent = downloadFilePath;`);
+	code.push(`${tab(2)}state.outputFileName = outputFileName;`);
+}
 module.exports.parseFlow = parseFlow;
 module.exports.parseNodes = parseNodes;
 module.exports.parseDataStructures = parseDataStructures;

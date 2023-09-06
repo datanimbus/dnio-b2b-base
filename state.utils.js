@@ -25,7 +25,7 @@ function getState(req, nodeId, isChild, contentType) {
 	} else {
 		data.body = req.body;
 	}
-	// data.fileContent = req.fileContent;
+	data.fileContent = req.fileContent;
 	logger.trace(`State :: ${nodeId} :: Body :: ${JSON.stringify(req.body)}`);
 	data.params = req.params;
 	data.query = req.query;
@@ -43,6 +43,7 @@ function getState(req, nodeId, isChild, contentType) {
 	} else {
 		data.statusCode = 500;
 	}
+	data.outputFileName = req.outputFileName;
 	return data;
 }
 
