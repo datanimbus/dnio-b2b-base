@@ -358,6 +358,14 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(2)}state.fileContent = reqFile.tempFilePath;`);
 			code.push(`${tab(2)}state.xmlContent = contents;`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
+		} else if (dataFormat.formatType === 'FLATFILE') {
+			code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
+			code.push(`${tab(2)}state.body = fileUtils.fromFlatFile${dataFormat._id}(contents, ${inputNode.options.isFirstRowHeader || false});`);
+			code.push(`${tab(2)}state.responseBody = state.body;`);
+			code.push(`${tab(2)}state.status = "SUCCESS";`);
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.fileContent = reqFile.tempFilePath;`);
+			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
 		} else if (dataFormat.formatType === 'BINARY') {
 			// code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
 			code.push(`${tab(2)}state.status = "SUCCESS";`);
@@ -1494,7 +1502,7 @@ async function generateNodes(pNode) {
 				generateMappingCode(node, code, false);
 				code.push(`${tab(2)}state.body.targetFilePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
 				code.push(`${tab(2)}await commonUtils.sftpPutFile(connectorConfig, newBody.fileContent);`);
-				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Uploaded to: \${sourceFilePath} \`);`);
+				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Uploaded to: \${newBody.fileContent} \`);`);
 			} else if (connector.category == 'DB') {
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
 				if (connector.type == 'MSSQL') {
@@ -1726,6 +1734,8 @@ function generateDataStructures(node, nodes) {
 
 function parseDataStructuresForFileUtils(dataJson) {
 	const code = [];
+	code.push('/* eslint-disable quotes */');
+	code.push('/* eslint-disable camelcase */');
 	code.push('const _ = require(\'lodash\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
 	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
@@ -1771,10 +1781,80 @@ function parseDataStructuresForFileUtils(dataJson) {
 			code.push(`${tab(1)}return tempData;`);
 			code.push('}');
 
+			// Function to Read FLAT FILE data;
+			code.push(`function fromFlatFile${schemaId} (contents, isFirstRowHeader) {`);
+			code.push(`${tab(1)}let records = [];`);
+			code.push(`${tab(1)}let rows = contents.split('\\n');`);
+			code.push(`${tab(1)}if (isFirstRowHeader) {`);
+			code.push(`${tab(2)}rows = rows.splice(1);`);
+			code.push(`${tab(1)}}`);
+			code.push(`${tab(1)}rows.forEach((rowData)=>{`);
+			code.push(`${tab(1)}let tempData = {};`);
+			code.push(`${tab(1)}let rowSegments = rowData.split('');`);
+			definition.forEach((def, i) => {
+				const properties = def.properties;
+				const targetKey = properties.dataPathSegs;
+				code.push(`${tab(1)}let var_${i} = _.trim(rowSegments.splice(0,${properties.fieldLength}).join(''));`);
+				if (def.type == 'Number') {
+					code.push(`${tab(1)}_.set(tempData, ${JSON.stringify(targetKey)}, var_${i});`);
+				} else if (def.type == 'Boolean') {
+					code.push(`${tab(1)}_.set(tempData, ${JSON.stringify(targetKey)}, var_${i});`);
+				} else if (def.type == 'Date') {
+					code.push(`${tab(1)}_.set(tempData, ${JSON.stringify(targetKey)}, var_${i});`);
+				} else {
+					code.push(`${tab(1)}_.set(tempData, ${JSON.stringify(targetKey)}, var_${i});`);
+				}
+			});
+			code.push(`${tab(2)}records.push(tempData);`);
+			code.push(`${tab(1)}});`);
+			code.push(`${tab(1)}return records;`);
+			code.push('}');
+
+
+			// Function to Write FLAT FILE data;
+			code.push(`function toFlatFile${schemaId} (records) {`);
+			code.push(`${tab(1)}let rows = [];`);
+			code.push(`${tab(1)}records.forEach((rowData)=>{`);
+			code.push(`${tab(1)}let line = '';`);
+			definition.forEach((def, i) => {
+				const properties = def.properties;
+				const sourceKey = properties.dataPathSegs;
+				if (def.type == 'Number') {
+					code.push(`${tab(2)}let var_${i} = (_.get(rowData, ${JSON.stringify(sourceKey)}))+'';`);
+				} else if (def.type == 'Boolean') {
+					code.push(`${tab(2)}let var_${i} = convertToBoolean(_.get(rowData, ${JSON.stringify(sourceKey)}));`);
+				} else if (def.type == 'Date') {
+					code.push(`${tab(2)}let var_${i} = commonUtils.convertToDate(_.get(rowData, ${JSON.stringify(sourceKey)}), '${properties.dateFormat || 'yyyy-MM-dd'}');`);
+				} else {
+					code.push(`${tab(2)}let var_${i} = _.get(rowData, ${JSON.stringify(sourceKey)});`);
+				}
+				code.push(`${tab(2)}var_${i} = var_${i}.split('').slice(0, ${properties.fieldLength}).join('');`);
+				code.push(`${tab(2)}var_${i} = _.padEnd(var_${i}, ${properties.fieldLength}, ' ');`);
+				code.push(`${tab(2)}line+=var_${i};`);
+			});
+			code.push(`${tab(2)}rows.push(line);`);
+			code.push(`${tab(1)}});`);
+			code.push(`${tab(1)}return rows.join('\\n');`);
+			code.push('}');
+
 			code.push(`module.exports.getValuesOf${schemaId} = getValuesOf${schemaId};`);
 			code.push(`module.exports.getHeaderOf${schemaId} = getHeaderOf${schemaId};`);
 			code.push(`module.exports.convertData${schemaId} = convertData${schemaId};`);
+			code.push(`module.exports.toFlatFile${schemaId} = toFlatFile${schemaId};`);
+			code.push(`module.exports.fromFlatFile${schemaId} = fromFlatFile${schemaId};`);
 		});
+		code.push(`${tab(0)}function convertToBoolean(value) {`);
+		code.push(`${tab(1)}if (typeof value === 'string' && ['true', 't', 'TRUE', 'yes'].indexOf(value) > -1) {`);
+		code.push(`${tab(2)}return 'TRUE';`);
+		code.push(`${tab(1)}}`);
+		code.push(`${tab(1)}if (typeof value === 'boolean') {`);
+		code.push(`${tab(2)}return value ? 'TRUE' : 'FALSE';`);
+		code.push(`${tab(1)}}`);
+		code.push(`${tab(1)}if (typeof value === 'number') {`);
+		code.push(`${tab(2)}return value != 0 ? 'TRUE' : 'FALSE';`);
+		code.push(`${tab(1)}}`);
+		code.push(`${tab(1)}return 'FALSE';`);
+		code.push(`${tab(0)}}`);
 	}
 	return code.join('\n');
 }
@@ -2126,6 +2206,9 @@ function generateFileConvertorCode(node, code) {
 		}
 		code.push(`${tab(2)}fs.writeFileSync(filePath, xmlContent, 'utf-8');`);
 		code.push(`${tab(2)}`);
+	} else if (dataFormat.formatType === 'FLATFILE') {
+		code.push(`${tab(3)}let content = fileUtils.toFlatFile${node.dataStructure.outgoing._id}(newBody);`);
+		code.push(`${tab(2)}fs.writeFileSync(filePath, content, 'utf-8');`);
 	}
 	code.push(`${tab(2)}state.fileContent = filePath;`);
 }
