@@ -27,11 +27,11 @@ e.uploadStreamAzBlob = async (data) => {
 		const containerClient = blobServiceClient.getContainerClient(data.containerName);
 		const blockBlobClient = containerClient.getBlockBlobClient(data.blobName);
 
-		let stream = fs.createReadStream(data.file.path);
+		let stream = fs.createReadStream(data.fileContent);
 
 		let response = await blockBlobClient.uploadStream(stream, uploadOptions.bufferSize, uploadOptions.maxBuffers,
 			{
-				blobHTTPHeaders: { blobContentType: data.file.contentType },
+				// blobHTTPHeaders: { blobContentType: data.file.contentType },
 				metadata: data.metadata
 			});
 

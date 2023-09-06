@@ -333,8 +333,8 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(3)}state.statusCode = 200;`);
 			code.push(`${tab(3)}state.body = records;`);
 			code.push(`${tab(3)}state.responseBody = records;`);
-			code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
-			code.push(`${tab(2)}state.fileContent = contents;`);
+			// code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
+			code.push(`${tab(2)}state.fileContent = reqFile.tempFilePath;`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
 			// code.push(`${tab(3)}logger.trace('Parsed Data - ', state.body);`);
 			code.push(`${tab(3)}resolve(records);`);
@@ -347,7 +347,7 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.body = JSON.parse(contents);`);
 			code.push(`${tab(2)}state.responseBody = JSON.parse(contents);`);
-			code.push(`${tab(2)}state.fileContent = contents;`);
+			code.push(`${tab(2)}state.fileContent = reqFile.tempFilePath;`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
 		} else if (dataFormat.formatType === 'XML') {
 			code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
@@ -355,16 +355,16 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.body = xmlParser.parse(contents);`);
 			code.push(`${tab(2)}state.responseBody = xmlParser.parse(contents);`);
-			code.push(`${tab(2)}state.fileContent = contents;`);
+			code.push(`${tab(2)}state.fileContent = reqFile.tempFilePath;`);
 			code.push(`${tab(2)}state.xmlContent = contents;`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
 		} else if (dataFormat.formatType === 'BINARY') {
-			code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
+			// code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
 			code.push(`${tab(2)}state.status = "SUCCESS";`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			// code.push(`${tab(2)}state.body = contents;`);
 			// code.push(`${tab(2)}state.responseBody = contents;`);
-			code.push(`${tab(2)}state.fileContent = contents;`);
+			code.push(`${tab(2)}state.fileContent = reqFile.tempFilePath;`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
 			// code.push(`${tab(2)}fs.copyFileSync(reqFile.tempFilePath, path.join(process.cwd(), 'downloads', req['local']['output-file-name']));`);
 			// code.push(`${tab(2)}}`);
@@ -1378,7 +1378,7 @@ async function generateNodes(pNode) {
 		} else if (node.type === 'FILE_WRITE') {
 			code.push(`${tab(2)}let newBody = {};`);
 			generateMappingCode(node, code, false);
-			code.push(`${tab(2)}fs.writeFileSync(path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}}\`), newBody.fileContent));`);
+			code.push(`${tab(2)}fs.copyFileSync(newBody.fileContent, path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}}\`))`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.responseBody = { message: 'File Write Successful' };`);
@@ -1490,13 +1490,10 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
 				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath)}\`;`);
 				code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
-
 				code.push(`${tab(2)}let newBody = {};`);
 				generateMappingCode(node, code, false);
-				code.push(`${tab(2)}const sourceFilePath = path.join(__dirname, 'SFTP-Files', connectorConfig.fileName);`);
 				code.push(`${tab(2)}state.body.targetFilePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
-				code.push(`${tab(2)}fs.writeFileSync(sourceFilePath, newBody.fileContent);`);
-				code.push(`${tab(2)}await commonUtils.sftpPutFile(connectorConfig, sourceFilePath);`);
+				code.push(`${tab(2)}await commonUtils.sftpPutFile(connectorConfig, newBody.fileContent);`);
 				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Uploaded to: \${sourceFilePath} \`);`);
 			} else if (connector.category == 'DB') {
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
@@ -1562,9 +1559,31 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FILE') {
-			code.push(`${tab(2)}const outputFileName = state.outputFileName;`);
-			code.push(`${tab(2)}logger.trace('out file name - ',outputFileName);`);
-			code.push(`${tab(2)}logger.trace('file content - ',state.fileContent);`);
+			let dataFormat = node.dataStructure.outgoing;
+			let ext = '.json';
+			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
+				if (dataFormat.formatType != 'EXCEL') {
+					ext = '.' + _.lowerCase(dataFormat.formatType);
+				} else {
+					ext = '.xlsx';
+				}
+			}
+			code.push(`${tab(2)}let ext = '${ext}';`);
+			code.push(`${tab(2)}if (req.header('output-file-name') != null && req.header('output-file-name') != '') {`);
+			code.push(`${tab(3)}outputFileName = req.header('output-file-name');`);
+			code.push(`${tab(2)}} else {`);
+			code.push(`${tab(3)}const remoteTxnId = req.header('data-stack-remote-txn-id');`);
+			code.push(`${tab(3)}const temp = remoteTxnId.split(".");`);
+			code.push(`${tab(3)}if (ext === temp[1]) {`);
+			code.push(`${tab(4)}outputFileName = req.header('data-stack-remote-txn-id').toString();`);
+			code.push(`${tab(3)}} else if(temp[0]) {`);
+			code.push(`${tab(4)}outputFileName = temp[0] + ext;`);
+			code.push(`${tab(3)}} else {`);
+			code.push(`${tab(4)}outputFileName = remoteTxnId + ext;`);
+			code.push(`${tab(3)}}`);
+			code.push(`${tab(2)}}`);
+			code.push(`${tab(2)}logger.trace('out file name - ', outputFileName);`);
+			code.push(`${tab(2)}logger.trace('file content - ', state.fileContent);`);
 			code.push(`${tab(2)}let fileDetails = commonUtils.uploadFileToDB(req, state.fileContent, '${node.options.agents[0].agentId}', '${node.options.agents[0].name}', '${pNode.name}','${pNode.deploymentName}', outputFileName);`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.responseBody = fileDetails;`);
@@ -2044,28 +2063,15 @@ function generateFileConvertorCode(node, code) {
 		}
 	}
 	code.push(`${tab(2)}let ext = '${ext}';`);
-	code.push(`${tab(2)}let outputFileName;`);
-	code.push(`${tab(2)}if (req.header('output-file-name') != null && req.header('output-file-name') != '') {`);
-	code.push(`${tab(3)}outputFileName = req.header('output-file-name');`);
-	code.push(`${tab(2)}} else {`);
-	code.push(`${tab(3)}const remoteTxnId = req.header('data-stack-remote-txn-id');`);
-	code.push(`${tab(3)}const temp = remoteTxnId.split(".");`);
-	code.push(`${tab(3)}if (ext === temp[1]) {`);
-	code.push(`${tab(4)}outputFileName = req.header('data-stack-remote-txn-id').toString();`);
-	code.push(`${tab(3)}} else if(temp[0]) {`);
-	code.push(`${tab(4)} outputFileName = temp[0] + ext;`);
-	code.push(`${tab(3)}} else {`);
-	code.push(`${tab(4)} outputFileName = remoteTxnId + ext;`);
-	code.push(`${tab(3)}}`);
-	code.push(`${tab(2)}}`);
-	code.push(`${tab(2)}const downloadFilePath = path.join(process.cwd(), 'downloads', outputFileName);`);
+	code.push(`${tab(2)}let outputFileName = '${node._id}' + ext;`);
+
+	code.push(`${tab(2)}const filePath = path.join(process.cwd(), 'downloads', outputFileName);`);
 
 	if (dataFormat.formatType === 'CSV' || dataFormat.formatType === 'DELIMITER' || dataFormat.formatType === 'EXCEL') {
 		let delimiter = ',';
 		if (dataFormat.formatType === 'DELIMITER') {
 			delimiter = dataFormat.character;
 		}
-
 		let rowDelimiter = dataFormat.lineSeparator;
 		if (rowDelimiter === '\\\\n') {
 			rowDelimiter = '\\n';
@@ -2077,7 +2083,7 @@ function generateFileConvertorCode(node, code) {
 			rowDelimiter = '\\n';
 		}
 		code.push(`${tab(2)}const pr = await new Promise((resolve, reject) => {`);
-		code.push(`${tab(3)}const csvOutputStream = fs.createWriteStream(downloadFilePath);`);
+		code.push(`${tab(3)}const csvOutputStream = fs.createWriteStream(filePath);`);
 		code.push(`${tab(3)}const stream = fastcsv.format({ rowDelimiter: '${rowDelimiter}', delimiter: '${delimiter}', ${dataFormat.formatType === 'DELIMITER' ? 'quote: false' : ''} });`);
 		code.push(`${tab(3)}stream.pipe(csvOutputStream);`);
 		// code.push(`${tab(2)}const generateHeaders = ${node.meta.generateHeaders || false};`);
@@ -2103,14 +2109,14 @@ function generateFileConvertorCode(node, code) {
 		code.push(`${tab(3)}csvOutputStream.on('close', async function() {`);
 
 		if (dataFormat.formatType === 'EXCEL') {
-			code.push(`${tab(4)}const wb = XLSX.readFile(downloadFilePath, { raw: true });`);
-			code.push(`${tab(4)}XLSX.writeFile(wb, downloadFilePath, { bookType: 'xlsx', type: 'binary', compression: true });`);
+			code.push(`${tab(4)}const wb = XLSX.readFile(filePath, { raw: true });`);
+			code.push(`${tab(4)}XLSX.writeFile(wb, filePath, { bookType: 'xlsx', type: 'binary', compression: true });`);
 		}
 		code.push(`${tab(4)}resolve();`);
 		code.push(`${tab(3)}});`);
 		code.push(`${tab(2)}});`);
 	} else if (dataFormat.formatType === 'JSON') {
-		code.push(`${tab(2)}fs.writeFileSync(downloadFilePath, JSON.stringify(newBody), 'utf-8');`);
+		code.push(`${tab(2)}fs.writeFileSync(filePath, JSON.stringify(newBody), 'utf-8');`);
 		code.push(`${tab(2)}`);
 	} else if (dataFormat.formatType === 'XML') {
 		code.push(`${tab(2)}let xmlContent = new XMLBuilder({format: true,arrayNodeName: '${dataFormat.rootNodeName}'}).build(newBody);`);
@@ -2118,11 +2124,10 @@ function generateFileConvertorCode(node, code) {
 			code.push(`${tab(2)}const xmlInitFormat = '${dataFormat.xmlInitFormat}\\r\\n';`);
 			code.push(`${tab(2)}xmlContent = xmlInitFormat + xmlContent;`);
 		}
-		code.push(`${tab(2)}fs.writeFileSync(downloadFilePath, xmlContent, 'utf-8');`);
+		code.push(`${tab(2)}fs.writeFileSync(filePath, xmlContent, 'utf-8');`);
 		code.push(`${tab(2)}`);
 	}
-	code.push(`${tab(2)}state.fileContent = downloadFilePath;`);
-	code.push(`${tab(2)}state.outputFileName = outputFileName;`);
+	code.push(`${tab(2)}state.fileContent = filePath;`);
 }
 module.exports.parseFlow = parseFlow;
 module.exports.parseNodes = parseNodes;
