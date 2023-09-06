@@ -360,13 +360,11 @@ async function uploadFileToDB(req, uploadFilePath, targetAgentId, targetAgentNam
 		const encryptedOutputFileName = 'ENC_' + outputFileName;
 		logger.info(`Uploading file ${encryptedOutputFileName} from flow ${config.flowId} to DB`);
 
-		const downloadFilePath = path.join(process.cwd(), 'downloads', encryptedOutputFileName);
-		let writeStream = fs.createWriteStream(downloadFilePath);
-
 		const fileData = fs.readFileSync(uploadFilePath);
 		const encryptedData = encryptDataGCM(fileData, config.encryptionKey);
-		const writeStatus = await writeStream.write(encryptedData);
-		logger.trace('File write status - ', writeStatus);
+
+		const downloadFilePath = path.join(process.cwd(), 'downloads', encryptedOutputFileName);
+		fs.writeFileSync(downloadFilePath, encryptedData);
 
 		const fileDetails = await new Promise((resolve, reject) => {
 			fs.createReadStream(downloadFilePath).
