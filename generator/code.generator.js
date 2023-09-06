@@ -1376,7 +1376,9 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.fileContent = content;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FILE_WRITE') {
-			code.push(`${tab(2)}fs.writeFileSync(path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}}\`), _.get(node, '${node.options.fileContent}')));`);
+			code.push(`${tab(2)}let newBody = {};`);
+			generateMappingCode(node, code, false);
+			code.push(`${tab(2)}fs.writeFileSync(path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}}\`), newBody.fileContent));`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.responseBody = { message: 'File Write Successful' };`);
