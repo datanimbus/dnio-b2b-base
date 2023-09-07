@@ -1128,7 +1128,7 @@ async function generateNodes(pNode) {
 			} else if (node.type === 'FLOW') {
 				code.push(`${tab(2)}const flow = await commonUtils.getFlow('${node.options.flow._id}');`);
 				code.push(`${tab(2)}logger.trace({ flow });`);
-				code.push(`${tab(2)}state.url = \`${config.baseUrlBM}/b2b/pipes/\${flow.app}/\${flow.inputNode.options.path}?parentInteraction=\${req.query.interactionId}\`;`);
+				code.push(`${tab(2)}state.url = \`${config.baseUrlFLOW}/\${flow.app}/\${flow.inputNode.options.path}?parentInteraction=\${req.query.interactionId}\`;`);
 				code.push(`${tab(2)}state.method = \`\${flow.inputNode.options.method || 'POST'}\`;`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);

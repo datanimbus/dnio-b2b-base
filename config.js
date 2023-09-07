@@ -61,6 +61,7 @@ const e = {
 	baseUrlNE: get('ne') + '/ne',
 	baseUrlUSR: get('user') + '/rbac',
 	baseUrlBM: get('bm') + '/bm',
+	baseUrlFLOW: get('bm') + '/b2b/pipes',
 	baseUrlSEC: get('sec') + '/sec',
 	baseUrlDM: get('dm') + '/dm',
 	baseUrlGW: get('gw'),
