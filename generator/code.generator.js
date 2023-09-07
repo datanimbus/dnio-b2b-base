@@ -227,7 +227,7 @@ async function parseFlow(dataJson) {
 	code.push('async function handleRequest(req, res) {');
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
-	code.push(`${tab(1)}res.header('dnio-interaction-id', req.query.interactionId);`);
+	code.push(`${tab(1)}res.setHeader('dnio-interaction-id', req.query.interactionId);`);
 	code.push(`${tab(1)}let response = req;`);
 	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}', false, '${(inputNode.options.contentType || '')}');`);
 	code.push(`${tab(1)}let node = {};`);
