@@ -1,3 +1,4 @@
+/* eslint-disable no-inner-declarations */
 const path = require('path');
 const log4js = require('log4js');
 const moment = require('moment');
@@ -175,41 +176,7 @@ async function getAllLibraries() {
 	}
 }
 
-async function sftpFetchFile(configData) {
-	let sftp = new Client();
-	try {
-		const options = {};
-		options.host = configData.host;
-		options.port = configData.port;
-		options.username = configData.username;
-		if (configData.authType == 'password') {
-			options.password = configData.password;
-		} else if (configData.authType == 'publickey') {
-			options.privateKey = configData.privateKey;
-			options.passphrase = configData.passphrase;
-		}
-		let filePath;
-		await sftp.connect(options);
-		if (configData.filePattern) {
-			const fileName = configData.filePattern;
-			filePath = path.join(__dirname, 'SFTP-Files', fileName);
-			await sftp.fastGet(configData.folderPath + '/' + configData.filePattern, filePath);
-		} else {
-			const fileList = await sftp.list(configData.folderPath);
-			const fileName = fileList[0].name;
-			filePath = path.join(__dirname, 'SFTP-Files', fileName);
-			await sftp.fastGet(configData.folderPath + '/' + fileName, filePath);
-		}
-		return filePath;
-	} catch (err) {
-		logger.error(err);
-		throw err;
-	} finally {
-		sftp.end();
-	}
-}
-
-async function sftpPutFile(configData, filePath) {
+async function sftpPutFile(configData) {
 	let sftp = new Client();
 	try {
 		const options = {};
@@ -223,19 +190,110 @@ async function sftpPutFile(configData, filePath) {
 			options.passphrase = configData.passphrase;
 		}
 		await sftp.connect(options);
-		if (!configData.folderPath) {
-			throw new Error('No Directory Path provided');
-		}
-		if (!configData.fileName) {
-			throw new Error('No File Name provided');
-		}
-		logger.info('Trying SFTP Upload');
-		let status = await sftp.mkdir(configData.folderPath, true);
+		let targetDirectory = path.dirname(configData.targetPath);
+		let status = await sftp.mkdir(targetDirectory, true);
 		logger.info('Creating Folder if not exists: ', status);
-		const temp = await sftp.fastPut(filePath, configData.folderPath + '/' + configData.fileName);
+		logger.info('Trying SFTP Upload');
+		const temp = await sftp.fastPut(configData.sourcePath, configData.targetPath);
 		logger.info('SFTP Upload Done!');
 		logger.debug(temp);
-		return filePath;
+		return { message: temp };
+	} catch (err) {
+		logger.error(err);
+		throw err;
+	} finally {
+		sftp.end();
+	}
+}
+
+async function sftpListFile(configData) {
+	let sftp = new Client();
+	try {
+		const options = {};
+		options.host = configData.host;
+		options.port = configData.port;
+		options.username = configData.user;
+		if (configData.authType == 'password') {
+			options.password = configData.password;
+		} else if (configData.authType == 'publickey') {
+			options.privateKey = configData.privateKey;
+			options.passphrase = configData.passphrase;
+		}
+		await sftp.connect(options);
+		if (!configData.targetPath) {
+			throw new Error('No Directory Path provided');
+		}
+		function filterFunction(item) {
+			if (configData.filePattern) {
+				if (item.name) {
+					return item.name.match(configData.filePattern);
+				}
+				return false;
+			}
+			return true;
+		}
+		logger.info('Trying to list files in folder:', configData.targetPath);
+		const fileList = await sftp.list(configData.targetPath, filterFunction);
+		logger.info('File in SFTP folder:', fileList.length);
+		logger.debug(fileList);
+		return fileList;
+	} catch (err) {
+		logger.error(err);
+		throw err;
+	} finally {
+		sftp.end();
+	}
+}
+
+async function sftpReadFile(configData) {
+	let sftp = new Client();
+	try {
+		const options = {};
+		options.host = configData.host;
+		options.port = configData.port;
+		options.username = configData.user;
+		if (configData.authType == 'password') {
+			options.password = configData.password;
+		} else if (configData.authType == 'publickey') {
+			options.privateKey = configData.privateKey;
+			options.passphrase = configData.passphrase;
+		}
+		await sftp.connect(options);
+		logger.info('Trying to Read file from SFTP :', configData.sourcePath);
+		let temp = await sftp.fastGet(configData.sourcePath, configData.targetPath);
+		logger.info('SFTP Read Done!');
+		logger.info('File Stored at :', configData.targetPath);
+		return { message: temp };
+	} catch (err) {
+		logger.error(err);
+		throw err;
+	} finally {
+		sftp.end();
+	}
+}
+
+async function sftpMoveFile(configData) {
+	let sftp = new Client();
+	try {
+		const options = {};
+		options.host = configData.host;
+		options.port = configData.port;
+		options.username = configData.user;
+		if (configData.authType == 'password') {
+			options.password = configData.password;
+		} else if (configData.authType == 'publickey') {
+			options.privateKey = configData.privateKey;
+			options.passphrase = configData.passphrase;
+		}
+		await sftp.connect(options);
+		let targetDirectory = path.dirname(configData.targetPath);
+		let status = await sftp.mkdir(targetDirectory, true);
+		logger.info('Creating Folder if not exists: ', status);
+		logger.info('Trying to Move file from SFTP :', configData.sourcePath);
+		let temp = await sftp.rename(configData.sourcePath, configData.targetPath);
+		logger.info('SFTP Move Done!');
+		logger.info('File Moved to :', configData.targetPath);
+		return { message: temp };
 	} catch (err) {
 		logger.error(err);
 		throw err;
@@ -453,8 +511,10 @@ module.exports.convertToDate = convertToDate;
 module.exports.handleError = handleError;
 module.exports.handleResponse = handleResponse;
 module.exports.handleValidation = handleValidation;
-module.exports.sftpFetchFile = sftpFetchFile;
 module.exports.sftpPutFile = sftpPutFile;
+module.exports.sftpListFile = sftpListFile;
+module.exports.sftpReadFile = sftpReadFile;
+module.exports.sftpMoveFile = sftpMoveFile;
 module.exports.writeDataToCSV = writeDataToCSV;
 module.exports.writeDataToXLS = writeDataToXLS;
 module.exports.uploadFileToDB = uploadFileToDB;
