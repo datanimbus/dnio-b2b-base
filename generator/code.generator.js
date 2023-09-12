@@ -1509,7 +1509,6 @@ async function generateNodes(pNode) {
 		} else if (node.type === 'CONNECTOR' && node.options.connector && node.options.connector._id) {
 			const connector = await commonUtils.getConnector(node.options.connector._id);
 			if (connector.type == 'SFTP') {
-
 				code.push(`${tab(2)}state.body = {};`);
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
 				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath)}\`;`);
@@ -1541,22 +1540,25 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}connectorConfig.targetPath = filePath;`);
 					code.push(`${tab(2)}state.body.sourcePath = connectorConfig.sourcePath;`);
 					code.push(`${tab(2)}let status = await commonUtils.sftpReadFile(connectorConfig);`);
-					code.push(`${tab(2)}state.responseBody = { statusCode: 200, sourcePath: state.body.sourcePath };`);
+					code.push(`${tab(2)}state.responseBody = { statusCode: 200, sourcePath: connectorConfig.sourcePath };`);
 					code.push(`${tab(2)}state.fileContent = filePath;`);
 					code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Read from: \${state.body.sourcePath} \`);`);
 				} else if (node.options.move) {
 					code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
-					code.push(`${tab(2)}connectorConfig.sourcePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
-					code.push(`${tab(2)}connectorConfig.targetPath = filePath;`);
+					code.push(`${tab(2)}connectorConfig.sourcePath = path.join(\`${parseDynamicVariable(node.options.sourceFolderPath) || ''}\`, connectorConfig.fileName);`);
+					code.push(`${tab(2)}connectorConfig.targetPath = path.join(\`${parseDynamicVariable(node.options.targetFolderPath) || ''}\`, connectorConfig.fileName);`);
+					code.push(`${tab(2)}state.body.sourcePath = connectorConfig.sourcePath;`);
+					code.push(`${tab(2)}state.body.targetPath = connectorConfig.targetPath;`);
 					code.push(`${tab(2)}let status = await commonUtils.sftpMoveFile(connectorConfig);`);
-					code.push(`${tab(2)}state.responseBody = { statusCode: 200, targetPath: state.body.targetPath, message: status.message };`);
+					code.push(`${tab(2)}state.responseBody = { statusCode: 200, targetPath: connectorConfig.targetPath, sourcePath: connectorConfig.sourcePath, message: status.message };`);
 					code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Moved to: \${state.body.targetPath} \`);`);
 				} else {
 					code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
 					code.push(`${tab(2)}connectorConfig.sourcePath = newBody.fileContent;`);
 					code.push(`${tab(2)}connectorConfig.targetPath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
+					code.push(`${tab(2)}state.body.targetPath = connectorConfig.targetPath;`);
 					code.push(`${tab(2)}let status = await commonUtils.sftpPutFile(connectorConfig);`);
-					code.push(`${tab(2)}state.responseBody = { statusCode: 200, targetPath: state.body.targetPath, message: status.message };`);
+					code.push(`${tab(2)}state.responseBody = { statusCode: 200, targetPath: connectorConfig.targetPath, message: status.message };`);
 					code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Uploaded to: \${state.body.targetPath} \`);`);
 				}
 			} else if (connector.category == 'DB') {
