@@ -6,7 +6,7 @@ const { exec, execSync } = require('child_process');
 
 const codeGen = require('./code.generator');
 const schemaUtils = require('./schema.utils');
-const commonUtils = require('../common.utils');
+const commonUtils = require('../utils/common.utils');
 const config = require('../config');
 
 const logger = log4js.getLogger(global.loggerName);
@@ -39,48 +39,11 @@ async function createProject(flowJSON) {
 		const routerJSContent = await codeGen.parseFlow(flowJSON);
 		const nodeUtilsContent = await codeGen.parseNodes(flowJSON);
 		fs.writeFileSync(path.join(folderPath, 'route.js'), routerJSContent);
-		fs.writeFileSync(path.join(folderPath, 'node.utils.js'), nodeUtilsContent);
-		fs.writeFileSync(path.join(folderPath, 'file.utils.js'), codeGen.parseDataStructuresForFileUtils(flowJSON));
-		fs.writeFileSync(path.join(folderPath, 'validation.utils.js'), codeGen.parseDataStructures(flowJSON));
+		fs.writeFileSync(path.join(folderPath, 'utils', 'node.utils.js'), nodeUtilsContent);
+		fs.writeFileSync(path.join(folderPath, 'utils', 'file.utils.js'), codeGen.parseDataStructuresForFileUtils(flowJSON));
+		fs.writeFileSync(path.join(folderPath, 'utils', 'validation.utils.js'), codeGen.parseDataStructures(flowJSON));
+		fs.writeFileSync(path.join(folderPath, 'utils', 'masking.utils.js'), codeGen.parseDataStructuresForMasking(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'flow.json'), JSON.stringify(flowJSON));
-		// if (config.b2bAllowNpmInstall === 'true') {
-		// 	const npmLibraries = await commonUtils.getAllLibraries();
-		// 	await new Promise((resolve, reject) => {
-		// 		try {
-		// 			let code = [];
-		// 			npmLibraries.forEach((item) => {
-		// 				code.push(item.command);
-		// 			});
-		// 			if (code && code.length > 0) {
-		// 				fs.writeFileSync('install.sh', code.join(' && '));
-		// 				execSync('chmod 777 install.sh');
-		// 				logger.info('These libraries will be installed now:');
-		// 				execSync('cat install.sh');
-		// 				const cp = exec('./install.sh');
-		// 				cp.stdout.on('data', (data) => {
-		// 					logger.info(data);
-		// 				});
-		// 				cp.stderr.on('data', (data) => {
-		// 					logger.error(data);
-		// 				});
-		// 				cp.on('error', (err) => {
-		// 					logger.error(err);
-		// 					reject(err);
-		// 				});
-		// 				cp.on('exit', (code) => {
-		// 					logger.info('Child Process Closed:', code);
-		// 					resolve();
-		// 				});
-		// 			} else {
-		// 				resolve();
-		// 			}
-		// 		} catch (err) {
-		// 			logger.error('NPM INSTALL FAILED');
-		// 			logger.error(err);
-		// 			reject(err);
-		// 		}
-		// 	});
-		// }
 
 		// fs.rmdirSync(path.join(folderPath, 'generator'), { recursive: true });
 

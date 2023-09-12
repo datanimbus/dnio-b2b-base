@@ -2,8 +2,10 @@ const log4js = require('log4js');
 const { v4: uuid } = require('uuid');
 const Async = require('async');
 
-const httpClient = require('./http-client');
-const config = require('./config');
+const httpClient = require('../http-client');
+const config = require('../config');
+const maskingUtils = require('./masking.utils');
+
 
 const logger = log4js.getLogger(global.loggerName);
 const interactionQueue = Async.priorityQueue(processInteraction);
@@ -52,6 +54,22 @@ async function upsertState(req, state) {
 	const remoteTxnId = req.headers['data-stack-remote-txn-id'];
 	const interactionId = req.query.interactionId;
 	const clonedState = JSON.parse(JSON.stringify(state));
+
+	// if(clonedState.body){
+	// 	if(Array.isArray(clonedState.body)){
+
+	// 	}
+	// }
+
+	if (clonedState.responseBody && maskingUtils[`maskDataFor${state.outputFormatId}`]) {
+		if (Array.isArray(clonedState.responseBody)) {
+			clonedState.responseBody.forEach(item => {
+				maskingUtils[`maskDataFor${state.outputFormatId}`](item);
+			});
+		} else {
+			maskingUtils[`maskDataFor${state.outputFormatId}`](clonedState.responseBody);
+		}
+	}
 	const dataPayload = {};
 	dataPayload.flowId = clonedState.flowId;
 	dataPayload.nodeId = clonedState.nodeId;

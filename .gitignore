@@ -118,3 +118,4 @@ generator/sample.json
 SFTP-Files
 .DS_Store
 downloads/*
+utils/masking.utils.js

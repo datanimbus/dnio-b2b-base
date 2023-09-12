@@ -2,7 +2,7 @@
 const _ = require('lodash');
 const { v4: uuid } = require('uuid');
 const config = require('../config');
-const commonUtils = require('../common.utils');
+const commonUtils = require('../utils/common.utils');
 
 let logger = global.logger;
 let flowData;
@@ -131,9 +131,10 @@ async function parseFlow(dataJson) {
 	// 	});
 	// }
 	code.push('');
-	code.push('const stateUtils = require(\'./state.utils\');');
-	code.push('const nodeUtils = require(\'./node.utils\');');
-	code.push('const fileUtils = require(\'./file.utils\');');
+	code.push('const stateUtils = require(\'./utils/state.utils\');');
+	code.push('const nodeUtils = require(\'./utils/node.utils\');');
+	code.push('const fileUtils = require(\'./utils/file.utils\');');
+	code.push('const maskingUtils = require(\'./utils/masking.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('const xmlBuilder = new XMLBuilder();');
@@ -230,6 +231,7 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(1)}res.setHeader('dnio-interaction-id', req.query.interactionId);`);
 	code.push(`${tab(1)}let response = req;`);
 	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}', false, '${(inputNode.options.contentType || '')}');`);
+	code.push(`${tab(1)}state.outputFormatId = '${inputNode.dataStructure.outgoing._id}';`);
 	code.push(`${tab(1)}let node = {};`);
 	code.push(`${tab(1)}node['CONSTANTS'] = {};`);
 	constants.forEach((item) => {
@@ -470,6 +472,17 @@ async function parseFlow(dataJson) {
 
 
 	code.push(`${tab(1)}if (!isResponseSent) {`);
+
+	if (inputNode.dataStructure.outgoing && inputNode.dataStructure.outgoing._id) {
+		code.push(`${tab(2)}if(Array.isArray(response.responseBody)) {`);
+		code.push(`${tab(3)}response.responseBody = response.responseBody.map(item => {`);
+		code.push(`${tab(4)}return maskingUtils.maskDataFor${inputNode.dataStructure.outgoing._id}(item);`);
+		code.push(`${tab(3)}});`);
+		code.push(`${tab(2)}} else {`);
+		code.push(`${tab(3)}response.responseBody = maskingUtils.maskDataFor${inputNode.dataStructure.outgoing._id}(response.responseBody);`);
+		code.push(`${tab(2)}}`);
+	}
+
 	code.push(`${tab(2)}res.status((response.statusCode || 200)).json(response.responseBody);`);
 	code.push(`${tab(2)}isResponseSent = true;`);
 	code.push(`${tab(1)}}`);
@@ -598,6 +611,7 @@ function generateCode(node, nodes, isErrorNode) {
 	code.push(`${tab(1)}try {`);
 	if (node.type === 'RESPONSE') {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
+		code.push(`${tab(1)}state.outputFormatId = '${node.dataStructure.outgoing._id}';`);
 		if (node.options && node.options.statusCode) {
 			code.push(`${tab(2)}state.statusCode = ${node.options.statusCode.replace(/{{/g, '_.get(node, \'').replace(/}}/g, '\')')};`);
 		}
@@ -628,6 +642,7 @@ function generateCode(node, nodes, isErrorNode) {
 		code.push(`${tab(2)}}`);
 	} else {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
+		code.push(`${tab(1)}state.outputFormatId = '${node.dataStructure.outgoing._id}';`);
 		if (node.type === 'FOREACH') {
 			code.push(`${tab(2)}let tempBody = state.body;`);
 			code.push(`${tab(2)}if (!Array.isArray(state.body)) {`);
@@ -791,13 +806,12 @@ async function parseNodes(dataJson) {
 	code.push('var builder = require(\'xmlbuilder\');');
 	code.push('var ldap = require(\'ldapjs\');');
 	code.push('');
-	code.push('const storageEngine = require(\'./utils/storage.utils\');');
-	code.push('');
-	code.push('const httpClient = require(\'./http-client\');');
+	code.push('const httpClient = require(\'../http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
 	code.push('const stateUtils = require(\'./state.utils\');');
 	code.push('const validationUtils = require(\'./validation.utils\');');
 	code.push('const fileUtils = require(\'./file.utils\');');
+	code.push('const storageEngine = require(\'./storage.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('');
@@ -1521,7 +1535,7 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}let ext = '${ext}';`);
 					code.push(`${tab(2)}let outputFileName = '${node._id}' + ext;`);
 					code.push(`${tab(2)}const filePath = path.join(process.cwd(), 'downloads', outputFileName);`);
-					
+
 					code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
 					code.push(`${tab(2)}connectorConfig.sourcePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
 					code.push(`${tab(2)}connectorConfig.targetPath = filePath;`);
@@ -1902,6 +1916,79 @@ function parseDataStructuresForFileUtils(dataJson) {
 }
 
 
+function parseDataStructuresForMasking(dataJson) {
+	let code = [];
+	code.push('/* eslint-disable quotes */');
+	code.push('/* eslint-disable camelcase */');
+	code.push('const _ = require(\'lodash\');');
+	code.push('const commonUtils = require(\'./common.utils\');');
+	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
+		Object.keys(dataJson.dataStructures).forEach(schemaId => {
+			const definition = dataJson.dataStructures[schemaId].definition;
+			// const formatType = dataJson.dataStructures[schemaId].formatType || 'JSON';
+			// Function to return array of values;
+			code.push(`function maskDataFor${schemaId} (data) {`);
+			code = code.concat(parseForMasking(definition));
+			code.push(`${tab(1)}return data;`);
+			code.push('}');
+
+			code.push(`module.exports.maskDataFor${schemaId} = maskDataFor${schemaId};`);
+		});
+	}
+
+	function parseForMasking(definition, isArray) {
+		let tempCode = [];
+		definition.forEach((def, i) => {
+			let properties = def.properties;
+			let dataPathSegs = properties.dataPathSegs;
+			if (def.type == 'Object') {
+				tempCode = tempCode.concat(parseForMasking(def.definition));
+			} else if (def.type == 'Array') {
+				if (def.definition[0].type == 'Object') {
+					tempCode.push(`${tab(1)}let arr_var_${i} = _.get(${isArray ? 'item' : 'data'}, ${JSON.stringify(dataPathSegs)});`);
+					tempCode.push(`${tab(1)}if(arr_var_${i} && !_.isEmpty(arr_var_${i})){`);
+					tempCode.push(`${tab(2)}arr_var_${i} = arr_var_${i}.map((item) => {`);
+					tempCode = tempCode.concat(parseForMasking(def.definition[0].definition, true));
+					// tempCode.push(`${tab(3)}return commonUtils.maskStringData(item, '${properties.masking}', ${chars});`);
+					tempCode.push(`${tab(3)}return item;`);
+					tempCode.push(`${tab(2)}});`);
+					tempCode.push(`${tab(1)}}`);
+					tempCode.push(`${tab(1)}_.set(${isArray ? 'item' : 'data'}, ${JSON.stringify(dataPathSegs)}, arr_var_${i});`);
+				} else {
+					properties.masking = def.definition[0].properties.masking;
+					if (properties.masking && properties.masking.startsWith('some') || properties.masking == 'all') {
+						let chars = parseInt(properties.masking.split('_')[1], 10);
+						tempCode.push(`${tab(1)}let var_${i} = _.get(${isArray ? 'item' : 'data'}, ${JSON.stringify(dataPathSegs)});`);
+						tempCode.push(`${tab(1)}if(var_${i} && !_.isEmpty(var_${i})){`);
+						tempCode.push(`${tab(2)}var_${i} = var_${i}.map((item) => {`);
+						tempCode.push(`${tab(3)}return commonUtils.maskStringData(item, '${properties.masking}', ${chars});`);
+						tempCode.push(`${tab(2)}});`);
+						tempCode.push(`${tab(1)}}`);
+						tempCode.push(`${tab(1)}_.set(${isArray ? 'item' : 'data'}, ${JSON.stringify(dataPathSegs)}, var_${i});`);
+					}
+				}
+			} else {
+				if (properties.masking) {
+					if (properties.masking.startsWith('some') || properties.masking == 'all') {
+						let hashIndex = dataPathSegs.indexOf('[#]');
+						if (hashIndex > -1) {
+							dataPathSegs = dataPathSegs.splice(hashIndex + 1);
+						}
+						let chars = parseInt(properties.masking.split('_')[1], 10);
+						tempCode.push(`${tab(1)}let var_${i} = _.get(${isArray ? 'item' : 'data'}, ${JSON.stringify(dataPathSegs)});`);
+						tempCode.push(`${tab(1)}if(var_${i} && _.trim(var_${i})){`);
+						tempCode.push(`${tab(2)}var_${i} = commonUtils.maskStringData(var_${i}, '${properties.masking}', ${chars});`);
+						tempCode.push(`${tab(1)}}`);
+						tempCode.push(`${tab(1)}_.set(${isArray ? 'item' : 'data'}, ${JSON.stringify(dataPathSegs)}, var_${i});`);
+					}
+				}
+			}
+		});
+		return tempCode;
+	}
+	return code.join('\n');
+}
+
 function generateMappingCode(node, code, useAbsolutePath) {
 	if (!node.mappings) {
 		node.mappings = [];
@@ -2258,3 +2345,4 @@ module.exports.parseFlow = parseFlow;
 module.exports.parseNodes = parseNodes;
 module.exports.parseDataStructures = parseDataStructures;
 module.exports.parseDataStructuresForFileUtils = parseDataStructuresForFileUtils;
+module.exports.parseDataStructuresForMasking = parseDataStructuresForMasking;

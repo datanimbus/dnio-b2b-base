@@ -13,8 +13,8 @@ const zlib = require('zlib');
 const { MongoClient } = require('mongodb');
 const ALGORITHM = 'aes-256-gcm';
 
-const config = require('./config');
-const httpClient = require('./http-client');
+const config = require('../config');
+const httpClient = require('../http-client');
 
 const logger = log4js.getLogger(global.loggerName);
 
@@ -502,6 +502,22 @@ function encryptDataGCM(data, key) {
 	return encrypted.toString('base64');
 }
 
+function maskStringData(strVal, maskType, charsToShow) {
+	if (!strVal) {
+		return '';
+	}
+	if (!charsToShow) {
+		charsToShow = 5;
+	}
+	if (maskType == 'all') {
+		return strVal.split('').fill('*').join('');
+	} else {
+		let segs = strVal.split('');
+		let segs1 = segs.splice(0, segs.length - charsToShow);
+		return segs1.fill('*').join('') + segs.join('');
+	}
+}
+
 module.exports.getDataService = getDataService;
 module.exports.getFlow = getFlow;
 module.exports.getFaaS = getFaaS;
@@ -521,3 +537,4 @@ module.exports.uploadFileToDB = uploadFileToDB;
 module.exports.getAllFormulas = getAllFormulas;
 module.exports.getCustomNode = getCustomNode;
 module.exports.getAllLibraries = getAllLibraries;
+module.exports.maskStringData = maskStringData;
