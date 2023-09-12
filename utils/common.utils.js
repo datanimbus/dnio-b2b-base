@@ -227,7 +227,8 @@ async function sftpListFile(configData) {
 		function filterFunction(item) {
 			if (configData.filePattern) {
 				if (item.name) {
-					return item.name.match(configData.filePattern);
+					let regex = new RegExp(configData.filePattern);
+					return regex.test(item.name);
 				}
 				return false;
 			}

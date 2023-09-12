@@ -183,6 +183,12 @@ async function parseFlow(dataJson) {
 	if (!inputNode.options.method) {
 		inputNode.options.method = 'POST';
 	}
+	if (!inputNode.dataStructure) {
+		inputNode.dataStructure = {};
+	}
+	if (!inputNode.dataStructure.outgoing) {
+		inputNode.dataStructure.outgoing = {};
+	}
 	let method = inputNode.options.method.toLowerCase();
 	code.push(`router.${method}('${api}', handleRequest);`);
 
@@ -228,7 +234,7 @@ async function parseFlow(dataJson) {
 	code.push('async function handleRequest(req, res) {');
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
-	code.push(`${tab(1)}res.setHeader('dnio-interaction-id', req.query.interactionId);`);
+	code.push(`${tab(1)}res.setHeader('dnio-interaction-id', (req.query.interactionId || 'TEST'));`);
 	code.push(`${tab(1)}let response = req;`);
 	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}', false, '${(inputNode.options.contentType || '')}');`);
 	code.push(`${tab(1)}state.outputFormatId = '${inputNode.dataStructure.outgoing._id}';`);
@@ -604,7 +610,12 @@ function generateCodeForLoop(node, nodes) {
  */
 function generateCode(node, nodes, isErrorNode) {
 	let code = [];
-
+	if (!node.dataStructure) {
+		node.dataStructure = {};
+	}
+	if (!node.dataStructure.outgoing) {
+		node.dataStructure.outgoing = {};
+	}
 	code = code.concat(ResetNodeVariables(flowData));
 	code.push(`${tab(1)}\n\n// ═══════════════════ ${node._id} / ${node.name} / ${node.type} ══════════════════════`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking node :: ${node._id} / ${node.name} / ${node.type}\`);`);
@@ -1515,7 +1526,8 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}let newBody = {};`);
 				generateMappingCode(node, code, false);
 				if (node.options.list) {
-					code.push(`${tab(2)}connectorConfig.filePattern = \`${parseDynamicVariable(node.options.filePattern)}\`;`);
+					code.push(`${tab(2)}connectorConfig.filePattern = \`${parseDynamicVariable(node.options.filePattern || '') || ''}\`;`);
+					code.push(`${tab(2)}connectorConfig.targetPath = connectorConfig.folderPath;`);
 					code.push(`${tab(2)}state.body.targetPath = connectorConfig.folderPath;`);
 					code.push(`${tab(2)}let fileList = await commonUtils.sftpListFile(connectorConfig);`);
 					code.push(`${tab(2)}state.responseBody = fileList;`);
