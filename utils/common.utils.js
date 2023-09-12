@@ -1,3 +1,4 @@
+/* eslint-disable no-async-promise-executor */
 /* eslint-disable no-inner-declarations */
 const path = require('path');
 const log4js = require('log4js');
@@ -260,6 +261,7 @@ async function sftpReadFile(configData) {
 		}
 		await sftp.connect(options);
 		logger.info('Trying to Read file from SFTP :', configData.sourcePath);
+		await waitForFileToComplete(sftp, configData.sourcePath);
 		let temp = await sftp.fastGet(configData.sourcePath, configData.targetPath);
 		logger.info('SFTP Read Done!');
 		logger.info('File Stored at :', configData.targetPath);
@@ -270,6 +272,28 @@ async function sftpReadFile(configData) {
 	} finally {
 		sftp.end();
 	}
+}
+
+function waitForFileToComplete(sftp, filePath) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let previousFileSize = -1;
+			let timer;
+			const stats = await sftp.stat(filePath);
+			previousFileSize = stats.size;
+			timer = setInterval(async () => {
+				const stats = await sftp.stat(filePath);
+				if (stats.size === previousFileSize) {
+					clearInterval(timer); // File size has remained constant
+					resolve(true);
+				} else {
+					previousFileSize = stats.size;
+				}
+			}, 2000); // Wait for 2 seconds
+		} catch (err) {
+			reject(err);
+		}
+	});
 }
 
 async function sftpMoveFile(configData) {
