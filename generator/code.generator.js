@@ -1678,6 +1678,21 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.responseBody = fileDetails;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 			// code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
+		} else if (node.type === 'RESPONSE') {
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}let newBody = {};`);
+			if (node.mappingType == 'custom') {
+				generateMappingCode(node, code, true);
+				code.push(`${tab(2)}state.body = newBody;`);
+			} else {
+				generateMappingCode(node, code, false);
+				code.push(`${tab(2)}state.body = newBody.body;`);
+				// code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
+				// code.push(`${tab(3)}customHeaders = _.merge(newBody.headers, customHeaders) || {};`);
+				// code.push(`${tab(2)}}`);
+			}
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
+			// code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
 		} else {
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
