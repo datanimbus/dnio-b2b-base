@@ -237,6 +237,7 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(1)}res.setHeader('dnio-interaction-id', (req.query.interactionId || 'TEST'));`);
 	code.push(`${tab(1)}let response = req;`);
 	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}', false, '${(inputNode.options.contentType || '')}');`);
+	code.push(`${tab(1)}state.inputFormatId = '${inputNode.dataStructure.outgoing._id}';`);
 	code.push(`${tab(1)}state.outputFormatId = '${inputNode.dataStructure.outgoing._id}';`);
 	code.push(`${tab(1)}let node = {};`);
 	code.push(`${tab(1)}node['CONSTANTS'] = {};`);
@@ -616,26 +617,35 @@ function generateCode(node, nodes, isErrorNode) {
 	if (!node.dataStructure.outgoing) {
 		node.dataStructure.outgoing = {};
 	}
+	if (!node.dataStructure.incoming) {
+		node.dataStructure.incoming = {};
+	}
 	code = code.concat(ResetNodeVariables(flowData));
 	code.push(`${tab(1)}\n\n// ═══════════════════ ${node._id} / ${node.name} / ${node.type} ══════════════════════`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking node :: ${node._id} / ${node.name} / ${node.type}\`);`);
 	code.push(`${tab(1)}try {`);
 	if (node.type === 'RESPONSE') {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
+		code.push(`${tab(1)}state.inputFormatId = '${node.dataStructure.incoming._id}';`);
 		code.push(`${tab(1)}state.outputFormatId = '${node.dataStructure.outgoing._id}';`);
 		if (node.options && node.options.statusCode) {
 			code.push(`${tab(2)}state.statusCode = ${node.options.statusCode.replace(/{{/g, '_.get(node, \'').replace(/}}/g, '\')')};`);
 		}
 		code.push(`${tab(2)}state.status = 'SUCCESS';`);
-		if (node.options && node.options.body) {
-			if (typeof node.options.body == 'object') {
-				code.push(`${tab(2)}state.body = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-				code.push(`${tab(2)}state.responseBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
-			} else {
-				code.push(`${tab(2)}state.body = ${parseBody(node.options.body)};`);
-				code.push(`${tab(2)}state.responseBody = ${parseBody(node.options.body)};`);
-			}
+
+
+		code.push(`${tab(2)}let newBody = {};`);
+		if (node.mappingType == 'custom') {
+			generateMappingCode(node, code, true);
+			code.push(`${tab(2)}state.body = newBody;`);
+		} else {
+			generateMappingCode(node, code, false);
+			code.push(`${tab(2)}state.body = newBody.body;`);
+			// code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
+			// code.push(`${tab(3)}customHeaders = _.merge(newBody.headers, customHeaders) || {};`);
+			// code.push(`${tab(2)}}`);
 		}
+
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
 		code.push(`${tab(2)}if (!isResponseSent) {`);
 		code.push(`${tab(2)}isResponseSent = true;`);
@@ -653,6 +663,7 @@ function generateCode(node, nodes, isErrorNode) {
 		code.push(`${tab(2)}}`);
 	} else {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
+		code.push(`${tab(1)}state.inputFormatId = '${node.dataStructure.incoming._id}';`);
 		code.push(`${tab(1)}state.outputFormatId = '${node.dataStructure.outgoing._id}';`);
 		if (node.type === 'FOREACH') {
 			code.push(`${tab(2)}let tempBody = state.body;`);
