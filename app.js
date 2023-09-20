@@ -13,6 +13,8 @@ let config = require('./config');
 const codeGen = require('./generator/index');
 const httpClient = require('./http-client');
 
+global.activeRequest = 0;
+
 (async () => {
 	try {
 		const configRes = await httpClient.request({
@@ -82,6 +84,7 @@ function initialize() {
 
 	app.use(express.urlencoded({ extended: true }));
 	app.use(middlewares.addHeaders);
+	// app.use(middlewares.trackActiveRequests);
 
 	app.use('/api/b2b', require('./route'));
 	app.get('/api/b2b/internal/export/route', async function (req, res) {
@@ -122,7 +125,7 @@ function initialize() {
 			// clearInterval(global.pullJob)
 			let intVal = setInterval(() => {
 				// Waiting For all pending requests to finish;
-				if (global.activeRequest === 0) {
+				if (global.activeRequest == 0) {
 					// Closing Express Server;
 					clearInterval(intVal);
 					server.close(() => {
