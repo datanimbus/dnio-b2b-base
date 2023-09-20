@@ -1520,6 +1520,17 @@ async function generateNodes(pNode) {
 			const nodeData = await commonUtils.getCustomNode(node.options.plugin._id);
 			code.push(`${tab(2)}async function execute(state, node) {`);
 			// code = code.concat(ResetNodeVariables(flowData));
+			if (nodeData && nodeData.params) {
+				nodeData.params.forEach((param) => {
+					if (param.dataType == 'number') {
+						code.push(`${tab(3)}let ${param.key} = parseFloat(\`${node.options[param.key].replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`);`);
+					} else if (param.dataType == 'boolean') {
+						code.push(`${tab(3)}let ${param.key} = convertToBoolean(\`${node.options[param.key].replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`);`);
+					} else {
+						code.push(`${tab(3)}let ${param.key} = \`${node.options[param.key].replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
+					}
+				});
+			}
 			code.push(`${tab(3)}${nodeData.code}`);
 			code.push(`${tab(2)}}`);
 			code.push(`${tab(2)}let response = await execute(state, node);`);
