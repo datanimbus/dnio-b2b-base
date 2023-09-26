@@ -1659,9 +1659,9 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FILE') {
-			let dataFormat = node.dataStructure.outgoing;
+			let dataFormat = node.dataStructure.incoming;
 			let ext = '.json';
-			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
+			if (node.dataStructure && node.dataStructure.incoming && node.dataStructure.incoming._id) {
 				if (dataFormat.formatType != 'EXCEL') {
 					ext = '.' + _.lowerCase(dataFormat.formatType);
 				} else {
