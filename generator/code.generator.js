@@ -1786,9 +1786,12 @@ function parseDataStructures(dataJson) {
 	code.push('');
 	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
 		Object.keys(dataJson.dataStructures).forEach(schemaID => {
+			let schema = dataJson.dataStructures[schemaID];
 			code.push(`let schema_${schemaID} = fs.readFileSync(\`./schemas/${schemaID}.schema.json\`).toString();`);
 			code.push(`schema_${schemaID} = JSON.parse(schema_${schemaID});`);
-			code.push(`const validate_${schemaID} = ajv.compile(schema_${schemaID});`);
+			if (schema.strictValidation) {
+				code.push(`const validate_${schemaID} = ajv.compile(schema_${schemaID});`);
+			}
 		});
 	}
 	return _.concat(code, generateDataStructures(dataJson.inputNode, dataJson.nodes)).join('\n');
