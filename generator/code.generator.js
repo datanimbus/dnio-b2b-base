@@ -827,6 +827,7 @@ async function parseNodes(dataJson) {
 	code.push('const chokidar = require(\'chokidar\');');
 	code.push('var builder = require(\'xmlbuilder\');');
 	code.push('var ldap = require(\'ldapjs\');');
+	code.push('const FormData = require(\'form-data\');');
 	code.push('');
 	code.push('const httpClient = require(\'../http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
@@ -902,7 +903,7 @@ async function generateNodes(pNode) {
 		// });
 		code.push(`${tab(1)}try {`);
 		let functionName = 'validate_structure_' + (node._id);
-		if (node.type === 'API' || node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
+		if (node.type === 'API' || node.type == 'API_MULTIPART' || node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
 			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
 			if (node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
@@ -920,7 +921,7 @@ async function generateNodes(pNode) {
 				}
 			}
 			code.push(`${tab(2)}let customBody = state.body;`);
-			if (node.type === 'API' && node.options) {
+			if ((node.type === 'API' || node.type == 'API_MULTIPART') && node.options) {
 				// code.push(`${tab(2)}state.url = Mustache.render(\`${node.options.url}\`, node);`);
 				if (!node.options.url) {
 					node.options.url = '';
@@ -1283,6 +1284,15 @@ async function generateNodes(pNode) {
 					code.push(`${tab(3)}response.headers = promises[0].headers;`);
 					code.push(`${tab(2)}finalRecords = response.body;`);
 					code.push(`${tab(2)}finalHeader = response.headers;`);
+				} else if (node.type === 'API_MULTIPART') {
+					code.push(`${tab(2)}logger.debug('Making File Request Once');`);
+					code.push(`${tab(2)}let formData = new FormData();`);
+					code.push(`${tab(2)}formData.set('file', fs.createReadStream(newBody.fileContent));`);
+					code.push(`${tab(2)}options.body = formData;`);
+					code.push(`${tab(4)}logger.trace(JSON.stringify(options, null, 4));`);
+					code.push(`${tab(2)}let response = await httpClient.request(options);`);
+					code.push(`${tab(2)}finalRecords = response.body;`);
+					code.push(`${tab(2)}finalHeader = response.headers;`);
 				} else {
 					code.push(`${tab(2)}logger.debug('Making Request Once');`);
 					code.push(`${tab(2)}if (options.method == 'POST' || options.method == 'PUT') {`);
@@ -1582,7 +1592,7 @@ async function generateNodes(pNode) {
 						code.push(`${tab(1)}XLSX.writeFile(workBook, filePath, { bookType: "csv" });`);
 						code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] EXCEL to CSV Conversion Done! \`);`);
 					}
-			
+
 					if (dataFormat.formatType === 'CSV' || dataFormat.formatType == 'EXCEL' || dataFormat.formatType === 'DELIMITER') {
 						code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Parsing File\`);`);
 						let rowDelimiter = '';
