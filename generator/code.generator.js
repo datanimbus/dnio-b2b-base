@@ -437,49 +437,19 @@ async function parseFlow(dataJson) {
 	// code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(state.body));`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(state.headers));`);
 	let tempNodes = (inputNode.onSuccess || []);
-	let elseIndex = tempNodes.findIndex(e => !e.condition);
-	if (elseIndex > -1) {
-		tempNodes = tempNodes.concat(tempNodes.splice(elseIndex, 1));
-	}
-	for (let index = 0; index < tempNodes.length; index++) {
-		let last = tempNodes.length - 1 == index;
-		const ss = tempNodes[index];
-		const node = nodes.find(e => e._id === ss._id);
+	let nextNode = tempNodes[0];
+	if (nextNode) {
+		const node = nodes.find(e => e._id === nextNode._id);
 		if (node) {
-			if (ss.condition) {
-				node.condition = fixCondition(ss.condition);
-			}
-			// if (visitedNodes.indexOf(node._id) > -1) {
-			// 	return;
-			// }
 			visitedNodes.push(node._id);
-			if (inputNode.options.conditionType == 'parallel') {
-				code = code.concat(generateCode(node, nodes));
-			} else {
-				if (node.condition) {
-					code.push(`${tab(1)}if (${node.condition}) {`);
-					code = code.concat(generateCode(node, nodes));
-					if (last) {
-						code.push(`${tab(1)}} `);
-					} else {
-						code.push(`${tab(1)}} else `);
-					}
-				} else {
-					code.push(`${tab(1)}{`);
-					code = code.concat(generateCode(node, nodes));
-					code.push(`${tab(1)}} `);
-				}
-			}
+			code = code.concat(generateCode(node, nodes));
 		}
 	}
 	if (!tempNodes || tempNodes.length == 0) {
 		code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
 	}
 
-
-
 	code.push(`${tab(1)}if (!isResponseSent) {`);
-
 	if (inputNode.dataStructure.outgoing && inputNode.dataStructure.outgoing._id) {
 		code.push(`${tab(2)}if(Array.isArray(response.responseBody)) {`);
 		code.push(`${tab(3)}response.responseBody = response.responseBody.map(item => {`);
@@ -624,7 +594,40 @@ function generateCode(node, nodes, isErrorNode) {
 	code.push(`${tab(1)}\n\n// ═══════════════════ ${node._id} / ${node.name} / ${node.type} ══════════════════════`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Invoking node :: ${node._id} / ${node.name} / ${node.type}\`);`);
 	code.push(`${tab(1)}try {`);
-	if (node.type === 'RESPONSE') {
+	if (node.type === 'CONDITION') {
+		if (node.conditions && node.conditions.length > 0) {
+			let noOfConditions = node.conditions.length;
+			for (let index = 0; index < noOfConditions; index++) {
+				const item = node.conditions[index];
+				const nextNode = nodes.find(e => e._id === item._id);
+				if (nextNode) {
+					item.condition = fixCondition(item.condition);
+					if (index + 1 == noOfConditions) {
+						if (item.condition) {
+							code.push(`${tab(1)}if (${item.condition}) {`);
+						} else {
+							code.push(`${tab(1)} {`);
+						}
+					} else {
+						code.push(`${tab(1)}if (${item.condition}) {`);
+					}
+					if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
+						visitedNodes.push(nextNode._id);
+						code = code.concat(generateCode(nextNode, nodes, isErrorNode));
+					}
+					if (index + 1 == noOfConditions) {
+						code.push(`${tab(1)}}`);
+					} else {
+						if (node.conditionType == 'ifElse') {
+							code.push(`${tab(1)}} else`);
+						} else {
+							code.push(`${tab(1)}}`);
+						}
+					}
+				}
+			}
+		}
+	} else if (node.type === 'RESPONSE') {
 		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
 		code.push(`${tab(1)}state.inputFormatId = '${node.dataStructure.incoming._id}';`);
 		code.push(`${tab(1)}state.outputFormatId = '${node.dataStructure.outgoing._id}';`);
@@ -720,18 +723,11 @@ function generateCode(node, nodes, isErrorNode) {
 		code.push(`${tab(2)}if (response.statusCode >= 400) {`);
 		if (node.onError && node.onError.length > 0) {
 			let tempNodes = (node.onError || []);
-			for (let index = 0; index < tempNodes.length; index++) {
-				const ss = tempNodes[index];
-				const node = nodes.find(e => e._id === ss._id);
-				if (node) {
-					if (ss.condition) {
-						node.condition = fixCondition(ss.condition);
-					}
-					visitedNodes.push(node._id);
-					if (node.condition) code.push(`${tab(1)}if (${node.condition}) {`);
-					code = code.concat(generateCode(node, nodes, isErrorNode));
-					if (node.condition) code.push(`${tab(1)}}`);
-				}
+			const nextNode = tempNodes[0];
+			const node = nodes.find(e => e._id === nextNode._id);
+			if (node) {
+				visitedNodes.push(node._id);
+				code = code.concat(generateCode(node, nodes, isErrorNode));
 			}
 		} else if (hasGlobaErrorHandler && !isErrorNode) {
 			code.push(`${tab(4)}return handleError(response, req, res, txnId, remoteTxnId, state, node, isResponseSent);`);
@@ -746,38 +742,12 @@ function generateCode(node, nodes, isErrorNode) {
 	}
 	if (node.onSuccess && node.onSuccess.length > 0) {
 		let tempNodes = (node.onSuccess || []);
-		let elseIndex = tempNodes.findIndex(e => !e.condition);
-		if (elseIndex > -1) {
-			tempNodes = tempNodes.concat(tempNodes.splice(elseIndex, 1));
-		}
-		for (let index = 0; index < tempNodes.length; index++) {
-			let last = tempNodes.length - 1 == index;
-			const ss = tempNodes[index];
-			const nextNode = nodes.find(e => e._id === ss._id);
-			if (nextNode) {
-				if (ss.condition) {
-					nextNode.condition = fixCondition(ss.condition);
-				}
-				if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
-					visitedNodes.push(nextNode._id);
-					if (node.options.conditionType == 'parallel') {
-						code = code.concat(generateCode(nextNode, nodes));
-					} else {
-						if (nextNode.condition) {
-							code.push(`${tab(1)}if (${nextNode.condition}) {`);
-							code = code.concat(generateCode(nextNode, nodes, isErrorNode));
-							if (last) {
-								code.push(`${tab(1)}} `);
-							} else {
-								code.push(`${tab(1)}} else `);
-							}
-						} else {
-							code.push(`${tab(1)}{`);
-							code = code.concat(generateCode(nextNode, nodes, isErrorNode));
-							code.push(`${tab(1)}} `);
-						}
-					}
-				}
+		const nextnode = tempNodes[0];
+		const node = nodes.find(e => e._id === nextnode._id);
+		if (node) {
+			if (node && countDuplicates(node._id, visitedNodes) < 3) {
+				visitedNodes.push(node._id);
+				code = code.concat(generateCode(node, nodes, isErrorNode));
 			}
 		}
 	}
