@@ -109,7 +109,7 @@ async function parseFlow(dataJson) {
 	code.push('const router = express.Router({ mergeParams: true });');
 	code.push('const log4js = require(\'log4js\');');
 	code.push('const fileUpload = require(\'express-fileupload\');');
-	code.push('const { XMLBuilder, J2XParser, parse, XMLParser } = require(\'fast-xml-parser\');');
+	code.push('const { XMLBuilder, XMLParser } = require(\'fast-xml-parser\');');
 	code.push('const fastcsv = require(\'fast-csv\');');
 	code.push('const XLSX = require(\'xlsx\');');
 	code.push('const { v4: uuid } = require(\'uuid\');');
@@ -784,11 +784,10 @@ async function parseNodes(dataJson) {
 	code.push('const _ = require(\'lodash\');');
 	code.push('const { v4: uuid } = require(\'uuid\');');
 	code.push('const moment = require(\'moment\');');
-	code.push('const { XMLBuilder, parse } = require(\'fast-xml-parser\');');
+	code.push('const { XMLBuilder, XMLParser } = require(\'fast-xml-parser\');');
 	code.push('const fastcsv = require(\'fast-csv\');');
 	code.push('const XLSX = require(\'xlsx\');');
 	code.push('const xlsxPopulate = require(\'xlsx-populate\');');
-	code.push('const J2XParser = require(\'fast-xml-parser\').j2xParser;');
 	code.push('const { mssql, mysql, psql } = require(\'@appveen/rest-crud\');');
 	code.push('const Mustache = require(\'mustache\');');
 	code.push('const solace = require(\'solclientjs\');');
@@ -807,6 +806,8 @@ async function parseNodes(dataJson) {
 	code.push('const storageEngine = require(\'./storage.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
+	code.push('const xmlBuilder = new XMLBuilder();');
+	code.push('const xmlParser = new XMLParser();');
 	code.push('');
 	// if (config.b2bAllowNpmInstall === 'true') {
 	// 	const npmLibraries = await commonUtils.getAllLibraries();
@@ -2452,7 +2453,7 @@ function generateFileConvertorCode(node, code) {
 		code.push(`${tab(2)}fs.writeFileSync(filePath, JSON.stringify(newBody), 'utf-8');`);
 		code.push(`${tab(2)}`);
 	} else if (dataFormat.formatType === 'XML') {
-		code.push(`${tab(2)}let xmlContent = new XMLBuilder({format: true,arrayNodeName: '${dataFormat.rootNodeName}'}).build(newBody);`);
+		code.push(`${tab(2)}let xmlContent = new XMLBuilder({format: true, arrayNodeName: '${dataFormat.rootNodeName || 'ROOT'}'}).build(newBody);`);
 		if (dataFormat.xmlInitFormat) {
 			code.push(`${tab(2)}const xmlInitFormat = '${dataFormat.xmlInitFormat}\\r\\n';`);
 			code.push(`${tab(2)}xmlContent = xmlInitFormat + xmlContent;`);
