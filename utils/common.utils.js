@@ -19,6 +19,29 @@ const httpClient = require('../http-client');
 
 const logger = log4js.getLogger(global.loggerName);
 
+async function getApp() {
+	try {
+		const options = {};
+		options.url = `${config.baseUrlUSR}/data/app/${config.app}`;
+		options.method = 'GET';
+		options.headers = {};
+		options.headers['Content-Type'] = 'application/json';
+		options.headers['Authorization'] = 'JWT ' + global.BM_TOKEN;
+		const response = await httpClient.request(options);
+		if (response.statusCode !== 200) {
+			throw response.body;
+		}
+		if (_.isArray(response.body)) {
+			return response.body[0];
+		} else {
+			return response.body;
+		}
+	} catch (err) {
+		logger.error(err);
+		throw err;
+	}
+}
+
 async function getDataService(serviceId) {
 	try {
 		const options = {};
@@ -543,6 +566,8 @@ function maskStringData(strVal, maskType, charsToShow) {
 	}
 }
 
+
+module.exports.getApp = getApp;
 module.exports.getDataService = getDataService;
 module.exports.getFlow = getFlow;
 module.exports.getFaaS = getFaaS;

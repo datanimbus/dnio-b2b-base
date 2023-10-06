@@ -55,6 +55,26 @@ async function upsertState(req, state) {
 	const interactionId = req.query.interactionId;
 	const clonedState = JSON.parse(JSON.stringify(state));
 
+	if (clonedState.body) {
+		if (Array.isArray(clonedState.body)) {
+			clonedState.body.forEach(item => {
+				maskingUtils['maskCommon'](item);
+			});
+		} else {
+			maskingUtils['maskCommon'](clonedState.body);
+		}
+	}
+
+	if (clonedState.responseBody) {
+		if (Array.isArray(clonedState.responseBody)) {
+			clonedState.responseBody.forEach(item => {
+				maskingUtils['maskCommon'](item);
+			});
+		} else {
+			maskingUtils['maskCommon'](clonedState.responseBody);
+		}
+	}
+
 	if (clonedState.body && maskingUtils[`maskDataFor${state.inputFormatId}`]) {
 		if (Array.isArray(clonedState.body)) {
 			clonedState.body.forEach(item => {

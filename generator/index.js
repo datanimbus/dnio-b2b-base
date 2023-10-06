@@ -36,6 +36,8 @@ async function createProject(flowJSON) {
 				}
 			});
 		}
+		const appData = await commonUtils.getApp();
+		flowJSON.appData = appData;
 		const routerJSContent = await codeGen.parseFlow(flowJSON);
 		const nodeUtilsContent = await codeGen.parseNodes(flowJSON);
 		fs.writeFileSync(path.join(folderPath, 'route.js'), routerJSContent);
@@ -44,6 +46,7 @@ async function createProject(flowJSON) {
 		fs.writeFileSync(path.join(folderPath, 'utils', 'validation.utils.js'), codeGen.parseDataStructures(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'utils', 'masking.utils.js'), codeGen.parseDataStructuresForMasking(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'flow.json'), JSON.stringify(flowJSON));
+		fs.writeFileSync(path.join(folderPath, 'app-data.json'), JSON.stringify(appData));
 
 		// fs.rmdirSync(path.join(folderPath, 'generator'), { recursive: true });
 

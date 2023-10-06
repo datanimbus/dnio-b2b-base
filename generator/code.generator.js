@@ -2055,10 +2055,77 @@ function parseDataStructuresForMasking(dataJson) {
 			code.push(`function maskDataFor${schemaId} (data) {`);
 			code = code.concat(parseForMasking(definition));
 			code.push(`${tab(1)}return data;`);
-			code.push('}');
+			code.push(`${tab(0)}}`);
 
-			code.push(`module.exports.maskDataFor${schemaId} = maskDataFor${schemaId};`);
+			code.push(`${tab(0)}function maskCommon (data) {`);
+			console.log(flowData.appData.maskingPaths);
+			(flowData.appData.maskingPaths || []).forEach((item, i) => {
+				item.index = i;
+				if (item.dataPath.indexOf('[#]') > -1) {
+					let path = JSON.parse(item.dataPath);
+					let arrayIndexes = path.map((e, i) => {
+						if (e == '[#]') return i;
+					}).filter(e => e).reverse();
+					let multiPaths = [];
+					for (let index = 0; index < arrayIndexes.length; index++) {
+						const arrCurrIndex = arrayIndexes[index];
+						let temp = path.splice(arrCurrIndex);
+						temp.splice(0, 1);
+						multiPaths.push(temp);
+					}
+					multiPaths.push(path);
+					multiPaths.reverse();
+					code.push(`${tab(3)}// =========================================`);
+					code.push(`${tab(3)}// Masking of ${item.dataPath} Start`);
+					code.push(`${tab(3)}// =========================================`);
+					code = code.concat(maskRecursive(item, multiPaths, 'data', 0));
+					code.push(`${tab(3)}// =========================================`);
+					code.push(`${tab(3)}`);
+				} else {
+					code.push(`${tab(3)}// =========================================`);
+					code.push(`${tab(3)}// Masking of ${item.dataPath} Start`);
+					code.push(`${tab(3)}// =========================================`);
+					code.push(`${tab(3)}let var_${i} = _.get(data, ${item.dataPath});`);
+					code.push(`${tab(3)}var_${i} = commonUtils.maskStringData(var_${i}, '${item.maskType}', ${item.chars});`);
+					code.push(`${tab(3)}_.set(data, ${item.dataPath}, var_${i});`);
+					code.push(`${tab(3)}// =========================================`);
+					code.push(`${tab(3)}`);
+				}
+			});
+			code.push(`${tab(1)}return data;`);
+			code.push(`${tab(0)}}`);
+
+			code.push(`${tab(0)}module.exports.maskDataFor${schemaId} = maskDataFor${schemaId};`);
+			code.push(`${tab(0)}module.exports.maskCommon = maskCommon;`);
 		});
+	}
+
+	function maskRecursive(maskConfig, multiPaths, prev, i) {
+		let tempCode = [];
+		let curr = multiPaths[i];
+		let varName = `var_${maskConfig.index}_${i}`;
+		tempCode.push(`${tab(0)}let ${varName} = _.get(${prev}, ${JSON.stringify(curr)});`);
+		tempCode.push(`${tab(0)}if (_.isArray(${varName})) {`);
+		tempCode.push(`${tab(0)}let new_${varName} = ${varName}.map(item=>{`);
+		if (multiPaths.length - 1 == i) {
+			// Mask Item
+			tempCode.push(`${tab(0)}item = commonUtils.maskStringData(item, '${maskConfig.maskType}', ${maskConfig.chars});`);
+		} else {
+			tempCode = tempCode.concat(maskRecursive(maskConfig, multiPaths, 'item', i + 1));
+		}
+		tempCode.push(`${tab(0)}return item;`);
+		tempCode.push(`${tab(0)}});`);
+		tempCode.push(`${tab(0)}_.set(${prev}, ${JSON.stringify(curr)}, new_${varName});`);
+		tempCode.push(`${tab(0)}} else {`);
+		if (multiPaths.length - 1 == i) {
+			// Mask ${varName}
+			tempCode.push(`${tab(0)}${varName} = commonUtils.maskStringData(${varName}, '${maskConfig.maskType}', ${maskConfig.chars});`);
+		} else {
+			tempCode = tempCode.concat(maskRecursive(maskConfig, multiPaths, varName, i + 1));
+		}
+		tempCode.push(`${tab(0)}_.set(${prev}, ${JSON.stringify(curr)}, ${varName});`);
+		tempCode.push(`${tab(0)}}`);
+		return tempCode;
 	}
 
 	function parseForMasking(definition, isArray) {
