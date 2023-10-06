@@ -2086,8 +2086,10 @@ function parseDataStructuresForMasking(dataJson) {
 					code.push(`${tab(3)}// Masking of ${item.dataPath} Start`);
 					code.push(`${tab(3)}// =========================================`);
 					code.push(`${tab(3)}let var_${i} = _.get(data, ${item.dataPath});`);
-					code.push(`${tab(3)}var_${i} = commonUtils.maskStringData(var_${i}, '${item.maskType}', ${item.chars});`);
-					code.push(`${tab(3)}_.set(data, ${item.dataPath}, var_${i});`);
+					code.push(`${tab(3)}if(var_${i}) {`);
+					code.push(`${tab(4)}var_${i} = commonUtils.maskStringData(var_${i}, '${item.maskType}', ${item.chars});`);
+					code.push(`${tab(4)}_.set(data, ${item.dataPath}, var_${i});`);
+					code.push(`${tab(3)}}`);
 					code.push(`${tab(3)}// =========================================`);
 					code.push(`${tab(3)}`);
 				}
@@ -2105,6 +2107,7 @@ function parseDataStructuresForMasking(dataJson) {
 		let curr = multiPaths[i];
 		let varName = `var_${maskConfig.index}_${i}`;
 		tempCode.push(`${tab(0)}let ${varName} = _.get(${prev}, ${JSON.stringify(curr)});`);
+		tempCode.push(`${tab(0)}if (${varName}) {`);
 		tempCode.push(`${tab(0)}if (_.isArray(${varName})) {`);
 		tempCode.push(`${tab(0)}let new_${varName} = ${varName}.map(item=>{`);
 		if (multiPaths.length - 1 == i) {
@@ -2124,6 +2127,7 @@ function parseDataStructuresForMasking(dataJson) {
 			tempCode = tempCode.concat(maskRecursive(maskConfig, multiPaths, varName, i + 1));
 		}
 		tempCode.push(`${tab(0)}_.set(${prev}, ${JSON.stringify(curr)}, ${varName});`);
+		tempCode.push(`${tab(0)}}`);
 		tempCode.push(`${tab(0)}}`);
 		return tempCode;
 	}
