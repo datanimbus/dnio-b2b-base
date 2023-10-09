@@ -743,11 +743,11 @@ function generateCode(node, nodes, isErrorNode) {
 	if (node.onSuccess && node.onSuccess.length > 0) {
 		let tempNodes = (node.onSuccess || []);
 		const nextnode = tempNodes[0];
-		const node = nodes.find(e => e._id === nextnode._id);
-		if (node) {
-			if (node && countDuplicates(node._id, visitedNodes) < 3) {
-				visitedNodes.push(node._id);
-				code = code.concat(generateCode(node, nodes, isErrorNode));
+		const tempNode = nodes.find(e => e._id === nextnode._id);
+		if (tempNode) {
+			if (tempNode && countDuplicates(tempNode._id, visitedNodes) < 3) {
+				visitedNodes.push(tempNode._id);
+				code = code.concat(generateCode(tempNode, nodes, isErrorNode));
 			}
 		}
 	}
