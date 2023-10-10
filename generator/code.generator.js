@@ -724,10 +724,10 @@ function generateCode(node, nodes, isErrorNode) {
 		if (node.onError && node.onError.length > 0) {
 			let tempNodes = (node.onError || []);
 			const nextNode = tempNodes[0];
-			const node = nodes.find(e => e._id === nextNode._id);
-			if (node) {
-				visitedNodes.push(node._id);
-				code = code.concat(generateCode(node, nodes, isErrorNode));
+			const tNode = nodes.find(e => e._id === nextNode._id);
+			if (tNode) {
+				visitedNodes.push(tNode._id);
+				code = code.concat(generateCode(tNode, nodes, isErrorNode));
 			}
 		} else if (hasGlobaErrorHandler && !isErrorNode) {
 			code.push(`${tab(4)}return handleError(response, req, res, txnId, remoteTxnId, state, node, isResponseSent);`);
