@@ -1849,7 +1849,7 @@ function parseBody(body, parent) {
 
 function parseDataStructures(dataJson) {
 	visitedValidation = [];
-	const code = [];
+	const code = ['/* eslint-disable camelcase */'];
 	code.push('const fs = require(\'fs\');');
 	code.push('const path = require(\'path\');');
 	code.push('const log4js = require(\'log4js\');');
