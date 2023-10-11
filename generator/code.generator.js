@@ -1899,16 +1899,16 @@ function generateDataStructures(node, nodes) {
 	}
 	code.push(`${tab(1)}return null;`);
 	code.push('}');
-	// let tempNodes = (node.onSuccess || []);
-	// for (let index = 0; index < tempNodes.length; index++) {
-	// 	const ss = tempNodes[index];
-	// 	const nextNode = nodes.find(e => e._id === ss._id);
-	// 	if (visitedValidation.indexOf(nextNode._id) > -1) {
-	// 		return;
-	// 	}
-	// 	visitedValidation.push(nextNode._id);
-	// 	code = code.concat(generateDataStructures(nextNode, nodes));
-	// }
+	let tempNodes = (node.onSuccess || []);
+	for (let index = 0; index < tempNodes.length; index++) {
+		const ss = tempNodes[index];
+		const nextNode = nodes.find(e => e._id === ss._id);
+		if (visitedValidation.indexOf(nextNode._id) > -1) {
+			return;
+		}
+		visitedValidation.push(nextNode._id);
+		code = code.concat(generateDataStructures(nextNode, nodes));
+	}
 	return _.concat(code, exportsCode).join('\n');
 }
 
