@@ -285,7 +285,7 @@ async function sftpReadFile(configData) {
 		}
 		await sftp.connect(options);
 		logger.info('Trying to Read file from SFTP :', configData.sourcePath);
-		await waitForFileToComplete(sftp, configData.sourcePath);
+		// await waitForFileToComplete(sftp, configData.sourcePath);
 		let temp = await sftp.fastGet(configData.sourcePath, configData.targetPath);
 		logger.info('SFTP Read Done!');
 		logger.info('File Stored at :', configData.targetPath);
