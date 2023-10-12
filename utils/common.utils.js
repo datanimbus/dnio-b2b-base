@@ -350,6 +350,32 @@ async function sftpMoveFile(configData) {
 	}
 }
 
+async function sftpDeleteFile(configData) {
+	let sftp = new Client();
+	try {
+		const options = {};
+		options.host = configData.host;
+		options.port = configData.port;
+		options.username = configData.user;
+		if (configData.authType == 'password') {
+			options.password = configData.password;
+		} else if (configData.authType == 'publickey') {
+			options.privateKey = configData.privateKey;
+			options.passphrase = configData.passphrase;
+		}
+		await sftp.connect(options);
+		logger.info('Trying to Delete file from SFTP :', configData.sourcePath);
+		let temp = await sftp.delete(configData.sourcePath);
+		logger.info('SFTP Delete Done!');
+		return { message: temp };
+	} catch (err) {
+		logger.error(err);
+		throw err;
+	} finally {
+		sftp.end();
+	}
+}
+
 
 function convertToBoolean(value) {
 	if (typeof value === 'string' && ['true', 't', 'TRUE', 'yes'].indexOf(value) > -1) {
@@ -581,6 +607,7 @@ module.exports.sftpPutFile = sftpPutFile;
 module.exports.sftpListFile = sftpListFile;
 module.exports.sftpReadFile = sftpReadFile;
 module.exports.sftpMoveFile = sftpMoveFile;
+module.exports.sftpDeleteFile = sftpDeleteFile;
 module.exports.writeDataToCSV = writeDataToCSV;
 module.exports.writeDataToXLS = writeDataToXLS;
 module.exports.uploadFileToDB = uploadFileToDB;
