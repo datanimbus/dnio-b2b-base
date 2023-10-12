@@ -218,7 +218,8 @@ async function sftpPutFile(configData) {
 		let status = await sftp.mkdir(targetDirectory, true);
 		logger.info('Creating Folder if not exists: ', status);
 		logger.info('Trying SFTP Upload');
-		const temp = await sftp.fastPut(configData.sourcePath, configData.targetPath);
+		const temp = await sftp.fastPut(configData.sourcePath, configData.targetPath + '.incomplete');
+		await sftp.rename(configData.targetPath + '.incomplete', configData.targetPath);
 		logger.info('SFTP Upload Done!');
 		logger.debug(temp);
 		return { message: temp };
