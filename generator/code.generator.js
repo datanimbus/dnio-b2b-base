@@ -1569,6 +1569,9 @@ async function generateNodes(pNode) {
 			if (connector.type == 'SFTP') {
 				code.push(`${tab(2)}state.body = {};`);
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
+				code.push(`${tab(2)}if (!connectorConfig.retry) {`);
+				code.push(`${tab(3)}connectorConfig.retry = {};`);
+				code.push(`${tab(2)}}`);
 				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath)}\`;`);
 				code.push(`${tab(2)}let newBody = {};`);
 				generateMappingCode(node, code, false);

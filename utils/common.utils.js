@@ -211,7 +211,7 @@ async function sftpPutFile(configData) {
 		options.username = configData.user;
 		if (configData.authType == 'password') {
 			options.password = configData.password;
-		} else if (configData.authType == 'publickey') {
+		} else if (configData.authType == 'privateKey') {
 			options.privateKey = configData.privateKey;
 			options.passphrase = configData.passphrase;
 		}
@@ -238,9 +238,10 @@ async function sftpPutFile(configData) {
 					resolve({ message: temp });
 				} catch (error) {
 					if (operation.retry(error)) {
-						logger.error(`Upload failed. Retrying (${currentAttempt}/${operation._retries})...`);
+						logger.error(`Upload failed. Retrying ${currentAttempt}...`);
 						return;
 					}
+					logger.error(error);
 					reject(new Error('Upload failed after retries.'));
 				}
 			});
@@ -262,7 +263,7 @@ async function sftpListFile(configData) {
 		options.username = configData.user;
 		if (configData.authType == 'password') {
 			options.password = configData.password;
-		} else if (configData.authType == 'publickey') {
+		} else if (configData.authType == 'privateKey') {
 			options.privateKey = configData.privateKey;
 			options.passphrase = configData.passphrase;
 		}
@@ -297,9 +298,10 @@ async function sftpListFile(configData) {
 					resolve(fileList);
 				} catch (error) {
 					if (operation.retry(error)) {
-						logger.error(`List files failed. Retrying (${currentAttempt}/${operation._retries})...`);
+						logger.error(`List files failed. Retrying ${currentAttempt}...`);
 						return;
 					}
+					logger.error(error);
 					reject(new Error('List files failed after retries.'));
 				}
 			});
@@ -321,7 +323,7 @@ async function sftpReadFile(configData) {
 		options.username = configData.user;
 		if (configData.authType == 'password') {
 			options.password = configData.password;
-		} else if (configData.authType == 'publickey') {
+		} else if (configData.authType == 'privateKey') {
 			options.privateKey = configData.privateKey;
 			options.passphrase = configData.passphrase;
 		}
@@ -346,9 +348,10 @@ async function sftpReadFile(configData) {
 					resolve({ message: temp });
 				} catch (error) {
 					if (operation.retry(error)) {
-						logger.error(`Read file failed. Retrying (${currentAttempt}/${operation._retries})...`);
+						logger.error(`Read file failed. Retrying ${currentAttempt}...`);
 						return;
 					}
+					logger.error(error);
 					reject(new Error('Read file failed after retries.'));
 				}
 			});
@@ -392,7 +395,7 @@ async function sftpMoveFile(configData) {
 		options.username = configData.user;
 		if (configData.authType == 'password') {
 			options.password = configData.password;
-		} else if (configData.authType == 'publickey') {
+		} else if (configData.authType == 'privateKey') {
 			options.privateKey = configData.privateKey;
 			options.passphrase = configData.passphrase;
 		}
@@ -419,9 +422,10 @@ async function sftpMoveFile(configData) {
 					resolve({ message: temp });
 				} catch (error) {
 					if (operation.retry(error)) {
-						logger.error(`Move file failed. Retrying (${currentAttempt}/${operation._retries})...`);
+						logger.error(`Move file failed. Retrying ${currentAttempt}...`);
 						return;
 					}
+					logger.error(error);
 					reject(new Error('Move file failed after retries.'));
 				}
 			});
@@ -443,7 +447,7 @@ async function sftpDeleteFile(configData) {
 		options.username = configData.user;
 		if (configData.authType == 'password') {
 			options.password = configData.password;
-		} else if (configData.authType == 'publickey') {
+		} else if (configData.authType == 'privateKey') {
 			options.privateKey = configData.privateKey;
 			options.passphrase = configData.passphrase;
 		}
@@ -466,9 +470,10 @@ async function sftpDeleteFile(configData) {
 					resolve({ message: temp });
 				} catch (error) {
 					if (operation.retry(error)) {
-						logger.error(`Delete file failed. Retrying (${currentAttempt}/${operation._retries})...`);
+						logger.error(`Delete file failed. Retrying ${currentAttempt}...`);
 						return;
 					}
+					logger.error(error);
 					reject(new Error('Delete file failed after retries.'));
 				}
 			});
