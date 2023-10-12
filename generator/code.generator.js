@@ -437,12 +437,34 @@ async function parseFlow(dataJson) {
 	// code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(state.body));`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(state.headers));`);
 	let tempNodes = (inputNode.onSuccess || []);
-	let nextNode = tempNodes[0];
-	if (nextNode) {
-		const node = nodes.find(e => e._id === nextNode._id);
-		if (node) {
-			visitedNodes.push(node._id);
-			code = code.concat(generateCode(node, nodes));
+	let noOfConditions = tempNodes.length;
+	for (let index = 0; index < tempNodes.length; index++) {
+		const ss = tempNodes[index];
+		const nextNode = nodes.find(e => e._id === ss._id);
+		if (nextNode) {
+			ss.condition = fixCondition(ss.condition);
+			if (index + 1 == noOfConditions) {
+				if (ss.condition) {
+					code.push(`${tab(1)}if (${ss.condition}) {`);
+				} else {
+					code.push(`${tab(1)} {`);
+				}
+			} else {
+				code.push(`${tab(1)}if (${ss.condition}) {`);
+			}
+			if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
+				visitedNodes.push(nextNode._id);
+				code = code.concat(generateCode(nextNode, nodes));
+			}
+			if (index + 1 == noOfConditions) {
+				code.push(`${tab(1)}}`);
+			} else {
+				if (inputNode.conditionType == 'ifElse') {
+					code.push(`${tab(1)}} else`);
+				} else {
+					code.push(`${tab(1)}}`);
+				}
+			}
 		}
 	}
 	if (!tempNodes || tempNodes.length == 0) {
@@ -742,12 +764,34 @@ function generateCode(node, nodes, isErrorNode) {
 	}
 	if (node.onSuccess && node.onSuccess.length > 0) {
 		let tempNodes = (node.onSuccess || []);
-		const nextnode = tempNodes[0];
-		const tempNode = nodes.find(e => e._id === nextnode._id);
-		if (tempNode) {
-			if (tempNode && countDuplicates(tempNode._id, visitedNodes) < 3) {
-				visitedNodes.push(tempNode._id);
-				code = code.concat(generateCode(tempNode, nodes, isErrorNode));
+		let noOfConditions = tempNodes.length;
+		for (let index = 0; index < tempNodes.length; index++) {
+			const ss = tempNodes[index];
+			const nextNode = nodes.find(e => e._id === ss._id);
+			if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
+				ss.condition = fixCondition(ss.condition);
+				if (index + 1 == noOfConditions) {
+					if (ss.condition) {
+						code.push(`${tab(1)}if (${ss.condition}) {`);
+					} else {
+						code.push(`${tab(1)} {`);
+					}
+				} else {
+					code.push(`${tab(1)}if (${ss.condition}) {`);
+				}
+				if (nextNode && countDuplicates(nextNode._id, visitedNodes) < 3) {
+					visitedNodes.push(nextNode._id);
+					code = code.concat(generateCode(nextNode, nodes, isErrorNode));
+				}
+				if (index + 1 == noOfConditions) {
+					code.push(`${tab(1)}}`);
+				} else {
+					if (node.conditionType == 'ifElse') {
+						code.push(`${tab(1)}} else`);
+					} else {
+						code.push(`${tab(1)}}`);
+					}
+				}
 			}
 		}
 	}
@@ -1915,11 +1959,13 @@ function generateDataStructures(node, nodes) {
 	for (let index = 0; index < tempNodes.length; index++) {
 		const ss = tempNodes[index];
 		const nextNode = nodes.find(e => e._id === ss._id);
-		if (visitedValidation.indexOf(nextNode._id) > -1) {
-			return;
+		if (nextNode) {
+			if (visitedValidation.indexOf(nextNode._id) > -1) {
+				return;
+			}
+			visitedValidation.push(nextNode._id);
+			code = code.concat(generateDataStructures(nextNode, nodes));
 		}
-		visitedValidation.push(nextNode._id);
-		code = code.concat(generateDataStructures(nextNode, nodes));
 	}
 	return _.concat(code, exportsCode).join('\n');
 }
