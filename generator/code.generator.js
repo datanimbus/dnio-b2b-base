@@ -501,6 +501,11 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(2)}node['ENV'][key] = process.env[key];`);
 	code.push(`${tab(1)}});`);
 	code = code.concat(ResetNodeVariables(flowData, true));
+	if (flowData.errorNode && flowData.errorNode._id) {
+		code.push(`${tab(1)}state = stateUtils.getState(response, '${flowData.errorNode._id}', false, '${(flowData.errorNode.options.contentType || '')}');`);
+		code.push(`${tab(1)}node['${flowData.errorNode._id}'] = state;`);
+		code.push(`${tab(1)}state.responseBody = state.body;`);
+	}
 	if (flowData && flowData.errorNode && flowData.errorNode.onSuccess && flowData.errorNode.onSuccess.length > 0) {
 		let errNodes = (flowData.errorNode.onSuccess || []);
 
@@ -774,7 +779,7 @@ function generateCode(node, nodes, isErrorNode) {
 					if (ss.condition) {
 						code.push(`${tab(1)}if (${ss.condition}) {`);
 					} else {
-						code.push(`${tab(1)} {`);
+						code.push(`${tab(1)} else {`);
 					}
 				} else {
 					code.push(`${tab(1)}if (${ss.condition}) {`);
