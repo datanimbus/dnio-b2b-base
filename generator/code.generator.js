@@ -908,7 +908,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
 			if (node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 				if (node.options.authorization) {
-					code.push(`${tab(3)}customHeaders['authorization'] = Mustache.render(\`${node.options.authorization}\`, node);`);
+					code.push(`${tab(3)}customHeaders['authorization'] = Mustache.render(\`${parseMustacheVariable(node.options.authorization)}\`, node);`);
 					// if (node.options.authorization.startsWith('node[')) {
 					// 	code.push(`${tab(3)}customHeaders['authorization'] = ${node.options.authorization};`);
 					// } else {
@@ -989,7 +989,7 @@ async function generateNodes(pNode) {
 				if (config.isK8sEnv()) {
 					if (node.options.get) {
 						const params = [];
-						code.push(`${tab(2)}let filter = Mustache.render(\`${_.trim(JSON.stringify(node.options.filter), '"')}\`, node);`);
+						code.push(`${tab(2)}let filter = Mustache.render(\`${_.trim(parseMustacheVariable(JSON.stringify(node.options.filter)), '"')}\`, node);`);
 						code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: filter }`);
 						if (node.options.select && node.options.select != '*') {
 							params.push(`select=${(node.options.select)}`);
@@ -1023,7 +1023,7 @@ async function generateNodes(pNode) {
 				} else {
 					if (node.options.get) {
 						const params = [];
-						code.push(`${tab(2)}let filter = Mustache.render(\`${_.trim(JSON.stringify(node.options.filter), '"')}\`, node);`);
+						code.push(`${tab(2)}let filter = Mustache.render(\`${_.trim(parseMustacheVariable(JSON.stringify(node.options.filter)), '"')}\`, node);`);
 						code.push(`${tab(2)}state.body = { select: '${node.options.select}', count: ${node.options.count}, page: ${node.options.page}, sort: '${node.options.sort}', filter: filter }`);
 						if (node.options.select && node.options.select != '*') {
 							params.push(`select=${(node.options.select)}`);
@@ -1807,6 +1807,12 @@ function parseDynamicVariable(value) {
 	}
 	if (value) {
 		return value.replace(/{{/g, '${').replace(/}}/g, '}');
+	}
+}
+
+function parseMustacheVariable(value) {
+	if (value) {
+		return value.replace(/\[/g, '.').replace(/\]/g, '');
 	}
 }
 
