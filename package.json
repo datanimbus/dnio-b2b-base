@@ -27,6 +27,7 @@
     "mysql2": "^2.3.3",
     "node-cron": "^3.0.2",
     "pg": "^8.11.1",
+    "retry": "^0.13.1",
     "solclientjs": "^10.14.0",
     "ssh2-sftp-client": "^9.1.0",
     "uuid": "^8.3.2",
