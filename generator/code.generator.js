@@ -1710,7 +1710,7 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Moved to: \${state.body.targetPath} \`);`);
 				} else if (node.options.delete) {
 					code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
-					code.push(`${tab(2)}connectorConfig.sourcePath = path.join(\`${parseDynamicVariable(node.options.sourceFolderPath) || ''}\`, connectorConfig.fileName);`);
+					code.push(`${tab(2)}connectorConfig.sourcePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
 					code.push(`${tab(2)}state.body.sourcePath = connectorConfig.sourcePath;`);
 					code.push(`${tab(2)}let status = await commonUtils.sftpDeleteFile(connectorConfig);`);
 					code.push(`${tab(2)}state.responseBody = { statusCode: 200, sourcePath: connectorConfig.sourcePath, message: status.message };`);
