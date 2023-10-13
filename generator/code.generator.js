@@ -2367,6 +2367,8 @@ function generateMappingCode(node, code, useAbsolutePath) {
 				temp.forEach(item => {
 					code.push(item);
 				});
+			} else if (item.advanceFormula) {
+				code.push(`return ${fixCondition(item.advanceFormula)};`);
 			} else {
 				if (item.source && item.source.length > 0) {
 					item.source.forEach((src) => {
@@ -2499,6 +2501,8 @@ function generateConverterCode(node, code) {
 				temp.forEach(item => {
 					code.push(item);
 				});
+			} else if (item.advanceFormula) {
+				code.push(`return ${fixCondition(item.advanceFormula)};`);
 			} else {
 				if (item.source && item.source.length > 0) {
 					item.source.forEach((src) => {
