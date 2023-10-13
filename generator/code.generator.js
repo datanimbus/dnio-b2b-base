@@ -501,6 +501,11 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(2)}node['ENV'][key] = process.env[key];`);
 	code.push(`${tab(1)}});`);
 	code = code.concat(ResetNodeVariables(flowData, true));
+	if (flowData.errorNode && flowData.errorNode._id) {
+		code.push(`${tab(1)}state = stateUtils.getState(response, '${flowData.errorNode._id}', false, '${(flowData.errorNode.options.contentType || '')}');`);
+		code.push(`${tab(1)}node['${flowData.errorNode._id}'] = state;`);
+		code.push(`${tab(1)}state.responseBody = state.body;`);
+	}
 	if (flowData && flowData.errorNode && flowData.errorNode.onSuccess && flowData.errorNode.onSuccess.length > 0) {
 		let errNodes = (flowData.errorNode.onSuccess || []);
 
@@ -774,7 +779,7 @@ function generateCode(node, nodes, isErrorNode) {
 					if (ss.condition) {
 						code.push(`${tab(1)}if (${ss.condition}) {`);
 					} else {
-						code.push(`${tab(1)} {`);
+						code.push(`${tab(1)} else {`);
 					}
 				} else {
 					code.push(`${tab(1)}if (${ss.condition}) {`);
@@ -1703,7 +1708,7 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}let status = await commonUtils.sftpMoveFile(connectorConfig);`);
 					code.push(`${tab(2)}state.responseBody = { statusCode: 200, targetPath: connectorConfig.targetPath, sourcePath: connectorConfig.sourcePath, message: status.message };`);
 					code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Moved to: \${state.body.targetPath} \`);`);
-				} else if (node.options.remove) {
+				} else if (node.options.delete) {
 					code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
 					code.push(`${tab(2)}connectorConfig.sourcePath = path.join(\`${parseDynamicVariable(node.options.sourceFolderPath) || ''}\`, connectorConfig.fileName);`);
 					code.push(`${tab(2)}state.body.sourcePath = connectorConfig.sourcePath;`);
