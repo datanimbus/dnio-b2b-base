@@ -1866,7 +1866,7 @@ function parseDynamicVariable(value) {
 
 function parseMustacheVariable(value) {
 	if (value) {
-		return value.replace(/\[/g, '.').replace(/\]/g, '');
+		return value.replace(/([a-z]+)\[/g, '$1.').replace(/([0-9]+)\]/g, '$1');
 	}
 }
 
