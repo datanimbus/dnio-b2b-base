@@ -1037,7 +1037,7 @@ async function generateNodes(pNode) {
 					} else if (node.options.delete) {
 						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/${(node.options.documentId)}\`;`);
 					} else {
-						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}\`;`);
+						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/utils/bulkUpsert?update=${(node.options.update || false)}&insert=${(node.options.insert || false)}\`;`);
 					}
 					code.push(`${tab(2)}state.url = Mustache.render(state.url, node);`);
 				} else {
@@ -1069,7 +1069,7 @@ async function generateNodes(pNode) {
 					} else if (node.options.delete) {
 						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + \`/${(node.options.documentId)}\`;`);
 					} else {
-						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${node.options.update}&insert=${node.options.insert}';`);
+						code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/utils/bulkUpsert?update=${(node.options.update || false)}&insert=${(node.options.insert || false)}';`);
 					}
 					// code.push(`${tab(2)}state.url = Mustache.render(state.url, node);`);
 				}
