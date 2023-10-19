@@ -116,11 +116,12 @@ async function parseFlow(dataJson) {
 	code.push('const _ = require(\'lodash\');');
 	code.push('const cron = require(\'node-cron\');');
 	code.push('const solace = require(\'solclientjs\');');
-	code.push('const { Kafka } = require(\'kafkajs\');');
+	// code.push('const { Kafka } = require(\'kafkajs\');');
 	code.push('const tf = require(\'@tensorflow/tfjs-node\');');
 	code.push('const chokidar = require(\'chokidar\');');
 	code.push('var builder = require(\'xmlbuilder\');');
 	code.push('var ldap = require(\'ldapjs\');');
+	code.push('const Kafka = require(\'node-rdkafka\');');
 	code.push('');
 	// if (config.b2bAllowNpmInstall === 'true') {
 	// 	const npmLibraries = await commonUtils.getAllLibraries();
@@ -265,6 +266,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}}`);
 		code.push(`${tab(1)}}, ${(inputNode.options.timeout || 60) * 1000});`);
 	}
+
 	if (inputNode.type === 'FILE' || (inputNode.options && inputNode.options.contentType === 'multipart/form-data')) {
 		if (inputNode.type === 'FILE') {
 			code.push(`${tab(1)}res.status(202).json({ message: 'File is being processed' });`);
@@ -853,6 +855,7 @@ async function parseNodes(dataJson) {
 	code.push('const validationUtils = require(\'./validation.utils\');');
 	code.push('const fileUtils = require(\'./file.utils\');');
 	code.push('const storageEngine = require(\'./storage.utils\');');
+	code.push('const kafkaUtils = require(\'./kafka.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('const xmlBuilder = new XMLBuilder();');
@@ -1782,6 +1785,40 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File upload response - \${JSON.stringify(result)}\`);`);
 					code.push(`${tab(2)}`);
 					code.push(`${tab(2)}state.responseBody = result;`);
+				}
+			} else if (connector.category == 'MESSAGING') {
+				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
+				if (connector.type == 'KAFKA') {
+					code.push(`${tab(2)}connectorConfig.topic = '${node.options.topicName}';`);
+
+					code.push(`${tab(2)}try {`);
+					code.push(`${tab(3)}kafkaUtils.ensureTopicExists(connectorConfig);`);
+					code.push(`${tab(2)}} catch(err) {`);
+					code.push(`${tab(3)}logger.error(\`Error verifying if topic exists or not :: \${err}\`);`);
+					code.push(`${tab(3)}throw err;`);
+					code.push(`${tab(2)}}`);
+					code.push(`${tab(2)}`);
+
+					code.push(`${tab(2)}let data = {};`);
+					code.push(`${tab(2)}let newBody = {};`);
+					generateMappingCode(node, code, false);
+					code.push(`${tab(2)}`);
+
+					code.push(`${tab(2)}let key = ${node?.options?.key?.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')};`);
+					code.push(`${tab(2)}let partition = ${node?.options?.partition?.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}') || -1};`);
+
+					if (node.options.connectorType == 'PRODUCER') {
+						code.push(`${tab(2)}let producer = await kafkaUtils.createProducer(connectorConfig);`);
+						code.push(`${tab(2)}`);
+						code.push(`${tab(2)}let resp = await kafkaUtils.produceMessage(producer, connectorConfig.topic, partition, key, newbody)`);
+						code.push(`${tab(2)}`);
+						code.push(`${tab(2)}`);
+					} else if (node.options.connectorType == 'CONSUMER') {
+						code.push(`${tab(2)}connectorConfig.groupId = ${config.flowId};`);
+						code.push(`${tab(2)}`);
+						code.push(`${tab(2)}`);
+						code.push(`${tab(2)}`);
+					}
 				}
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
