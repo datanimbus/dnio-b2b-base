@@ -954,16 +954,19 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}options.method = state.method;`);
 				/** ---------------RE-TRY LOGIC STARTS--------------- */
 				if (node.options.timeout) {
-					code.push(`${tab(2)}options.timeout = { request: ${node.options.timeout * 1000} };`);
+					code.push(`${tab(2)}const timeoutValue = parseInt(\`${parseDynamicVariable(node.options.timeout)}\`) * 1000;`);
+					code.push(`${tab(2)}options.timeout = timeoutValue;`);
 				}
 				if (node.options.retry && node.options.retry.count) {
-					code.push(`${tab(2)}options.retry = { limit: ${node.options.retry.count}, methods: ['${node.options.method || 'POST'}'], calculateDelay: calculateDelay };`);
+					code.push(`${tab(2)}const retryCount = parseInt(\`${parseDynamicVariable(node.options.retry.count)}\`);`);
+					code.push(`${tab(2)}const retryInterval = parseInt(\`${parseDynamicVariable(node.options.retry.interval)}\`);`);
+					code.push(`${tab(2)}options.retry = { limit: retryCount, methods: ['${node.options.method || 'POST'}'], calculateDelay: calculateDelay };`);
 					code.push(`${tab(2)}options.hooks = { beforeRetry: [retryCallbackHook] };`);
 					code.push(`${tab(2)}function calculateDelay(retryData) {`);
-					code.push(`${tab(3)}if (retryData.attemptCount > ${node.options.retry.count}) {`);
+					code.push(`${tab(3)}if (retryData.attemptCount > retryCount) {`);
 					code.push(`${tab(4)}return 0;`);
 					code.push(`${tab(3)}}`);
-					code.push(`${tab(3)}return ${node.options.retry.interval * 1000};`);
+					code.push(`${tab(3)}return (retryInterval * 1000);`);
 					code.push(`${tab(2)}}`);
 					code.push(`${tab(2)}function retryCallbackHook(options, error, retryCount) {`);
 					code.push(`${tab(3)}console.log(\`Retrying [\${retryCount}]: \${error.code}\`);`);
@@ -1039,7 +1042,7 @@ async function generateNodes(pNode) {
 					} else {
 						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + \`/utils/bulkUpsert?update=${(node.options.update || false)}&insert=${(node.options.insert || false)}\`;`);
 					}
-					code.push(`${tab(2)}state.url = Mustache.render(state.url, node);`);
+					code.push(`${tab(2)}state.url = Mustache.render(commonUtils.parseMustacheVariable(state.url), node);`);
 				} else {
 					if (node.options.get) {
 						const params = [];
@@ -1552,6 +1555,9 @@ async function generateNodes(pNode) {
 			// code = code.concat(ResetNodeVariables(flowData));
 			if (nodeData && nodeData.params) {
 				nodeData.params.forEach((param) => {
+					if (!node.options[param.key]) {
+						node.options[param.key] = '';
+					}
 					if (param.dataType == 'number') {
 						code.push(`${tab(3)}let ${param.key} = parseFloat(\`${node.options[param.key].replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`);`);
 					} else if (param.dataType == 'boolean') {
@@ -1577,7 +1583,21 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}if (!connectorConfig.retry) {`);
 				code.push(`${tab(3)}connectorConfig.retry = {};`);
 				code.push(`${tab(2)}}`);
-				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath)}\`;`);
+
+				code.push(`${tab(2)}if (connectorConfig.retry.count) {`);
+				code.push(`${tab(2)}connectorConfig.retry.count = parseInt(Mustache.render(commonUtils.parseMustacheVariable((connectorConfig.retry.count||1)+''), node));`);
+				code.push(`${tab(2)}}`);
+				code.push(`${tab(2)}if (connectorConfig.retry.factor) {`);
+				code.push(`${tab(2)}connectorConfig.retry.factor = parseInt(Mustache.render(commonUtils.parseMustacheVariable((connectorConfig.retry.factor||1)+''), node));`);
+				code.push(`${tab(2)}}`);
+				code.push(`${tab(2)}if (connectorConfig.retry.interval) {`);
+				code.push(`${tab(2)}connectorConfig.retry.interval = parseInt(Mustache.render(commonUtils.parseMustacheVariable((connectorConfig.retry.interval||1)+''), node));`);
+				code.push(`${tab(2)}}`);
+				code.push(`${tab(2)}if (connectorConfig.timeout) {`);
+				code.push(`${tab(2)}connectorConfig.timeout = parseInt(Mustache.render(commonUtils.parseMustacheVariable((connectorConfig.timeout||30)+''), node));`);
+				code.push(`${tab(2)}}`);
+
+				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath || '\\')}\`;`);
 				code.push(`${tab(2)}let newBody = {};`);
 				generateMappingCode(node, code, false);
 				if (node.options.list) {
@@ -1627,14 +1647,19 @@ async function generateNodes(pNode) {
 						} else {
 							rowDelimiter = '\\n';
 						}
+
+						code.push(`${tab(1)}const skipLines = parseInt(\`${parseDynamicVariable(node.options.skipLines || 0)}\`);`);
+						code.push(`${tab(1)}const skipRows = parseInt(\`${parseDynamicVariable(node.options.skipRows || 0)}\`);`);
+						code.push(`${tab(1)}const maxRows = parseInt(\`${parseDynamicVariable(node.options.maxRows || 0)}\`);`);
+
 						code.push(`${tab(1)}const pr = await new Promise((resolve, reject) => {`);
 						code.push(`${tab(2)}let records = [];`);
 						code.push(`${tab(2)}const fileStream = fs.createReadStream(filePath);`);
 						code.push(`${tab(2)}fastcsv.parseStream(fileStream, {`);
 						code.push(`${tab(3)}headers: fileUtils.getHeaderOf${node.dataStructure.outgoing._id}(),`);
-						code.push(`${tab(3)}skipLines: ${node.options.skipLines || 0},`);
-						code.push(`${tab(3)}skipRows: ${node.options.skipRows || 0},`);
-						code.push(`${tab(3)}maxRows: ${node.options.maxRows || 0},`);
+						code.push(`${tab(3)}skipLines: skipLines,`);
+						code.push(`${tab(3)}skipRows: skipRows,`);
+						code.push(`${tab(3)}maxRows: maxRows,`);
 						code.push(`${tab(3)}rowDelimiter: '${rowDelimiter}',`);
 						code.push(`${tab(3)}delimiter: '${dataFormat.character}',`);
 						code.push(`${tab(3)}ignoreEmpty: true,`);
@@ -1765,10 +1790,13 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}data.connectionString = connectorConfig.connectionString;`);
 					code.push(`${tab(2)}data.containerName = connectorConfig.container;`);
 					if (node.options.folderPath) {
-						code.push(`${tab(2)}data.blobName = \`${node.options.folderPath}/${node.options.fileName.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
+						code.push(`${tab(2)}const blobName = path.join('/',\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}\`);`);
+						// code.push(`${tab(2)}data.blobName = \`${node.options.folderPath}/${node.options.fileName.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
 					} else {
-						code.push(`${tab(2)}data.blobName = \`${config.app}/${config.flowId}_${config.flowName}/${node.options.fileName.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
+						code.push(`${tab(2)}const blobName = path.join('/',\`${parseDynamicVariable(node.options.fileName)}\`);`);
+						// code.push(`${tab(2)}data.blobName = \`${config.app}/${config.flowId}_${config.flowName}/${node.options.fileName.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
 					}
+					code.push(`${tab(2)}data.blobName = blobName;`);
 					code.push(`${tab(2)}data.metadata = {`);
 					code.push(`${tab(3)}'dnio_app': '${config.app}',`);
 					code.push(`${tab(3)}'dnio_flowName': '${config.flowName}',`);
