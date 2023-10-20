@@ -702,6 +702,12 @@ function maskStringData(strVal, maskType, charsToShow) {
 	}
 }
 
+function parseMustacheVariable(value) {
+	if (value) {
+		return value.replace(/([a-z]+)\[/g, '$1.').replace(/([0-9]+)\]/g, '$1');
+	}
+}
+
 
 module.exports.getApp = getApp;
 module.exports.getDataService = getDataService;
@@ -725,3 +731,4 @@ module.exports.getAllFormulas = getAllFormulas;
 module.exports.getCustomNode = getCustomNode;
 module.exports.getAllLibraries = getAllLibraries;
 module.exports.maskStringData = maskStringData;
+module.exports.parseMustacheVariable = parseMustacheVariable;
