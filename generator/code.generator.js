@@ -212,6 +212,27 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(0)}} catch (err) {`);
 		code.push(`${tab(1)}logger.error(err);`);
 		code.push(`${tab(0)}}`);
+	} else if (inputNode.type === 'KAFKA_CONSUMER' ) {
+		const connector = await commonUtils.getConnector(inputNode.options.connector._id);
+		code.push(`${tab(0)}try {`);
+		code.push(`${tab(1)}(async () => {`);
+		code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
+		code.push(`${tab(2)}connectorConfig.topic = '${inputNode.options.topicName}';`);
+		code.push(`${tab(2)}connectorConfig.batch = ${inputNode.options.throttle};`);
+		code.push(`${tab(2)}connectorConfig.interval = ${inputNode.options.interval};`);
+		code.push(`${tab(2)}connectorConfig.groupId = '${config.flowId}';`);
+		code.push(`${tab(2)}createConsumer(connectorConfig, message => {`);
+		code.push(`${tab(3)}makeRequestToThisFlow(message);`);
+		code.push(`${tab(2)}});`);
+		code.push(`${tab(2)}`);
+		code.push(`${tab(2)}process.on('SIGINT', () => {`);
+		code.push(`${tab(3)}logger.info('\nDisconnecting consumer ...');`);
+		code.push(`${tab(3)}consumer.disconnect();`);
+		code.push(`${tab(2)}});`);
+		code.push(`${tab(1)}})();`);
+		code.push(`${tab(0)}} catch (err) {`);
+		code.push(`${tab(1)}logger.error(err);`);
+		code.push(`${tab(0)}}`);
 	}
 
 	code.push(`${tab(0)}function StartProcess(payload){`);
