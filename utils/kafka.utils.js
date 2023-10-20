@@ -93,10 +93,15 @@ function createConsumer(config, onData) {
 
   return new Promise((resolve, reject) => {
     consumer
-      .on('ready', () => resolve(consumer))
-      .on('data', ({key, value, partition, offset}) => {
-          console.log(`Consumed record with key ${key} and value ${value} of partition ${partition} @ offset ${offset}. Updated total count to ${++seen}`);
-        });
+      .on('ready', () => {
+        consumer.subscribe([config.topic]);
+
+        setInterval(() => {
+          consumer.consume(config.batch || 5);
+        }, config.interval || 60000);
+        resolve(consumer)
+      })
+      .on('data', onData);
 
     consumer.connect();
   });
@@ -125,23 +130,20 @@ async function produceMessage(producer, topic, partition, key, message) {
 }
 
 
-async function consumeMessages(consumer, config) {
-  console.log(`Consuming records from ${config.topic}`);
+// async function consumeMessages(consumer, config) {
+//   console.log(`Consuming records from ${config.topic}`);
 
-  let seen = 0;
+//   let seen = 0;
 
-  // const consumer = await createConsumer(config, ({key, value, partition, offset}) => {
-  //   console.log(`Consumed record with key ${key} and value ${value} of partition ${partition} @ offset ${offset}. Updated total count to ${++seen}`);
-  // });
+//   const consumer = await createConsumer(config, ({key, value, partition, offset}) => {
+//     console.log(`Consumed record with key ${key} and value ${value} of partition ${partition} @ offset ${offset}. Updated total count to ${++seen}`);
+//   });
 
-  consumer.subscribe([config.topic]);
-  consumer.consume();
-
-  process.on('SIGINT', () => {
-    console.log('\nDisconnecting consumer ...');
-    // consumer.disconnect();
-  });
-}
+//   process.on('SIGINT', () => {
+//     console.log('\nDisconnecting consumer ...');
+//     consumer.disconnect();
+//   });
+// }
 
 
 
@@ -149,4 +151,4 @@ module.exports.ensureTopicExists = ensureTopicExists;
 module.exports.createProducer = createProducer;
 module.exports.createConsumer = createConsumer;
 module.exports.produceMessage = produceMessage;
-module.exports.consumeMessages = consumeMessages;
+// module.exports.consumeMessages = consumeMessages;
