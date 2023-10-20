@@ -675,8 +675,8 @@ function parseMustacheVariable(value) {
 
 
 function retryableMethod(options, fn) {
-	const operation = retry.operation(options);
 	return new Promise((resolve, reject) => {
+		const operation = retry.operation(options);
 		operation.attempt(async (currentAttempt) => {
 			try {
 				let temp = await fn();
