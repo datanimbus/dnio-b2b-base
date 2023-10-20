@@ -216,36 +216,31 @@ async function sftpPutFile(configData) {
 			options.passphrase = configData.passphrase;
 		}
 
-		const operation = retry.operation({
+		const retryOptions = {
 			retries: configData.retry.count || 1,
 			factor: configData.retry.factor || 1,
 			minTimeout: (configData.retry.interval || 1) * 1000,
 			maxTimeout: (configData.timeout || 10) * 1000,
 			randomize: true
+		};
+		logger.info('Trying to connect SFTP');
+		await retryableMethod(retryOptions, async function () {
+			return await sftp.connect(options);
 		});
-		return new Promise((resolve, reject) => {
-			operation.attempt(async (currentAttempt) => {
-				try {
-					await sftp.connect(options);
-					let targetDirectory = path.dirname(configData.targetPath);
-					let status = await sftp.mkdir(targetDirectory, true);
-					logger.info('Creating Folder if not exists: ', status);
-					logger.info('Trying SFTP Upload');
-					const temp = await sftp.fastPut(configData.sourcePath, configData.targetPath + '.incomplete');
-					await sftp.rename(configData.targetPath + '.incomplete', configData.targetPath);
-					logger.info('SFTP Upload Done!');
-					logger.debug(temp);
-					resolve({ message: temp });
-				} catch (error) {
-					if (operation.retry(error)) {
-						logger.error(`Upload failed. Retrying ${currentAttempt}...`);
-						return;
-					}
-					logger.error(error);
-					reject(new Error('Upload failed after retries.'));
-				}
-			});
+		let targetDirectory = path.dirname(configData.targetPath);
+		logger.info('Creating Folder if not exists: ', status);
+		let status = await retryableMethod(retryOptions, async function () {
+			return await sftp.mkdir(targetDirectory, true);
 		});
+		logger.info('Trying SFTP Upload');
+		let temp = await retryableMethod(retryOptions, async function () {
+			return await sftp.fastPut(configData.sourcePath, configData.targetPath + '.incomplete');
+		});
+		await retryableMethod(retryOptions, async function () {
+			return await sftp.rename(configData.targetPath + '.incomplete', configData.targetPath);
+		});
+		logger.info('SFTP Upload Done!');
+		return { message: temp };
 	} catch (err) {
 		logger.error(err);
 		throw err;
@@ -270,42 +265,36 @@ async function sftpListFile(configData) {
 		if (!configData.targetPath) {
 			throw new Error('No Directory Path provided');
 		}
-		const operation = retry.operation({
+
+		function filterFunction(item) {
+			if (configData.filePattern) {
+				if (item.name) {
+					let regex = new RegExp(configData.filePattern);
+					return regex.test(item.name);
+				}
+				return false;
+			}
+			return true;
+		}
+
+		const retryOptions = {
 			retries: configData.retry.count || 1,
 			factor: configData.retry.factor || 1,
 			minTimeout: (configData.retry.interval || 1) * 1000,
 			maxTimeout: (configData.timeout || 10) * 1000,
 			randomize: true
+		};
+		logger.info('Trying to connect SFTP');
+		await retryableMethod(retryOptions, async function () {
+			return await sftp.connect(options);
 		});
-		return new Promise((resolve, reject) => {
-			operation.attempt(async (currentAttempt) => {
-				try {
-					await sftp.connect(options);
-					function filterFunction(item) {
-						if (configData.filePattern) {
-							if (item.name) {
-								let regex = new RegExp(configData.filePattern);
-								return regex.test(item.name);
-							}
-							return false;
-						}
-						return true;
-					}
-					logger.info('Trying to list files in folder:', configData.targetPath);
-					const fileList = await sftp.list(configData.targetPath, filterFunction);
-					logger.info('File in SFTP folder:', fileList.length);
-					logger.debug(fileList);
-					resolve(fileList);
-				} catch (error) {
-					if (operation.retry(error)) {
-						logger.error(`List files failed. Retrying ${currentAttempt}...`);
-						return;
-					}
-					logger.error(error);
-					reject(new Error('List files failed after retries.'));
-				}
-			});
+		logger.info('Trying to list files in folder:', configData.targetPath);
+		const fileList = await retryableMethod(retryOptions, async function () {
+			return await sftp.list(configData.targetPath, filterFunction);
 		});
+		logger.info('File in SFTP folder:', fileList.length);
+		logger.debug(fileList);
+		return fileList;
 	} catch (err) {
 		logger.error(err);
 		throw err;
@@ -328,34 +317,25 @@ async function sftpReadFile(configData) {
 			options.passphrase = configData.passphrase;
 		}
 
-		const operation = retry.operation({
+		const retryOptions = {
 			retries: configData.retry.count || 1,
 			factor: configData.retry.factor || 1,
 			minTimeout: (configData.retry.interval || 1) * 1000,
 			maxTimeout: (configData.timeout || 10) * 1000,
 			randomize: true
+		};
+		logger.info('Trying to connect SFTP');
+		await retryableMethod(retryOptions, async function () {
+			return await sftp.connect(options);
 		});
-
-		return new Promise((resolve, reject) => {
-			operation.attempt(async (currentAttempt) => {
-				try {
-					await sftp.connect(options);
-					logger.info('Trying to Read file from SFTP :', configData.sourcePath);
-					// await waitForFileToComplete(sftp, configData.sourcePath);
-					let temp = await sftp.fastGet(configData.sourcePath, configData.targetPath);
-					logger.info('SFTP Read Done!');
-					logger.info('File Stored at :', configData.targetPath);
-					resolve({ message: temp });
-				} catch (error) {
-					if (operation.retry(error)) {
-						logger.error(`Read file failed. Retrying ${currentAttempt}...`);
-						return;
-					}
-					logger.error(error);
-					reject(new Error('Read file failed after retries.'));
-				}
-			});
+		logger.info('Trying to Read file from SFTP :', configData.sourcePath);
+		// await waitForFileToComplete(sftp, configData.sourcePath);
+		let temp = await retryableMethod(retryOptions, async function () {
+			return await sftp.fastGet(configData.sourcePath, configData.targetPath);
 		});
+		logger.info('SFTP Read Done!');
+		logger.info('File Stored at :', configData.targetPath);
+		return { message: temp };
 	} catch (err) {
 		logger.error(err);
 		throw err;
@@ -400,36 +380,29 @@ async function sftpMoveFile(configData) {
 			options.passphrase = configData.passphrase;
 		}
 
-		const operation = retry.operation({
+		const retryOptions = {
 			retries: configData.retry.count || 1,
 			factor: configData.retry.factor || 1,
 			minTimeout: (configData.retry.interval || 1) * 1000,
 			maxTimeout: (configData.timeout || 10) * 1000,
 			randomize: true
+		};
+		logger.info('Trying to connect SFTP');
+		await retryableMethod(retryOptions, async function () {
+			return await sftp.connect(options);
 		});
-
-		return new Promise((resolve, reject) => {
-			operation.attempt(async (currentAttempt) => {
-				try {
-					await sftp.connect(options);
-					let targetDirectory = path.dirname(configData.targetPath);
-					let status = await sftp.mkdir(targetDirectory, true);
-					logger.info('Creating Folder if not exists: ', status);
-					logger.info('Trying to Move file from SFTP :', configData.sourcePath);
-					let temp = await sftp.rename(configData.sourcePath, configData.targetPath);
-					logger.info('SFTP Move Done!');
-					logger.info('File Moved to :', configData.targetPath);
-					resolve({ message: temp });
-				} catch (error) {
-					if (operation.retry(error)) {
-						logger.error(`Move file failed. Retrying ${currentAttempt}...`);
-						return;
-					}
-					logger.error(error);
-					reject(new Error('Move file failed after retries.'));
-				}
-			});
+		let targetDirectory = path.dirname(configData.targetPath);
+		logger.info('Creating Folder if not exists: ', status);
+		let status = await retryableMethod(retryOptions, async function () {
+			return await sftp.mkdir(targetDirectory, true);
 		});
+		logger.info('Trying to Move file from SFTP :', configData.sourcePath);
+		let temp = await retryableMethod(retryOptions, async function () {
+			return await sftp.rename(configData.sourcePath, configData.targetPath);
+		});
+		logger.info('SFTP Move Done!');
+		logger.info('File Moved to :', configData.targetPath);
+		return { message: temp };
 	} catch (err) {
 		logger.error(err);
 		throw err;
@@ -452,32 +425,24 @@ async function sftpDeleteFile(configData) {
 			options.passphrase = configData.passphrase;
 		}
 
-		const operation = retry.operation({
+
+		const retryOptions = {
 			retries: configData.retry.count || 1,
 			factor: configData.retry.factor || 1,
 			minTimeout: (configData.retry.interval || 1) * 1000,
 			maxTimeout: (configData.timeout || 10) * 1000,
 			randomize: true
+		};
+		logger.info('Trying to connect SFTP');
+		await retryableMethod(retryOptions, async function () {
+			return await sftp.connect(options);
 		});
-
-		return new Promise((resolve, reject) => {
-			operation.attempt(async (currentAttempt) => {
-				try {
-					await sftp.connect(options);
-					logger.info('Trying to Delete file from SFTP :', configData.sourcePath);
-					let temp = await sftp.delete(configData.sourcePath);
-					logger.info('SFTP Delete Done!');
-					resolve({ message: temp });
-				} catch (error) {
-					if (operation.retry(error)) {
-						logger.error(`Delete file failed. Retrying ${currentAttempt}...`);
-						return;
-					}
-					logger.error(error);
-					reject(new Error('Delete file failed after retries.'));
-				}
-			});
+		logger.info('Trying to Delete file from SFTP :', configData.sourcePath);
+		let temp = await retryableMethod(retryOptions, async function () {
+			return await sftp.delete(configData.sourcePath);
 		});
+		logger.info('SFTP Delete Done!');
+		return { message: temp };
 	} catch (err) {
 		logger.error(err);
 		throw err;
@@ -708,6 +673,26 @@ function parseMustacheVariable(value) {
 	}
 }
 
+
+function retryableMethod(options, fn) {
+	const operation = retry.operation(options);
+	return new Promise((resolve, reject) => {
+		operation.attempt(async (currentAttempt) => {
+			try {
+				let temp = await fn();
+				resolve(temp);
+			} catch (error) {
+				if (operation.retry(error)) {
+					logger.error(`Retrying ${currentAttempt}...`);
+					return;
+				}
+				logger.error(error);
+				reject(new Error('Failed after retries.'));
+			}
+
+		});
+	});
+}
 
 module.exports.getApp = getApp;
 module.exports.getDataService = getDataService;
