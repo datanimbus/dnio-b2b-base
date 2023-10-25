@@ -947,10 +947,10 @@ async function generateNodes(pNode) {
 		// });
 		code.push(`${tab(1)}try {`);
 		let functionName = 'validate_structure_' + (node._id);
-		if (node.type === 'API' || node.type == 'API_MULTIPART' || node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
+		if (node.type === 'API' || node.type == 'API_MULTIPART' || node.type.startsWith('DATASERVICE') || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
 			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
-			if (node.type === 'DATASERVICE' || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
+			if (node.type.startsWith('DATASERVICE') || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 				if (node.options.authorization) {
 					code.push(`${tab(3)}customHeaders['authorization'] = Mustache.render(\`${parseMustacheVariable(node.options.authorization)}\`, node);`);
 					// if (node.options.authorization.startsWith('node[')) {
@@ -1172,6 +1172,30 @@ async function generateNodes(pNode) {
 				// 	code.push(`${tab(2)}customBody = JSON.parse(\`${parseBody(node.options.body)}\`);`);
 				// }
 				// code.push(`${tab(2)}customBody = { docs: state.body };`);
+			} else if ((node.type === 'DATASERVICE_APPROVE' || node.type === 'DATASERVICE_REJECT') && node.options.dataService && node.options.dataService._id) {
+				code.push(`${tab(2)}const dataService = await commonUtils.getDataService('${node.options.dataService._id}');`);
+				if (config.isK8sEnv()) {
+					if (node.options.get) {
+						code.push(`${tab(2)}state.url = 'http://' + dataService.collectionName.toLowerCase() + '.' + '${config.DATA_STACK_NAMESPACE}' + '-' + dataService.app.toLowerCase() + '/' + dataService.app + dataService.api + '/utils/workflow/action';`);
+					}
+					code.push(`${tab(2)}state.url = Mustache.render(state.url, node);`);
+				} else {
+					code.push(`${tab(2)}state.url = 'http://localhost:' + dataService.port + '/' + dataService.app + dataService.api + '/utils/workflow/action';`);
+				}
+				code.push(`${tab(2)}state.method = 'PUT';`);
+
+				code.push(`${tab(2)}options.url = state.url;`);
+				code.push(`${tab(2)}options.method = state.method;`);
+				if (node.options.headers && !_.isEmpty(node.options.headers)) {
+					code.push(`${tab(2)}customHeaders = JSON.parse(\`${parseHeaders(node.options.headers)}\`);`);
+				}
+
+				code.push(`${tab(2)}state.body = {};`);
+				code.push(`${tab(2)}state.body.action = ${node.type === 'DATASERVICE_APPROVE' ? "\'Approve\'" : "\'Reject\'"};`);
+				code.push(`${tab(2)}state.body.remarks = \`${node.options?.remarks?.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
+				code.push(`${tab(2)}state.body.filter = Mustache.render(\`${_.trim(JSON.stringify(node.options.filter), '"')}\`, node);`);
+				code.push(`${tab(2)}customBody = state.body;`);
+
 			} else if (node.type === 'FUNCTION') {
 				code.push(`${tab(2)}const faas = await commonUtils.getFaaS('${node.options.faas._id}');`);
 				code.push(`${tab(2)}logger.trace(JSON.stringify(faas));`);
