@@ -10,6 +10,7 @@ let hasGlobaErrorHandler = false;
 
 let visitedNodes = [];
 let visitedValidation = [];
+let hasAtLeastOneCondition = false;
 
 function tab(len) {
 	let d = '';
@@ -31,6 +32,12 @@ function countDuplicates(nodeId, nodes) {
 }
 
 function fixCondition(condition) {
+	if (!condition || condition == 'undefined' || condition == 'null') {
+		return true;
+	}
+	if(typeof condition != 'string'){
+		return condition;	
+	}
 	if (condition) {
 		// condition.replace(/{{|}}/g, '')
 		return condition.replace(/{{/g, '_.get(node, \'').replace(/}}/g, '\')')
@@ -212,7 +219,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(0)}} catch (err) {`);
 		code.push(`${tab(1)}logger.error(err);`);
 		code.push(`${tab(0)}}`);
-	} else if (inputNode.type === 'KAFKA_CONSUMER' ) {
+	} else if (inputNode.type === 'KAFKA_CONSUMER') {
 		const connector = await commonUtils.getConnector(inputNode.options.connector._id);
 		code.push(`${tab(0)}try {`);
 		code.push(`${tab(1)}(async () => {`);
