@@ -143,6 +143,7 @@ async function parseFlow(dataJson) {
 	code.push('const nodeUtils = require(\'./utils/node.utils\');');
 	code.push('const fileUtils = require(\'./utils/file.utils\');');
 	code.push('const maskingUtils = require(\'./utils/masking.utils\');');
+	code.push('const kafkaUtils = require(\'./utils/kafka.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('const xmlBuilder = new XMLBuilder();');
@@ -228,7 +229,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}connectorConfig.batch = ${inputNode.options.throttle};`);
 		code.push(`${tab(2)}connectorConfig.interval = ${inputNode.options.interval};`);
 		code.push(`${tab(2)}connectorConfig.groupId = '${config.flowId}';`);
-		code.push(`${tab(2)}createConsumer(connectorConfig, message => {`);
+		code.push(`${tab(2)}kafkaUtils.createConsumer(connectorConfig, message => {`);
 		code.push(`${tab(3)}makeRequestToThisFlow(message);`);
 		code.push(`${tab(2)}});`);
 		code.push(`${tab(2)}`);
