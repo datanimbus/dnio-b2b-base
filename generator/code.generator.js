@@ -233,7 +233,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}});`);
 		code.push(`${tab(2)}`);
 		code.push(`${tab(2)}process.on('SIGINT', () => {`);
-		code.push(`${tab(3)}logger.info('\nDisconnecting consumer ...');`);
+		code.push(`${tab(3)}logger.info('Disconnecting consumer ...');`);
 		code.push(`${tab(3)}consumer.disconnect();`);
 		code.push(`${tab(2)}});`);
 		code.push(`${tab(1)}})();`);
