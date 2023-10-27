@@ -35,8 +35,8 @@ function fixCondition(condition) {
 	if (!condition || condition == 'undefined' || condition == 'null') {
 		return true;
 	}
-	if(typeof condition != 'string'){
-		return condition;	
+	if (typeof condition != 'string') {
+		return condition;
 	}
 	if (condition) {
 		// condition.replace(/{{|}}/g, '')
@@ -1827,17 +1827,6 @@ async function generateNodes(pNode) {
 			} else if (connector.category == 'STORAGE') {
 				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
 				if (connector.type == 'AZBLOB') {
-					// code.push(`${tab(2)}let reqfile = req.files.file;`);
-					// code.push(`${tab(2)}`);
-					// code.push(`${tab(2)}let file = {};`);
-					// code.push(`${tab(2)}file.length = reqfile.size;`);
-					// code.push(`${tab(2)}file.uploadDate = moment().format('YYYY-MM-DDTHH:mm:ss');`);
-					// code.push(`${tab(2)}file.name = reqfile.name;`);
-					// code.push(`${tab(2)}file.contentType = reqfile.mimetype;`);
-					// code.push(`${tab(2)}file.path = reqfile.tempFilePath;`);
-					// code.push(`${tab(2)}`);
-					// code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File object details - \${JSON.stringify(file)}\`);`);
-					// code.push(`${tab(2)}`);
 					code.push(`${tab(2)}let data = {};`);
 					code.push(`${tab(2)}let newBody = {};`);
 					generateMappingCode(node, code, false);
@@ -1846,10 +1835,8 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}data.containerName = connectorConfig.container;`);
 					if (node.options.folderPath) {
 						code.push(`${tab(2)}const blobName = path.join('/',\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}\`);`);
-						// code.push(`${tab(2)}data.blobName = \`${node.options.folderPath}/${node.options.fileName.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
 					} else {
 						code.push(`${tab(2)}const blobName = path.join('/',\`${parseDynamicVariable(node.options.fileName)}\`);`);
-						// code.push(`${tab(2)}data.blobName = \`${config.app}/${config.flowId}_${config.flowName}/${node.options.fileName.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
 					}
 					code.push(`${tab(2)}data.blobName = blobName;`);
 					code.push(`${tab(2)}data.metadata = {`);
@@ -1865,40 +1852,6 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File upload response - \${JSON.stringify(result)}\`);`);
 					code.push(`${tab(2)}`);
 					code.push(`${tab(2)}state.responseBody = result;`);
-				}
-			} else if (connector.category == 'MESSAGING') {
-				code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
-				if (connector.type == 'KAFKA') {
-					code.push(`${tab(2)}connectorConfig.topic = '${node.options.topicName}';`);
-
-					code.push(`${tab(2)}try {`);
-					code.push(`${tab(3)}kafkaUtils.ensureTopicExists(connectorConfig);`);
-					code.push(`${tab(2)}} catch(err) {`);
-					code.push(`${tab(3)}logger.error(\`Error verifying if topic exists or not :: \${err}\`);`);
-					code.push(`${tab(3)}throw err;`);
-					code.push(`${tab(2)}}`);
-					code.push(`${tab(2)}`);
-
-					code.push(`${tab(2)}let data = {};`);
-					code.push(`${tab(2)}let newBody = {};`);
-					generateMappingCode(node, code, false);
-					code.push(`${tab(2)}`);
-
-					code.push(`${tab(2)}let key = ${node?.options?.key?.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')};`);
-					code.push(`${tab(2)}let partition = ${node?.options?.partition?.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}') || -1};`);
-
-					if (node.options.connectorType == 'PRODUCER') {
-						code.push(`${tab(2)}let producer = await kafkaUtils.createProducer(connectorConfig);`);
-						code.push(`${tab(2)}`);
-						code.push(`${tab(2)}let resp = await kafkaUtils.produceMessage(producer, connectorConfig.topic, partition, key, newbody)`);
-						code.push(`${tab(2)}`);
-						code.push(`${tab(2)}`);
-					} else if (node.options.connectorType == 'CONSUMER') {
-						code.push(`${tab(2)}connectorConfig.groupId = ${config.flowId};`);
-						code.push(`${tab(2)}`);
-						code.push(`${tab(2)}`);
-						code.push(`${tab(2)}`);
-					}
 				}
 			}
 			code.push(`${tab(2)}state.statusCode = 200;`);
@@ -1950,6 +1903,33 @@ async function generateNodes(pNode) {
 			}
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 			// code.push(`${tab(2)}return { statusCode: 200, body: state.body, headers: state.headers };`);
+		} else if (node.type == 'KAFKA_PRODUCER') {
+			const connector = await commonUtils.getConnector(node?.options?.connector?._id);
+
+			code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
+			code.push(`${tab(2)}connectorConfig.topic = '${node.options.topicName}';`);
+
+			code.push(`${tab(2)}kafkaUtils.ensureTopicExists(connectorConfig);`);
+			code.push(`${tab(2)}`);
+
+			code.push(`${tab(2)}let data = {};`);
+			code.push(`${tab(2)}let newBody = {};`);
+			generateMappingCode(node, code, false);
+			code.push(`${tab(2)}`);
+
+			code.push(`${tab(2)}let key = ${node?.options?.key?.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}') || undefined};`);
+			code.push(`${tab(2)}let partition = ${node?.options?.partition?.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}') || -1};`);
+
+			code.push(`${tab(2)}let producer = await kafkaUtils.createProducer(connectorConfig);`);
+			code.push(`${tab(2)}`);
+			code.push(`${tab(2)}let result = await kafkaUtils.produceMessage(producer, connectorConfig.topic, partition, key, newbody)`);
+			code.push(`${tab(2)}`);
+			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Kafka produce response - \${JSON.stringify(result)}\`);`);
+			code.push(`${tab(2)}`);
+			code.push(`${tab(2)}state.responseBody = result;`);
+			code.push(`${tab(2)}state.statusCode = 200;`);
+			code.push(`${tab(2)}state.status = 'SUCCESS';`);
+			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else {
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
