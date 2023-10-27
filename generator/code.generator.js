@@ -59,24 +59,24 @@ function CreateNodeVariables(flowData) {
 		code.push(`${tab(1)}node['${flowData.errorNode._id}'] = {};`);
 	}
 
-	code.push(`${tab(1)}let ${flowData.inputNode._id} = node['${flowData.inputNode._id}'];`);
+	code.push(`${tab(1)}let ${_.camelCase(flowData.inputNode._id)} = node['${flowData.inputNode._id}'];`);
 	flowData.nodes.forEach(item => {
-		code.push(`${tab(1)}let ${item._id} = node['${item._id}'];`);
+		code.push(`${tab(1)}let ${_.camelCase(item._id)} = node['${item._id}'];`);
 	});
 	if (flowData.errorNode && flowData.errorNode._id) {
-		code.push(`${tab(1)}let ${flowData.errorNode._id} = node['${flowData.errorNode._id}'];`);
+		code.push(`${tab(1)}let ${_.camelCase(flowData.errorNode._id)} = node['${flowData.errorNode._id}'];`);
 	}
 	return code;
 }
 
 function ResetNodeVariables(flowData, init) {
 	let code = [];
-	code.push(`${tab(1)}${init ? 'let ' : ''}${flowData.inputNode._id} = node['${flowData.inputNode._id}'];`);
+	code.push(`${tab(1)}${init ? 'let ' : ''}${_.camelCase(flowData.inputNode._id)} = node['${flowData.inputNode._id}'];`);
 	flowData.nodes.forEach(item => {
-		code.push(`${tab(1)}${init ? 'let ' : ''}${item._id} = node['${item._id}'];`);
+		code.push(`${tab(1)}${init ? 'let ' : ''}${_.camelCase(item._id)} = node['${item._id}'];`);
 	});
 	if (flowData.errorNode && flowData.errorNode._id) {
-		code.push(`${tab(1)}${init ? 'let ' : ''}${flowData.errorNode._id} = node['${flowData.errorNode._id}'];`);
+		code.push(`${tab(1)}${init ? 'let ' : ''}${_.camelCase(flowData.errorNode._id)} = node['${flowData.errorNode._id}'];`);
 	}
 	return code;
 }
