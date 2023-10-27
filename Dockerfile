@@ -3,7 +3,7 @@ FROM node:18-buster-slim
 RUN apt update
 RUN apt upgrade -y
 
-RUN apt install -y curl tar git openssl python3 make build-essential
+RUN apt install -y curl tar git openssl python3 make build-essential libssl-dev libsasl2-dev
 
 
 # RUN apk update
