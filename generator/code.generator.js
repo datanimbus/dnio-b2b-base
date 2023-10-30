@@ -59,24 +59,24 @@ function CreateNodeVariables(flowData) {
 		code.push(`${tab(1)}node['${flowData.errorNode._id}'] = {};`);
 	}
 
-	code.push(`${tab(1)}let ${_.camelCase(flowData.inputNode._id)} = node['${flowData.inputNode._id}'];`);
+	code.push(`${tab(1)}let ${flowData.inputNode._id} = node['${flowData.inputNode._id}'];`);
 	flowData.nodes.forEach(item => {
-		code.push(`${tab(1)}let ${_.camelCase(item._id)} = node['${item._id}'];`);
+		code.push(`${tab(1)}let ${item._id} = node['${item._id}'];`);
 	});
 	if (flowData.errorNode && flowData.errorNode._id) {
-		code.push(`${tab(1)}let ${_.camelCase(flowData.errorNode._id)} = node['${flowData.errorNode._id}'];`);
+		code.push(`${tab(1)}let ${flowData.errorNode._id} = node['${flowData.errorNode._id}'];`);
 	}
 	return code;
 }
 
 function ResetNodeVariables(flowData, init) {
 	let code = [];
-	code.push(`${tab(1)}${init ? 'let ' : ''}${_.camelCase(flowData.inputNode._id)} = node['${flowData.inputNode._id}'];`);
+	code.push(`${tab(1)}${init ? 'let ' : ''}${flowData.inputNode._id} = node['${flowData.inputNode._id}'];`);
 	flowData.nodes.forEach(item => {
-		code.push(`${tab(1)}${init ? 'let ' : ''}${_.camelCase(item._id)} = node['${item._id}'];`);
+		code.push(`${tab(1)}${init ? 'let ' : ''}${item._id} = node['${item._id}'];`);
 	});
 	if (flowData.errorNode && flowData.errorNode._id) {
-		code.push(`${tab(1)}${init ? 'let ' : ''}${_.camelCase(flowData.errorNode._id)} = node['${flowData.errorNode._id}'];`);
+		code.push(`${tab(1)}${init ? 'let ' : ''}${flowData.errorNode._id} = node['${flowData.errorNode._id}'];`);
 	}
 	return code;
 }
@@ -229,7 +229,10 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}connectorConfig.batch = ${inputNode.options.throttle};`);
 		code.push(`${tab(2)}connectorConfig.interval = ${inputNode.options.interval};`);
 		code.push(`${tab(2)}connectorConfig.groupId = '${config.flowId}';`);
+		code.push(`${tab(2)}logger.info('Creating Kafka Consumer');`);
+		code.push(`${tab(2)}logger.trace(\`Connecting to Kafka Topic :: \${connectorConfig.topic}\`);`);
 		code.push(`${tab(2)}kafkaUtils.createConsumer(connectorConfig, message => {`);
+		code.push(`${tab(3)}logger.trace(\`Processig Message from Kafka :: \${JSON.stringify(message)}\`);`);
 		code.push(`${tab(3)}makeRequestToThisFlow(message);`);
 		code.push(`${tab(2)}});`);
 		code.push(`${tab(2)}`);
@@ -590,7 +593,7 @@ function generateCodeForLoop(node, nodes) {
 	let code = [];
 	code.push(`${tab(2)}tempState = _.cloneDeep(response);`);
 	code.push(`${tab(2)}tempState.body = item;`);
-	code.push(`${tab(2)}response = await nodeUtils.func_${(_.camelCase(node._id))}(req, tempState, node);`);
+	code.push(`${tab(2)}response = await nodeUtils.func_${(node._id)}(req, tempState, node);`);
 	code.push(`${tab(2)}tempState.responseBody = response.body;`);
 	if (node.onSuccess && node.onSuccess.length > 0) {
 		let tempNodes = (node.onSuccess || []);
@@ -773,7 +776,7 @@ function generateCode(node, nodes, isErrorNode) {
 			code.push(`${tab(2)}response.statusCode = 200;`);
 			code.push(`${tab(2)}response.status = 'SUCCESS';`);
 		} else {
-			code.push(`${tab(2)}response = await nodeUtils.func_${(_.camelCase(node._id))}(req, state, node);`);
+			code.push(`${tab(2)}response = await nodeUtils.func_${(node._id)}(req, state, node);`);
 		}
 		code.push(`${tab(2)}if (typeof response.statusCode == 'string') {`);
 		code.push(`${tab(3)}response.statusCode = parseInt(response.statusCode);`);
@@ -921,7 +924,7 @@ async function generateNodes(pNode) {
 	let loopCode = [];
 	const nodeVariables = [{ key: _.snakeCase(pNode.inputNode.name), value: pNode.inputNode._id }];
 	nodes.forEach((node) => {
-		nodeVariables.push({ key: _.snakeCase(node.name), value: _.camelCase(node._id) });
+		nodeVariables.push({ key: _.snakeCase(node.name), value: node._id });
 	});
 	// let promises = nodes.map(async (node) => {
 	await nodes.reduce(async (prev, node) => {
@@ -945,8 +948,8 @@ async function generateNodes(pNode) {
 				node.options.insert = true;
 			}
 		}
-		exportsCode.push(`module.exports.func_${(_.camelCase(node._id))} = func_${(_.camelCase(node._id))};`);
-		code.push(`async function func_${(_.camelCase(node._id))}(req, state, node) {`);
+		exportsCode.push(`module.exports.func_${(node._id)} = func_${(node._id)};`);
+		code.push(`async function func_${(node._id)}(req, state, node) {`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Starting ${node.name ? node.name : ''}(${(node._id)}) Node\`);`);
 		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Node type :: ${node.type}\`);`);
 		code = code.concat(ResetNodeVariables(pNode, true));
@@ -954,7 +957,7 @@ async function generateNodes(pNode) {
 		// 	code.push(`${tab(1)}const ${_.snakeCase(item.key)} = node['${item.value}'];`);
 		// });
 		code.push(`${tab(1)}try {`);
-		let functionName = 'validate_structure_' + (_.camelCase(node._id));
+		let functionName = 'validate_structure_' + (node._id);
 		if (node.type === 'API' || node.type == 'API_MULTIPART' || node.type.startsWith('DATASERVICE') || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
 			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
@@ -1674,7 +1677,7 @@ async function generateNodes(pNode) {
 						}
 					}
 					code.push(`${tab(2)}let ext = '${ext}';`);
-					code.push(`${tab(2)}let outputFileName = '${_.camelCase(node._id)}' + ext;`);
+					code.push(`${tab(2)}let outputFileName = '${node._id}' + ext;`);
 					code.push(`${tab(2)}const filePath = path.join(process.cwd(), 'downloads', outputFileName);`);
 
 					code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
@@ -2037,7 +2040,7 @@ function generateDataStructures(node, nodes) {
 	if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
 		schemaID = (node.dataStructure.outgoing._id);
 	}
-	const functionName = 'validate_structure_' + _.camelCase(node._id);
+	const functionName = 'validate_structure_' + node._id;
 	exportsCode.push(`module.exports.${functionName} = ${functionName};`);
 	code.push(`function ${functionName}(req, data) {`);
 	if (schemaID) {
@@ -2639,7 +2642,7 @@ function generateFileConvertorCode(node, code) {
 		}
 	}
 	code.push(`${tab(2)}let ext = '${ext}';`);
-	code.push(`${tab(2)}let outputFileName = '${_.camelCase(node._id)}' + ext;`);
+	code.push(`${tab(2)}let outputFileName = '${node._id}' + ext;`);
 
 	code.push(`${tab(2)}const filePath = path.join(process.cwd(), 'downloads', outputFileName);`);
 

@@ -80,6 +80,8 @@ function createProducer(config) {
 
 
 function createConsumer(config, onData) {
+  logger.debug(`Creating Consumer`);
+  
   const consumer = new Kafka.KafkaConsumer({
     'bootstrap.servers': config['servers'],
     'sasl.username': config['username'],
@@ -94,9 +96,11 @@ function createConsumer(config, onData) {
   return new Promise((resolve, reject) => {
     consumer
       .on('ready', () => {
+        logger.debug(`Kafka Consumer Ready, Subscribing to topic :: ${config.topic}`);
         consumer.subscribe([config.topic]);
 
         setInterval(() => {
+          logger.debug(`Consuming Records from Kafka`)
           consumer.consume(config.batch || 5);
         }, config.interval || 60000);
         resolve(consumer)
