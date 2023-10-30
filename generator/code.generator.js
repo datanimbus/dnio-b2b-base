@@ -229,7 +229,10 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}connectorConfig.batch = ${inputNode.options.throttle};`);
 		code.push(`${tab(2)}connectorConfig.interval = ${inputNode.options.interval};`);
 		code.push(`${tab(2)}connectorConfig.groupId = '${config.flowId}';`);
+		code.push(`${tab(2)}logger.info('Creating Kafka Consumer');`);
+		code.push(`${tab(2)}logger.trace(\`Connecting to Kafka Topic :: \${connectorConfig.topic}\`);`);
 		code.push(`${tab(2)}kafkaUtils.createConsumer(connectorConfig, message => {`);
+		code.push(`${tab(3)}logger.trace(\`Processig Message from Kafka :: \${JSON.stringify(message)}\`);`);
 		code.push(`${tab(3)}makeRequestToThisFlow(message);`);
 		code.push(`${tab(2)}});`);
 		code.push(`${tab(2)}`);
