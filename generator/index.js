@@ -43,12 +43,13 @@ async function createProject(flowJSON) {
 		flowJSON.appData = appData;
 		const routerJSContent = await codeGen.parseFlow(flowJSON);
 		const nodeUtilsContent = await codeGen.parseNodes(flowJSON);
+		const modelContent = await definitionUtils.parseDataStructures(flowJSON);
 		fs.writeFileSync(path.join(folderPath, 'route.js'), routerJSContent);
 		fs.writeFileSync(path.join(folderPath, 'utils', 'node.utils.js'), nodeUtilsContent);
 		fs.writeFileSync(path.join(folderPath, 'utils', 'file.utils.js'), codeGen.parseDataStructuresForFileUtils(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'utils', 'validation.utils.js'), codeGen.parseDataStructures(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'utils', 'masking.utils.js'), codeGen.parseDataStructuresForMasking(flowJSON));
-		fs.writeFileSync(path.join(folderPath, 'utils', 'model.utils.js'), definitionUtils.parseDataStructures(flowJSON));
+		fs.writeFileSync(path.join(folderPath, 'utils', 'model.utils.js'), modelContent);
 		fs.writeFileSync(path.join(folderPath, 'flow.json'), JSON.stringify(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'app-data.json'), JSON.stringify(appData));
 

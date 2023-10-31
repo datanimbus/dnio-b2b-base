@@ -3,7 +3,7 @@
  */
 
 const _ = require('lodash');
-// const commonUtils = require('../api/utils/common.utils');
+const commonUtils = require('../utils/common.utils');
 
 const mongooseFields = ['required', 'default', 'index', 'select', 'lowercase', 'uppercase', 'trim', 'match', 'enum', 'min', 'max', 'minlength', 'maxlength'];
 function filterMongooseFields(schemaObj) {
@@ -361,8 +361,8 @@ function generateDefinition(config) {
 	return 'const _ = require(\'lodash\');\n var definition = ' + stringify(definition) + ';\nmodule.exports.definition=definition;';
 }
 
-function parseDataStructures(dataJson) {
-	const code = ['/* eslint-disable camelcase */',''];
+async function parseDataStructures(dataJson) {
+	const code = ['/* eslint-disable camelcase */', ''];
 	code.push('const fs = require(\'fs\');');
 	code.push('const path = require(\'path\');');
 	code.push('const log4js = require(\'log4js\');');
@@ -375,19 +375,27 @@ function parseDataStructures(dataJson) {
 	code.push('');
 
 	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
-		Object.keys(dataJson.dataStructures).forEach(schemaID => {
-			let schema = dataJson.dataStructures[schemaID];
-			code.push(`const definition_${schemaID} = require('../schemas/${schemaID}.definition').definition;`);
-			if (schema.schemaFree) {
-				code.push(`const schema_${schemaID} = mongooseUtils.MakeSchema(definition_${schemaID}, { strict: false });`);
-			} else {
-				code.push(`const schema_${schemaID} = mongooseUtils.MakeSchema(definition_${schemaID});`);
+		await Object.keys(dataJson.dataStructures).reduce(async (prev, schemaID) => {
+			try {
+				await prev;
+				let schema = dataJson.dataStructures[schemaID];
+				if (schemaID.startsWith('SRVC')) {
+					let dataService = await commonUtils.getDataService(schemaID);
+					code.push(`const definition_${schemaID} = require('../schemas/${schemaID}.definition').definition;`);
+					if (schema.schemaFree) {
+						code.push(`const schema_${schemaID} = mongooseUtils.MakeSchema(definition_${schemaID}, { strict: false });`);
+					} else {
+						code.push(`const schema_${schemaID} = mongooseUtils.MakeSchema(definition_${schemaID});`);
+					}
+					code.push(`schema_${schemaID}.plugin(mongooseUtils.metadataPlugin());`);
+					code.push(`const model_${schemaID} = mongoose.model('${schemaID}', schema_${schemaID}, '${dataService.collectionName}');`);
+					code.push('');
+					code.push('');
+				}
+			} catch (err) {
+				console.log(err);
 			}
-			code.push(`schema_${schemaID}.plugin(mongooseUtils.metadataPlugin());`);
-			code.push(`const model_${schemaID} = mongoose.model('${schemaID}', schema_${schemaID});`);
-			code.push('');
-			code.push('');
-		});
+		}, Promise.resolve());
 	}
 	return code.join('\n');
 }
