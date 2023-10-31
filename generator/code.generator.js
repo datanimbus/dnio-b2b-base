@@ -880,6 +880,7 @@ async function parseNodes(dataJson) {
 	code.push('var builder = require(\'xmlbuilder\');');
 	code.push('var ldap = require(\'ldapjs\');');
 	code.push('const FormData = require(\'form-data\');');
+	code.push('const mongoose = require(\'mongoose\');');
 	code.push('');
 	code.push('const httpClient = require(\'../http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
