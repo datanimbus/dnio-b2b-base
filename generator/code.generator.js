@@ -889,6 +889,7 @@ async function parseNodes(dataJson) {
 	code.push('const fileUtils = require(\'./file.utils\');');
 	code.push('const storageEngine = require(\'./storage.utils\');');
 	code.push('const kafkaUtils = require(\'./kafka.utils\');');
+	code.push('const modelUtils = require(\'./model.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('const xmlBuilder = new XMLBuilder();');
