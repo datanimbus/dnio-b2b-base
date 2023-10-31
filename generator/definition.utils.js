@@ -378,17 +378,23 @@ async function parseDataStructures(dataJson) {
 		await Object.keys(dataJson.dataStructures).reduce(async (prev, schemaID) => {
 			try {
 				await prev;
-				let schema = dataJson.dataStructures[schemaID];
+				// let schema = dataJson.dataStructures[schemaID];
+				code.push(`const definition_${schemaID} = require('../schemas/${schemaID}.definition').definition;`);
 				if (schemaID.startsWith('SRVC')) {
 					let dataService = await commonUtils.getDataService(schemaID);
-					code.push(`const definition_${schemaID} = require('../schemas/${schemaID}.definition').definition;`);
-					if (schema.schemaFree) {
+					if (dataService.schemaFree) {
 						code.push(`const schema_${schemaID} = mongooseUtils.MakeSchema(definition_${schemaID}, { strict: false });`);
 					} else {
 						code.push(`const schema_${schemaID} = mongooseUtils.MakeSchema(definition_${schemaID});`);
 					}
 					code.push(`schema_${schemaID}.plugin(mongooseUtils.metadataPlugin());`);
 					code.push(`const model_${schemaID} = mongoose.model('${schemaID}', schema_${schemaID}, '${dataService.collectionName}');`);
+					code.push('');
+					code.push('');
+				} else if (schemaID.startsWith('DF')) {
+					code.push(`const schema_${schemaID} = mongooseUtils.MakeSchema(definition_${schemaID});`);
+					code.push(`schema_${schemaID}.plugin(mongooseUtils.metadataPlugin());`);
+					code.push(`const model_${schemaID} = mongoose.model('${schemaID}', schema_${schemaID}, 'dataformat.${schemaID}');`);
 					code.push('');
 					code.push('');
 				}
