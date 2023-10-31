@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 const log4js = require('log4js');
 const Kafka = require('node-rdkafka');
 
@@ -6,131 +7,131 @@ const logger = log4js.getLogger(global.loggerName);
 
 
 function ensureTopicExists(config) {
-  logger.debug(`Ensuring Kafka Topic Exists - ${config.topic}`);
+	logger.debug(`Ensuring Kafka Topic Exists - ${config.topic}`);
 
-  let adminClient;
-  try {
-    adminClient = Kafka.AdminClient.create({
-      'bootstrap.servers': config['servers'],
-      'sasl.username': config['username'],
-      'sasl.password': config['password'],
-      'security.protocol': config['protocol'],
-      'sasl.mechanisms': config['mechanisms']
-    });
+	let adminClient;
+	try {
+		adminClient = Kafka.AdminClient.create({
+			'bootstrap.servers': config['servers'],
+			'sasl.username': config['username'],
+			'sasl.password': config['password'],
+			'security.protocol': config['protocol'],
+			'sasl.mechanisms': config['mechanisms']
+		});
 
-    return new Promise((resolve, reject) => {
-      adminClient.createTopic({
-        topic: config.topic,
-        num_partitions: config.num_partitions || 6,
-        replication_factor: config.replication_factor || 3
-      }, (err) => {
-        if (!err) {
-          logger.debug(`Created topic - ${config.topic}`);
-          return resolve();
-        }
-  
-        if (err.code === ERR_TOPIC_ALREADY_EXISTS) {
-          logger.debug(`Topic already exists - ${config.topic}`);
-          return resolve();
-        }
-  
-        logger.error(`Error creating/verifying topic - ${err}`);
-        return reject(err);
-      });
-    });
-  } catch(err) {
-    logger.error(err);
-  }  
+		return new Promise((resolve, reject) => {
+			adminClient.createTopic({
+				topic: config.topic,
+				num_partitions: config.num_partitions || 6,
+				replication_factor: config.replication_factor || 3
+			}, (err) => {
+				if (!err) {
+					logger.debug(`Created topic - ${config.topic}`);
+					return resolve();
+				}
+
+				if (err.code === ERR_TOPIC_ALREADY_EXISTS) {
+					logger.debug(`Topic already exists - ${config.topic}`);
+					return resolve();
+				}
+
+				logger.error(`Error creating/verifying topic - ${err}`);
+				return reject(err);
+			});
+		});
+	} catch (err) {
+		logger.error(err);
+	}
 }
 
 
 function createProducer(config) {
-  logger.debug(`Creating Producer`);
+	logger.debug('Creating Producer');
 
-  const producer = new Kafka.Producer({
-    'bootstrap.servers': config['servers'],
-    'sasl.username': config['username'],
-    'sasl.password': config['password'],
-    'security.protocol': config['protocol'],
-    'sasl.mechanisms': config['mechanisms'],
-    'dr_msg_cb': true
-  });
+	const producer = new Kafka.Producer({
+		'bootstrap.servers': config['servers'],
+		'sasl.username': config['username'],
+		'sasl.password': config['password'],
+		'security.protocol': config['protocol'],
+		'sasl.mechanisms': config['mechanisms'],
+		'dr_msg_cb': true
+	});
 
-  return new Promise((resolve, reject) => {
-    producer
-      .on('ready', () => {
-        logger.debug(`Producer ready`);
-        resolve(producer)
-      })
-      .on('delivery-report', (err, report) => {
-        if (err) {
-          logger.error(`Error producing ${err}`);
-        } else {
-          const { topic, partition, value } = report;
-          logger.debug(`Successfully produced record to topic "${topic}" partition ${partition} :: ${value}`);
-        }
-      })
-      .on('event.error', (err) => {
-        logger.error('event.error', err);
-        reject(err);
-      });
-    producer.connect();
-  });
+	return new Promise((resolve, reject) => {
+		producer
+			.on('ready', () => {
+				logger.debug('Producer ready');
+				resolve(producer);
+			})
+			.on('delivery-report', (err, report) => {
+				if (err) {
+					logger.error(`Error producing ${err}`);
+				} else {
+					const { topic, partition, value } = report;
+					logger.debug(`Successfully produced record to topic "${topic}" partition ${partition} :: ${value}`);
+				}
+			})
+			.on('event.error', (err) => {
+				logger.error('event.error', err);
+				reject(err);
+			});
+		producer.connect();
+	});
 }
 
 
 function createConsumer(config, onData) {
-  logger.debug(`Creating Consumer`);
-  
-  const consumer = new Kafka.KafkaConsumer({
-    'bootstrap.servers': config['servers'],
-    'sasl.username': config['username'],
-    'sasl.password': config['password'],
-    'security.protocol': config['protocol'],
-    'sasl.mechanisms': config['mechanisms'],
-    'group.id': config['groupId']
-  }, {
-    'auto.offset.reset': 'earliest'
-  });
+	logger.debug('Creating Consumer');
 
-  return new Promise((resolve, reject) => {
-    consumer
-      .on('ready', () => {
-        logger.debug(`Kafka Consumer Ready, Subscribing to topic :: ${config.topic}`);
-        consumer.subscribe([config.topic]);
+	const consumer = new Kafka.KafkaConsumer({
+		'bootstrap.servers': config['servers'],
+		'sasl.username': config['username'],
+		'sasl.password': config['password'],
+		'security.protocol': config['protocol'],
+		'sasl.mechanisms': config['mechanisms'],
+		'group.id': config['groupId']
+	}, {
+		'auto.offset.reset': 'earliest'
+	});
 
-        setInterval(() => {
-          logger.debug(`Consuming Records from Kafka`)
-          consumer.consume(config.batch || 5);
-        }, config.interval || 60000);
-        resolve(consumer)
-      })
-      .on('data', onData);
+	return new Promise((resolve, reject) => {
+		consumer
+			.on('ready', () => {
+				logger.debug(`Kafka Consumer Ready, Subscribing to topic :: ${config.topic}`);
+				consumer.subscribe([config.topic]);
 
-    consumer.connect();
-  });
+				setInterval(() => {
+					logger.debug('Consuming Records from Kafka');
+					consumer.consume(config.batch || 5);
+				}, config.interval || 60000);
+				resolve(consumer);
+			})
+			.on('data', onData);
+
+		consumer.connect();
+	});
 }
 
 
 async function produceMessage(producer, topic, partition, key, message) {
-  let resp;
+	let resp;
 
-  if (Array.isArray(message)) {
-    let promises = await message.reduce(async (prev, m) => {
-      await prev;
-      return await producer.produce(topic, partition, m, key);
-    }, Promise.resolve());
-    resp = await Promise.all(promises);
-  
-  } else {
-    resp = await producer.produce(topic, partition, message, key);
-  }
+	if (Array.isArray(message)) {
+		let promises = await message.reduce(async (prev, m) => {
+			await prev;
+			return await producer.produce(topic, partition, m, key);
+		}, Promise.resolve());
+		resp = await Promise.all(promises);
 
-  producer.flush(10000, () => {
-    // producer.disconnect();
-  });
+	} else {
+		resp = await producer.produce(topic, partition, message, key);
+	}
 
-  return resp;
+	producer.flush(10000, () => {
+		// producer.disconnect();
+	});
+
+	return resp;
 }
 
 
