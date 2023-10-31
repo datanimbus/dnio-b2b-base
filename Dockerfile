@@ -20,18 +20,21 @@ RUN npm install --production --no-audit
 # RUN npm audit fix --production
 RUN rm -rf /usr/local/lib/node_modules/npm/node_modules/node-gyp/test
 
-COPY app.js app.js
-COPY config.js config.js
-COPY db-factory.js db-factory.js
-COPY flow.schema.json flow.schema.json
-COPY http-client.js http-client.js
-COPY lib.middlewares.js lib.middlewares.js
+COPY . .
 
-COPY utils utils
-COPY generator/code.generator.js generator/code.generator.js
-COPY generator/index.js generator/index.js
-COPY generator/schema.utils.js generator/schema.utils.js
-COPY generator/schema.validator.js generator/schema.validator.js
+# COPY app.js app.js
+# COPY config.js config.js
+# COPY db-factory.js db-factory.js
+# COPY flow.schema.json flow.schema.json
+# COPY http-client.js http-client.js
+# COPY lib.middlewares.js lib.middlewares.js
+
+# COPY utils utils
+# COPY generator/code.generator.js generator/code.generator.js
+# COPY generator/index.js generator/index.js
+# COPY generator/schema.utils.js generator/schema.utils.js
+# COPY generator/schema.validator.js generator/schema.validator.js
+# COPY generator/definition.utils.js generator/definition.utils.js
 
 ENV NODE_ENV='production'
 
