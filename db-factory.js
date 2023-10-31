@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const { MongoClient } = require('mongodb');
 const JWT = require('jsonwebtoken');
 const log4js = require('log4js');
@@ -18,6 +19,7 @@ global.falseBooleanValues = ['n', 'no', 'false', '0'];
 
 (async () => {
 	try {
+		mongoose.connect(config.mongoUrl, { dbName: config.appDB });
 		logger.trace(config.mongoUrl, config.mongoAppCenterOptions, config.appDB);
 		const client = await MongoClient.connect(config.mongoUrl, config.mongoAppCenterOptions);
 		logger.info('Connected to ', config.appDB);

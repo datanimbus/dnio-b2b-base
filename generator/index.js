@@ -6,6 +6,7 @@ const { exec, execSync } = require('child_process');
 
 const codeGen = require('./code.generator');
 const schemaUtils = require('./schema.utils');
+const definitionUtils = require('./definition.utils');
 const commonUtils = require('../utils/common.utils');
 const config = require('../config');
 
@@ -24,6 +25,7 @@ async function createProject(flowJSON) {
 		const folderPath = process.cwd();
 
 		mkdirp.sync(path.join(folderPath, 'schemas'));
+		mkdirp.sync(path.join(folderPath, 'model'));
 		mkdirp.sync(path.join(folderPath, 'SFTP-Files'));
 		mkdirp.sync(path.join(folderPath, 'downloads'));
 
@@ -33,6 +35,7 @@ async function createProject(flowJSON) {
 				schema._id = schemaID;
 				if (schema.definition) {
 					fs.writeFileSync(path.join(folderPath, 'schemas', `${schemaID}.schema.json`), JSON.stringify(schemaUtils.convertToJSONSchema(schema)));
+					fs.writeFileSync(path.join(folderPath, 'schemas', `${schemaID}.definition.js`), definitionUtils.generateDefinition(schema));
 				}
 			});
 		}
@@ -45,6 +48,7 @@ async function createProject(flowJSON) {
 		fs.writeFileSync(path.join(folderPath, 'utils', 'file.utils.js'), codeGen.parseDataStructuresForFileUtils(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'utils', 'validation.utils.js'), codeGen.parseDataStructures(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'utils', 'masking.utils.js'), codeGen.parseDataStructuresForMasking(flowJSON));
+		fs.writeFileSync(path.join(folderPath, 'utils', 'model.utils.js'), definitionUtils.parseDataStructures(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'flow.json'), JSON.stringify(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'app-data.json'), JSON.stringify(appData));
 
