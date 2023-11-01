@@ -401,9 +401,9 @@ async function parseDataStructures(dataJson) {
 					code.push(`const schema_${schemaID} = mongooseUtils.MakeSchema(definition_${schemaID});`);
 					code.push(`counterOptions_${schemaID}.prefix = '${_.toUpper(schema.name.substring(0, 3))}';`);
 					code.push(`counterOptions_${schemaID}.counterName = 'dataformat.${schemaID}';`);
-					code.push('counterOptions_${schemaID}.suffix = null;');
-					code.push('counterOptions_${schemaID}.padding = null;');
-					code.push('counterOptions_${schemaID}.counter = 1001;');
+					code.push(`counterOptions_${schemaID}.suffix = null;`);
+					code.push(`counterOptions_${schemaID}.padding = null;`);
+					code.push(`counterOptions_${schemaID}.counter = 1001;`);
 					code.push(`schema_${schemaID}.plugin(mongooseUtils.metadataPlugin(counterOptions_${schemaID}));`);
 					code.push(`const model_${schemaID} = mongoose.model('${schemaID}', schema_${schemaID}, 'dataformat.${schemaID}');`);
 					code.push('');
