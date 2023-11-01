@@ -87,7 +87,7 @@ function metadataPlugin(counterOptions) {
 		schema.pre('save', generateId(counterOptions.prefix, counterOptions.counterName, counterOptions.suffix, counterOptions.padding, counterOptions.counter));
 		schema.pre('insertMany', function (next, docs) {
 			if (docs && docs.length > 0) {
-				let promises = docs.forEach(async (doc) => {
+				let promises = docs.map(async (doc) => {
 					if (!doc._id) {
 						doc._id = await createId(counterOptions.prefix, counterOptions.counterName, counterOptions.suffix, counterOptions.padding, counterOptions.counter);
 					}
