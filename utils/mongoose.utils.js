@@ -151,8 +151,7 @@ function generateId(prefix, counterName, suffix, padding, counter) {
 
 
 async function getCount(counterName) {
-	const authorDB = global.authorDB;
-	const collection = authorDB.collection('counters');
+	const collection = mongoose.connection.collection('counters');
 	return ((await collection.findOneAndUpdate({ _id: counterName }, { $inc: { next: 1 } }, { upsert: true })).value || 0);
 }
 
