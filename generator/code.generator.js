@@ -336,9 +336,9 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(3)}parseOptions.filePath = reqFile.tempFilePath;`);
 
 		if (dataFormat.hrsf) {
-			code.push(`${tab(3)}let tempState = await fileParserUtils.parseCommonFile(req, parseOptions);`);
-		} else {
 			code.push(`${tab(3)}let tempState = await fileParserUtils.parseHRSFFile(req, parseOptions);`);
+		} else {
+			code.push(`${tab(3)}let tempState = await fileParserUtils.parseCommonFile(req, parseOptions);`);
 		}
 
 		code.push(`${tab(3)}state.status = tempState.status;`);
