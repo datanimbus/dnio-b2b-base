@@ -1417,8 +1417,8 @@ async function generateNodes(pNode) {
 			}
 			// code.push(`${tab(2)}response = { statusCode: 200, body: finalRecords, headers: finalHeader }`);
 			code.push(`${tab(2)}state.statusCode = response.statusCode || 400;`);
+			code.push(`${tab(2)}state.requestHeaders = options.headers;`);
 			code.push(`${tab(2)}state.responseBody = response.body;`);
-			code.push(`${tab(2)}state.responseHeaders = response.headers;`);
 			code.push(`${tab(2)}response.body = finalRecords;`);
 			code.push(`${tab(2)}response.headers = finalHeader;`);
 
@@ -1532,6 +1532,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}let response = await execute(state, node);`);
 			code.push(`${tab(2)}state.statusCode = _.defaultTo(response.statusCode, 200);`);
 			code.push(`${tab(2)}state.status = _.defaultTo(response.status, 'SUCCESS');`);
+			code.push(`${tab(2)}state.requestHeaders = _.cloneDeep(state.headers);`);
 			code.push(`${tab(2)}state.headers = _.defaultTo(response.headers, state.headers);`);
 			code.push(`${tab(2)}state.responseBody = response.responseBody;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
@@ -1639,6 +1640,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'PLUGIN') {
 			const nodeData = await commonUtils.getCustomNode(node.options.plugin._id);
+			
 			code.push(`${tab(2)}async function execute(state, node) {`);
 			// code = code.concat(ResetNodeVariables(flowData));
 			if (nodeData && nodeData.params) {
@@ -1660,6 +1662,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}let response = await execute(state, node);`);
 			code.push(`${tab(2)}state.statusCode = _.defaultTo(response.statusCode, 200);`);
 			code.push(`${tab(2)}state.status = _.defaultTo(response.status, 'SUCCESS');`);
+			code.push(`${tab(2)}state.requestHeaders = _.cloneDeep(state.headers);`);
 			code.push(`${tab(2)}state.headers = _.defaultTo(response.headers, state.headers);`);
 			code.push(`${tab(2)}state.responseBody = response.responseBody;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
