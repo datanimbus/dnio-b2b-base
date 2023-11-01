@@ -344,6 +344,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(3)}state.status = tempState.status;`);
 		code.push(`${tab(3)}state.statusCode = tempState.statusCode;`);
 		code.push(`${tab(3)}state.responseBody = tempState.responseBody;`);
+		code.push(`${tab(3)}state.body = tempState.responseBody;`);
 		code.push(`${tab(3)}state.xmlContent = tempState.xmlContent;`);
 		code.push(`${tab(3)}state.fileContent = tempState.fileContent;`);
 
