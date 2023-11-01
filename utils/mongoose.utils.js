@@ -87,9 +87,9 @@ function metadataPlugin(counterOptions) {
 		schema.pre('save', generateId(counterOptions.prefix, counterOptions.counterName, counterOptions.suffix, counterOptions.padding, counterOptions.counter));
 		schema.pre('insertMany', function (next, docs) {
 			if (docs && docs.length > 0) {
-				docs.forEach((doc) => {
+				let promises = docs.forEach(async (doc) => {
 					if (!doc._id) {
-						doc._id = createId(counterOptions.prefix, counterOptions.counterName, counterOptions.suffix, counterOptions.padding, counterOptions.counter);
+						doc._id = await createId(counterOptions.prefix, counterOptions.counterName, counterOptions.suffix, counterOptions.padding, counterOptions.counter);
 					}
 					if (!doc._metadata) {
 						doc._metadata = {};
@@ -110,9 +110,16 @@ function metadataPlugin(counterOptions) {
 					}
 					doc._wasNew = true;
 					doc._metadata.lastUpdated = new Date();
+					return doc;
 				});
+				Promise.all(promises).then(() => {
+					next();
+				}, (err) => {
+					next(err);
+				});
+			} else {
+				next();
 			}
-			next();
 		});
 	};
 }
