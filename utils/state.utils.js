@@ -1,6 +1,8 @@
 const log4js = require('log4js');
 const { v4: uuid } = require('uuid');
 const Async = require('async');
+const mongoose = require('mongoose');
+const _ = require('lodash');
 
 const httpClient = require('../http-client');
 const config = require('../config');
@@ -55,116 +57,49 @@ async function upsertState(req, state) {
 	const interactionId = req.query.interactionId;
 	const clonedState = JSON.parse(JSON.stringify(state));
 
-	if (clonedState.body) {
-		if (Array.isArray(clonedState.body)) {
-			clonedState.body.forEach(item => {
-				maskingUtils['maskCommon'](item);
-			});
-		} else {
-			maskingUtils['maskCommon'](clonedState.body);
-		}
-	}
+	doMaskingOfData(clonedState);
 
-	if (clonedState.responseBody) {
-		if (Array.isArray(clonedState.responseBody)) {
-			clonedState.responseBody.forEach(item => {
-				maskingUtils['maskCommon'](item);
-			});
-		} else {
-			maskingUtils['maskCommon'](clonedState.responseBody);
-		}
-	}
+	const nodeStatePayload = {};
+	nodeStatePayload.flowId = state.flowId;
+	nodeStatePayload.nodeId = state.nodeId;
+	nodeStatePayload.interactionId = interactionId;
+	nodeStatePayload._metadata = _.cloneDeep(clonedState._metadata);
+	nodeStatePayload._metadata.lastUpdated = new Date();
 
-	if (clonedState.body && maskingUtils[`maskDataFor${state.inputFormatId}`]) {
-		if (Array.isArray(clonedState.body)) {
-			clonedState.body.forEach(item => {
-				maskingUtils[`maskDataFor${state.inputFormatId}`](item);
-			});
-		} else {
-			maskingUtils[`maskDataFor${state.inputFormatId}`](clonedState.body);
-		}
-	}
+	const nodeDataPayload = _.cloneDeep(nodeStatePayload);
+	nodeDataPayload.incoming = {};
+	nodeDataPayload.incoming.headers = _.cloneDeep(clonedState.requestHeaders);
+	nodeDataPayload.incoming.body = _.cloneDeep(clonedState.body);
+	nodeDataPayload.outgoing = {};
+	nodeDataPayload.outgoing.headers = _.cloneDeep(clonedState.headers);
+	nodeDataPayload.outgoing.body = _.cloneDeep(clonedState.responseBody);
+	nodeDataPayload.batchList = _.cloneDeep(clonedState.batchList);
 
-	if (clonedState.responseBody && maskingUtils[`maskDataFor${state.outputFormatId}`]) {
-		if (Array.isArray(clonedState.responseBody)) {
-			clonedState.responseBody.forEach(item => {
-				maskingUtils[`maskDataFor${state.outputFormatId}`](item);
-			});
-		} else {
-			maskingUtils[`maskDataFor${state.outputFormatId}`](clonedState.responseBody);
-		}
-	}
-	const dataPayload = {};
-	dataPayload.flowId = clonedState.flowId;
-	dataPayload.nodeId = clonedState.nodeId;
-	dataPayload.interactionId = interactionId;
-	dataPayload.body = clonedState.body;
-	dataPayload.responseBody = clonedState.responseBody;
-	dataPayload.batchList = clonedState.batchList;
-	dataPayload.dataType = clonedState.contentType || 'application/json';
-	dataPayload._metadata = clonedState._metadata;
-	clonedState.payload = {};
-	clonedState.responseData = {};
-	if (clonedState.body) {
-		if (Array.isArray(clonedState.body)) {
-			clonedState.payload.type = 'Array';
-			clonedState.payload.totalRecords = clonedState.body.length;
-			if (clonedState.body[0]) {
-				clonedState.payload.attributes = Object.keys(clonedState.body[0]).length;
-			} else {
-				clonedState.payload.attributes = 0;
-			}
-		} else {
-			clonedState.payload.type = 'Object';
-			clonedState.payload.totalRecords = 1;
-			clonedState.payload.attributes = Object.keys(clonedState.body).length;
-		}
-	} else {
-		clonedState.payload.type = 'Binary';
-		clonedState.payload.totalRecords = null;
-		clonedState.payload.attributes = null;
-	}
+	nodeStatePayload.status = clonedState.status;
+	nodeStatePayload.statusCode = clonedState.statusCode;
+	nodeStatePayload.error = clonedState.error;
+	nodeStatePayload.dataType = clonedState.contentType || 'application/json';
+	nodeStatePayload.incomingDataMeta = getMetadataOfData(clonedState.body);
+	nodeStatePayload.outgoingDataMeta = getMetadataOfData(clonedState.responseBody);
 
-	if (clonedState.responseBody) {
-		if (Array.isArray(clonedState.responseBody)) {
-			clonedState.responseData.type = 'Array';
-			clonedState.responseData.totalRecords = clonedState.responseBody.length;
-			if (clonedState.responseBody[0]) {
-				clonedState.responseData.attributes = Object.keys(clonedState.responseBody[0]).length;
-			} else {
-				clonedState.responseData.attributes = 0;
-			}
-		} else {
-			clonedState.responseData.type = 'Object';
-			clonedState.responseData.totalRecords = 1;
-			clonedState.responseData.attributes = Object.keys(clonedState.responseBody).length;
-		}
-	} else {
-		clonedState.responseData.type = 'Binary';
-		clonedState.responseData.totalRecords = null;
-		clonedState.responseData.attributes = null;
-	}
-
-	delete clonedState._id;
-	delete clonedState.body;
-	delete clonedState.batchList;
-	delete clonedState.responseBody;
-	clonedState._metadata.lastUpdated = new Date();
-	dataPayload._metadata.lastUpdated = new Date();
-	logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Stage: ${JSON.stringify(state._id)}`);
+	logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Node State: ${JSON.stringify(state._id)}`);
 	try {
-		let status = await global.appcenterDB.collection('b2b.node.state').findOneAndUpdate(
+		let status = await mongoose.connection.db.collection('b2b.node.state').findOneAndUpdate(
 			{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
-			{ $set: clonedState },
+			{ $set: nodeStatePayload },
 			{ upsert: true }
 		);
-		logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Stage State Result: ${JSON.stringify(status)}`);
-		status = await global.appcenterDB.collection('b2b.node.state.data').findOneAndUpdate(
+		logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Node State Result: ${JSON.stringify(status)}`);
+
+		logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Node Data: ${JSON.stringify(state._id)}`);
+		status = await mongoose.connection.db.collection('b2b.node.state.data').findOneAndUpdate(
 			{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
-			{ $set: dataPayload },
+			{ $set: nodeDataPayload },
 			{ upsert: true }
 		);
-		logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Stage Data Result: ${JSON.stringify(status)}`);
+		logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Node Data Result: ${JSON.stringify(status)}`);
+
+
 		if (state.status == 'ERROR') {
 			logger.debug(`[${txnId}] [${remoteTxnId}] Setting Interaction State To Error: ${interactionId}`);
 			await updateInteraction(req, { status: state.status });
@@ -178,6 +113,15 @@ async function upsertState(req, state) {
 
 async function updateInteraction(req, data) {
 	try {
+		data['_metadata.lastUpdated'] = new Date();
+		const txnId = req.headers['data-stack-txn-id'];
+		const remoteTxnId = req.headers['data-stack-remote-txn-id'];
+		const interactionId = req.query.interactionId;
+		logger.debug(`[${txnId}] [${remoteTxnId}] Starting Update Interaction: ${interactionId}`);
+		let status = await mongoose.connection.db.collection('b2b.interactions').findOneAndUpdate({ _id: interactionId, flowId: config.flowId }, { $set: data });
+		logger.debug(`[${txnId}] [${remoteTxnId}] Interaction Update Status:`, status);
+
+		// Remove this logic in v2.8.3
 		interactionQueue.push({ req, data });
 	} catch (err) {
 		logger.error(err);
@@ -210,6 +154,70 @@ async function processInteraction(task, callback) {
 		logger.error(err);
 		callback(err);
 	}
+}
+
+
+function doMaskingOfData(payload) {
+	if (payload.body) {
+		if (Array.isArray(payload.body)) {
+			payload.body.forEach(item => {
+				maskingUtils['maskCommon'](item);
+			});
+		} else {
+			maskingUtils['maskCommon'](payload.body);
+		}
+	}
+	if (payload.responseBody) {
+		if (Array.isArray(payload.responseBody)) {
+			payload.responseBody.forEach(item => {
+				maskingUtils['maskCommon'](item);
+			});
+		} else {
+			maskingUtils['maskCommon'](payload.responseBody);
+		}
+	}
+	if (payload.body && maskingUtils[`maskDataFor${payload.inputFormatId}`]) {
+		if (Array.isArray(payload.body)) {
+			payload.body.forEach(item => {
+				maskingUtils[`maskDataFor${payload.inputFormatId}`](item);
+			});
+		} else {
+			maskingUtils[`maskDataFor${payload.inputFormatId}`](payload.body);
+		}
+	}
+	if (payload.responseBody && maskingUtils[`maskDataFor${payload.outputFormatId}`]) {
+		if (Array.isArray(payload.responseBody)) {
+			payload.responseBody.forEach(item => {
+				maskingUtils[`maskDataFor${payload.outputFormatId}`](item);
+			});
+		} else {
+			maskingUtils[`maskDataFor${payload.outputFormatId}`](payload.responseBody);
+		}
+	}
+}
+
+function getMetadataOfData(data) {
+	let metadata = {};
+	if (data) {
+		if (Array.isArray(data)) {
+			metadata.type = 'Array';
+			metadata.totalRecords = data.length;
+			if (data[0]) {
+				metadata.attributes = Object.keys(data[0]).length;
+			} else {
+				metadata.attributes = 0;
+			}
+		} else {
+			metadata.type = 'Object';
+			metadata.totalRecords = 1;
+			metadata.attributes = Object.keys(data).length;
+		}
+	} else {
+		metadata.type = 'Binary';
+		metadata.totalRecords = null;
+		metadata.attributes = null;
+	}
+	return metadata;
 }
 
 module.exports.getState = getState;

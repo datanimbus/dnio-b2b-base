@@ -19,12 +19,17 @@ global.falseBooleanValues = ['n', 'no', 'false', '0'];
 
 (async () => {
 	try {
-		mongoose.connect(config.mongoUrl, { dbName: config.appDB });
-		logger.trace(config.mongoUrl, config.mongoAppCenterOptions, config.appDB);
-		const client = await MongoClient.connect(config.mongoUrl, config.mongoAppCenterOptions);
-		logger.info('Connected to ', config.appDB);
-		const appcenterDB = client.db(config.appDB);
-		global.appcenterDB = appcenterDB;
+		mongoose.connection.on('connected', () => logger.info('MongoDB Connected to ', config.appDB));
+		mongoose.connection.on('disconnected', () => logger.error('MongoDB Connection Lost !'));
+		mongoose.connection.on('reconnected', () => logger.warning('MongoDB ReConnected to ', config.appDB));
+		mongoose.connection.on('error', (err) => logger.error('MongoDB Error', err));
+		
+		await mongoose.connect(config.mongoUrl, { dbName: config.appDB });
+		// logger.trace(config.mongoUrl, config.mongoAppCenterOptions, config.appDB);
+		// const client = await MongoClient.connect(config.mongoUrl, config.mongoAppCenterOptions);
+		// logger.info('Connected to ', config.appDB);
+		// const appcenterDB = client.db(config.appDB);
+		global.appcenterDB = mongoose.connection.db;
 	} catch (err) {
 		logger.error(err);
 		process.exit(0);

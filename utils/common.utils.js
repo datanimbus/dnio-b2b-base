@@ -250,16 +250,16 @@ function writeDataToXLS(filepath, data, headers) {
 }
 
 function handleError(err, state, req, node) {
-	state.error = err;
+	// state.error = err;
 	if (err.statusCode) {
 		state.statusCode = err.statusCode;
 	} else {
 		state.statusCode = 500;
 	}
 	if (err.status) {
-		state.responseStatus = err.status;
+		state.status = err.status;
 	} else {
-		state.responseStatus = 'ERROR';
+		state.status = 'ERROR';
 	}
 	if (err.body) {
 		state.responseBody = err.body;
@@ -271,6 +271,7 @@ function handleError(err, state, req, node) {
 		state.responseBody = err;
 		logger.error(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}]`, err);
 	}
+	state.error = state.responseBody;
 	state.status = 'ERROR';
 }
 
