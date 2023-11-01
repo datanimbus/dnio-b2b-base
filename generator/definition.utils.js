@@ -378,7 +378,8 @@ async function parseDataStructures(dataJson) {
 		await Object.keys(dataJson.dataStructures).reduce(async (prev, schemaID) => {
 			try {
 				await prev;
-				// let schema = dataJson.dataStructures[schemaID];
+				let schema = dataJson.dataStructures[schemaID];
+				code.push('const counterOptions = {};');
 				code.push(`const definition_${schemaID} = require('../schemas/${schemaID}.definition').definition;`);
 				if (schemaID.startsWith('SRVC')) {
 					let dataService = await commonUtils.getDataService(schemaID);
@@ -387,13 +388,23 @@ async function parseDataStructures(dataJson) {
 					} else {
 						code.push(`const schema_${schemaID} = mongooseUtils.MakeSchema(definition_${schemaID});`);
 					}
-					code.push(`schema_${schemaID}.plugin(mongooseUtils.metadataPlugin());`);
+					code.push(`counterOptions.prefix = '${dataService.definition[0].prefix}';`);
+					code.push(`counterOptions.counterName = '${dataService.collectionName}';`);
+					code.push(`counterOptions.suffix = '${dataService.definition[0].suffix}';`);
+					code.push(`counterOptions.padding = '${dataService.definition[0].padding}';`);
+					code.push(`counterOptions.counter = '${dataService.definition[0].counter}';`);
+					code.push(`schema_${schemaID}.plugin(mongooseUtils.metadataPlugin(counterOptions));`);
 					code.push(`const model_${schemaID} = mongoose.model('${schemaID}', schema_${schemaID}, '${dataService.collectionName}');`);
 					code.push('');
 					code.push('');
 				} else if (schemaID.startsWith('DF')) {
 					code.push(`const schema_${schemaID} = mongooseUtils.MakeSchema(definition_${schemaID});`);
-					code.push(`schema_${schemaID}.plugin(mongooseUtils.metadataPlugin());`);
+					code.push(`counterOptions.prefix = '${_.toUpper(schema.name.substring(0, 3))}';`);
+					code.push(`counterOptions.counterName = 'dataformat.${schemaID}';`);
+					code.push('counterOptions.suffix = null;');
+					code.push('counterOptions.padding = null;');
+					code.push('counterOptions.counter = 1001;');
+					code.push(`schema_${schemaID}.plugin(mongooseUtils.metadataPlugin(counterOptions));`);
 					code.push(`const model_${schemaID} = mongoose.model('${schemaID}', schema_${schemaID}, 'dataformat.${schemaID}');`);
 					code.push('');
 					code.push('');

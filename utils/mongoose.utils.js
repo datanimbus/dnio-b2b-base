@@ -55,29 +55,8 @@ function MakeSchema(definition, options) {
  * 
  * @param {*} [options]
  */
-function metadataPlugin() {
+function metadataPlugin(counterOptions) {
 	return function (schema) {
-		// schema.add({
-		// 	_expireAt: {
-		// 		type: Date,
-		// 	},
-		// 	_metadata: {
-		// 		deleted: {
-		// 			type: Boolean,
-		// 			default: false
-		// 		},
-		// 		lastUpdated: {
-		// 			type: Date,
-		// 			default: Date.now()
-		// 		},
-		// 		createdAt: {
-		// 			type: Date
-		// 		},
-		// 		version: {
-		// 			type: Object
-		// 		}
-		// 	}
-		// });
 		schema.index({ '_expireAt': 1 }, { expireAfterSeconds: 0 });
 		schema.index({ '_metadata.lastUpdated': 1 }, { sparse: true });
 		schema.index({ '_metadata.createdAt': 1 }, { sparse: true });
@@ -105,10 +84,13 @@ function metadataPlugin() {
 			self.markModified('_metadata');
 			next();
 		});
-
+		schema.pre('save', generateId(counterOptions.prefix, counterOptions.counterName, counterOptions.suffix, counterOptions.padding, counterOptions.counter));
 		schema.pre('insertMany', function (next, docs) {
 			if (docs && docs.length > 0) {
 				docs.forEach((doc) => {
+					if (!doc._id) {
+						doc._id = createId(counterOptions.prefix, counterOptions.counterName, counterOptions.suffix, counterOptions.padding, counterOptions.counter);
+					}
 					if (!doc._metadata) {
 						doc._metadata = {};
 					}
@@ -135,30 +117,33 @@ function metadataPlugin() {
 	};
 }
 
-
+async function createId(prefix, counterName, suffix, padding, counter) {
+	prefix = prefix ? prefix : '';
+	suffix = suffix ? suffix : '';
+	let id = null;
+	if (counter || counter === 0) {
+		const doc = await getCount(counterName);
+		let nextNo = padding ? Math.pow(10, padding) + doc.next : doc.next;
+		nextNo = (nextNo || 0).toString();
+		if (padding && parseInt(nextNo.substr(0, 1)) > 1) {
+			throw new Error('length of _id is exceeding counter');
+		}
+		id = padding ? prefix + nextNo.substr(1) + suffix : prefix + nextNo + suffix;
+	} else if (padding) {
+		id = prefix + rand(padding) + suffix;
+	} else {
+		const doc = await getCount(counterName);
+		id = prefix + doc.next;
+	}
+	return id;
+}
 
 function generateId(prefix, counterName, suffix, padding, counter) {
 	return async function (next) {
 		if (this._id) {
 			return next();
 		}
-		prefix = prefix ? prefix : '';
-		suffix = suffix ? suffix : '';
-		let id = null;
-		if (counter || counter === 0) {
-			const doc = await getCount(counterName);
-			let nextNo = padding ? Math.pow(10, padding) + doc.next : doc.next;
-			nextNo = (nextNo || 0).toString();
-			if (padding && parseInt(nextNo.substr(0, 1)) > 1) {
-				throw new Error('length of _id is exceeding counter');
-			}
-			id = padding ? prefix + nextNo.substr(1) + suffix : prefix + nextNo + suffix;
-		} else if (padding) {
-			id = prefix + rand(padding) + suffix;
-		} else {
-			const doc = await getCount(counterName);
-			id = prefix + doc.next;
-		}
+		let id = await createId(prefix, counterName, suffix, padding, counter);
 		this._id = id;
 		next();
 	};
@@ -182,3 +167,4 @@ function rand(_i) {
 module.exports.generateId = generateId;
 module.exports.metadataPlugin = metadataPlugin;
 module.exports.MakeSchema = MakeSchema;
+module.exports.createId = createId;
