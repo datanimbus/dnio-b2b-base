@@ -120,3 +120,4 @@ SFTP-Files
 downloads/*
 utils/masking.utils.js
 app-data.json
+utils/model.utils.js
