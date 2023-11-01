@@ -1531,7 +1531,12 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}${node.options.code}`);
 			code.push(`${tab(2)}let response = await execute(state, node);`);
 			code.push(`${tab(2)}state.statusCode = _.defaultTo(response.statusCode, 200);`);
-			code.push(`${tab(2)}state.status = _.defaultTo(response.status, 'SUCCESS');`);
+			code.push(`${tab(2)}if(state.statusCode >= 200 && state.statusCode < 400){`);
+			code.push(`${tab(3)}state.status = 'SUCCESS';`);
+			code.push(`${tab(2)}} else {`);
+			code.push(`${tab(3)}state.status = 'ERROR';`);
+			code.push(`${tab(2)}}`);
+			// code.push(`${tab(2)}state.status = _.defaultTo(response.status, 'SUCCESS');`);
 			code.push(`${tab(2)}state.requestHeaders = _.cloneDeep(state.headers);`);
 			code.push(`${tab(2)}state.headers = _.defaultTo(response.headers, state.headers);`);
 			code.push(`${tab(2)}state.responseBody = response.responseBody;`);
@@ -1640,7 +1645,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'PLUGIN') {
 			const nodeData = await commonUtils.getCustomNode(node.options.plugin._id);
-			
+
 			code.push(`${tab(2)}async function execute(state, node) {`);
 			// code = code.concat(ResetNodeVariables(flowData));
 			if (nodeData && nodeData.params) {
