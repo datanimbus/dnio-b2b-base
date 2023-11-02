@@ -1,18 +1,38 @@
+const path = require('path');
 const log4js = require('log4js');
 const { v4: uuid } = require('uuid');
-const Async = require('async');
 const mongoose = require('mongoose');
 const _ = require('lodash');
 
 const httpClient = require('../http-client');
 const config = require('../config');
 const maskingUtils = require('./masking.utils');
-
+const interactionUtils = require('./interaction.utils');
+const commonUtils = require('./common.utils');
+const appData = require('../app-data.json');
 
 const logger = log4js.getLogger(global.loggerName);
-const interactionQueue = Async.priorityQueue(processInteraction);
 
-global.interactionQueue = interactionQueue;
+if (appData
+	&& appData.interactionStore
+	&& appData.interactionStore.configuration
+	&& appData
+	&& appData.interactionStore
+	&& appData.interactionStore.configuration.connector
+	&& appData.interactionStore.configuration.connector._id) {
+	commonUtils.getConnector(appData.interactionStore.configuration.connector._id).then((res) => {
+		_.merge(appData.interactionStore.configuration.connector, res.values);
+		if (res.type == 'AZBLOB') {
+			appData.containerClient = interactionUtils.CreateContainerClient(appData.interactionStore.configuration.connector);
+		} else if (res.type == 'S3') {
+			// appData.containerClient = interactionUtils.CreateContainerClient(appData.interactionStore.configuration.connector);
+		}
+	}).catch(err => {
+		logger.error('Error fetching connector for storing Interactions');
+		logger.error(err);
+		process.exit(0);
+	});
+}
 
 function getState(req, nodeId, isChild, contentType) {
 	const data = {};
@@ -84,21 +104,41 @@ async function upsertState(req, state) {
 
 	logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Node State: ${JSON.stringify(state._id)}`);
 	try {
-		let status = await mongoose.connection.db.collection('b2b.node.state').findOneAndUpdate(
+		let status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
 			{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
 			{ $set: nodeStatePayload },
 			{ upsert: true }
 		);
 		logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Node State Result: ${JSON.stringify(status)}`);
 
-		logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Node Data: ${JSON.stringify(state._id)}`);
-		status = await mongoose.connection.db.collection('b2b.node.state.data').findOneAndUpdate(
-			{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
-			{ $set: nodeDataPayload },
-			{ upsert: true }
-		);
-		logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Node Data Result: ${JSON.stringify(status)}`);
+		if (appData && appData.interactionStore && appData.interactionStore.storeType == 'azureblob') {
+			let blobOptions = {};
+			blobOptions.blobName = path.join(appData._id, config.flowId, interactionId, state.nodeId + '.json');
+			blobOptions.data = JSON.stringify(nodeDataPayload);
+			blobOptions.metadata = {};
+			blobOptions.metadata['dnioTxnId'] = txnId;
+			blobOptions.metadata['dnioRemoteTxnId'] = remoteTxnId;
+			blobOptions.metadata['dnioApp'] = appData._id;
+			blobOptions.metadata['dnioFlowId'] = config.flowId;
+			blobOptions.metadata['dnioInteractionId'] = interactionId;
+			blobOptions.metadata['dnioNodeId'] = state.nodeId;
 
+			logger.trace(`[${txnId}] [${remoteTxnId}] Uploading Data info Azure Blob: ${JSON.stringify(blobOptions.metadata)}`);
+			let result = await interactionUtils.uploadBufferToAzureBlob(appData.containerClient, blobOptions);
+			await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
+				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
+				{ $set: { storageRef: { clientRequestId: result.clientRequestId, etag: result.etag, requestId: result.requestId } } }
+			);
+			logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Node Data Result: ${JSON.stringify(status)}`);
+		} else {
+			logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Node Data: ${JSON.stringify(state._id)}`);
+			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state.data`).findOneAndUpdate(
+				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
+				{ $set: nodeDataPayload },
+				{ upsert: true }
+			);
+			logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Node Data Result: ${JSON.stringify(status)}`);
+		}
 
 		if (state.status == 'ERROR') {
 			logger.debug(`[${txnId}] [${remoteTxnId}] Setting Interaction State To Error: ${interactionId}`);
@@ -106,53 +146,23 @@ async function upsertState(req, state) {
 		}
 		logger.debug(`[${txnId}] [${remoteTxnId}] Ending Upsert Stage: ${JSON.stringify(state._id)}`);
 	} catch (err) {
-		logger.debug(`[${txnId}] [${remoteTxnId}] Ending Upsert Stage With Error: ${JSON.stringify(state._id)}`);
+		logger.debug(`[${txnId}] [${remoteTxnId}] Error while Upserting Node State: ${JSON.stringify(state._id)}`);
 		logger.error(err);
 	}
 }
 
 async function updateInteraction(req, data) {
-	try {
-		data['_metadata.lastUpdated'] = new Date();
-		const txnId = req.headers['data-stack-txn-id'];
-		const remoteTxnId = req.headers['data-stack-remote-txn-id'];
-		const interactionId = req.query.interactionId;
-		logger.debug(`[${txnId}] [${remoteTxnId}] Starting Update Interaction: ${interactionId}`);
-		let status = await mongoose.connection.db.collection('b2b.interactions').findOneAndUpdate({ _id: interactionId, flowId: config.flowId }, { $set: data });
-		logger.debug(`[${txnId}] [${remoteTxnId}] Interaction Update Status:`, status);
-
-		// Remove this logic in v2.8.3
-		interactionQueue.push({ req, data });
-	} catch (err) {
-		logger.error(err);
-	}
-}
-
-async function processInteraction(task, callback) {
-	const req = task.req;
-	const data = task.data;
 	const txnId = req.headers['data-stack-txn-id'];
 	const remoteTxnId = req.headers['data-stack-remote-txn-id'];
 	const interactionId = req.query.interactionId;
-	const b2bURL = `${config.baseUrlBM}/${config.app}/interaction/${config.flowId}/${interactionId}`;
-	logger.debug(`[${txnId}] [${remoteTxnId}] Starting Update Interaction: ${interactionId}`);
 	try {
-		const status = await httpClient.request({
-			method: 'PUT',
-			url: b2bURL,
-			json: data,
-			headers: {
-				'authorization': 'JWT ' + global.BM_TOKEN
-			}
-		});
-		logger.debug(`[${txnId}] [${remoteTxnId}] Ending Update Interaction: ${interactionId}`);
-		logger.trace(`[${txnId}] [${remoteTxnId}] State status :: ${status.statusCode} `);
-		logger.trace(`[${txnId}] [${remoteTxnId}] State body:: ${JSON.stringify(status.body)} `);
-		return true;
+		data['_metadata.lastUpdated'] = new Date();
+		logger.debug(`[${txnId}] [${remoteTxnId}] Starting Update Interaction: ${interactionId}`);
+		let status = await mongoose.connection.db.collection(`b2b.${config.flowId}.interactions`).findOneAndUpdate({ _id: interactionId, flowId: config.flowId }, { $set: data });
+		logger.debug(`[${txnId}] [${remoteTxnId}] Interaction Update Status:`, status);
 	} catch (err) {
-		logger.debug(`[${txnId}] [${remoteTxnId}] Ending Update Interaction With Error: ${interactionId}`);
+		logger.debug(`[${txnId}] [${remoteTxnId}] Error While Updating Interaction: ${interactionId}`);
 		logger.error(err);
-		callback(err);
 	}
 }
 
