@@ -123,13 +123,13 @@ async function upsertState(req, state) {
 			blobOptions.metadata['dnioInteractionId'] = interactionId;
 			blobOptions.metadata['dnioNodeId'] = state.nodeId;
 
-			logger.trace(`[${txnId}] [${remoteTxnId}] Uploading Data info Azure Blob: ${JSON.stringify(blobOptions.metadata)}`);
+			logger.trace(`[${txnId}] [${remoteTxnId}] Uploading Data to Azure Blob: ${JSON.stringify(blobOptions.metadata)}`);
 			let result = await interactionUtils.uploadBufferToAzureBlob(appData.containerClient, blobOptions);
-			await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
+			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
 				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
 				{ $set: { storageRef: { clientRequestId: result.clientRequestId, etag: result.etag, requestId: result.requestId } } }
 			);
-			logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Node Data Result: ${JSON.stringify(status)}`);
+			logger.trace(`[${txnId}] [${remoteTxnId}] Upload Result: ${JSON.stringify(status)}`);
 		} else {
 			logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Node Data: ${JSON.stringify(state._id)}`);
 			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state.data`).findOneAndUpdate(
