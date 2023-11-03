@@ -25,7 +25,7 @@ if (appData
 		if (res.type == 'AZBLOB') {
 			appData.containerClient = interactionUtils.CreateContainerClient(appData.interactionStore.configuration.connector);
 		} else if (res.type == 'S3') {
-			// appData.containerClient = interactionUtils.CreateContainerClient(appData.interactionStore.configuration.connector);
+			appData.s3Client = interactionUtils.CreateS3Client(appData.interactionStore.configuration.connector);
 		}
 	}).catch(err => {
 		logger.error('Error fetching connector for storing Interactions');
@@ -111,23 +111,32 @@ async function upsertState(req, state) {
 		);
 		logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Node State Result: ${JSON.stringify(status)}`);
 
-		if (appData && appData.interactionStore && appData.interactionStore.storeType == 'azureblob') {
-			let blobOptions = {};
-			blobOptions.blobName = path.join(appData._id, config.flowId, interactionId, state.nodeId + '.json');
-			blobOptions.data = JSON.stringify(nodeDataPayload);
-			blobOptions.metadata = {};
-			blobOptions.metadata['dnioTxnId'] = txnId;
-			blobOptions.metadata['dnioRemoteTxnId'] = remoteTxnId;
-			blobOptions.metadata['dnioApp'] = appData._id;
-			blobOptions.metadata['dnioFlowId'] = config.flowId;
-			blobOptions.metadata['dnioInteractionId'] = interactionId;
-			blobOptions.metadata['dnioNodeId'] = state.nodeId;
+		let blobOptions = {};
+		blobOptions.blobName = path.join(appData._id, config.flowId, interactionId, state.nodeId + '.json');
+		blobOptions.data = JSON.stringify(nodeDataPayload);
+		blobOptions.metadata = {};
+		blobOptions.metadata['dnioTxnId'] = txnId;
+		blobOptions.metadata['dnioRemoteTxnId'] = remoteTxnId;
+		blobOptions.metadata['dnioApp'] = appData._id;
+		blobOptions.metadata['dnioFlowId'] = config.flowId;
+		blobOptions.metadata['dnioInteractionId'] = interactionId;
+		blobOptions.metadata['dnioNodeId'] = state.nodeId;
 
+		if (appData && appData.interactionStore && appData.interactionStore.storeType == 'azureblob') {
 			logger.trace(`[${txnId}] [${remoteTxnId}] Uploading Data to Azure Blob: ${JSON.stringify(blobOptions.metadata)}`);
 			let result = await interactionUtils.uploadBufferToAzureBlob(appData.containerClient, blobOptions);
 			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
 				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
-				{ $set: { storageRef: { clientRequestId: result.clientRequestId, etag: result.etag, requestId: result.requestId } } }
+				{ $set: { storageRef: { etag: result.etag } } }
+			);
+			logger.trace(`[${txnId}] [${remoteTxnId}] Upload Result: ${JSON.stringify(status)}`);
+		} else if (appData && appData.interactionStore && appData.interactionStore.storeType == 'awss3') {
+			blobOptions.bucket = appData.interactionStore.configuration.connector.bucket;
+			logger.trace(`[${txnId}] [${remoteTxnId}] Uploading Data to S3 Bucket: ${JSON.stringify(blobOptions.metadata)}`);
+			let result = await interactionUtils.uploadBufferToS3Bucket(appData.s3Client, blobOptions);
+			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
+				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
+				{ $set: { storageRef: { etag: result.ETag } } }
 			);
 			logger.trace(`[${txnId}] [${remoteTxnId}] Upload Result: ${JSON.stringify(status)}`);
 		} else {
