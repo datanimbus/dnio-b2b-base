@@ -127,7 +127,7 @@ async function upsertState(req, state) {
 			let result = await interactionUtils.uploadBufferToAzureBlob(appData.containerClient, blobOptions);
 			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
 				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
-				{ $set: { storageRef: { etag: result.etag } } }
+				{ $set: { storageRef: { etag: result.etag, requestId: result.requestId } } }
 			);
 			logger.trace(`[${txnId}] [${remoteTxnId}] Upload Result: ${JSON.stringify(status)}`);
 		} else if (appData && appData.interactionStore && appData.interactionStore.storeType == 'awss3') {
@@ -136,7 +136,7 @@ async function upsertState(req, state) {
 			let result = await interactionUtils.uploadBufferToS3Bucket(appData.s3Client, blobOptions);
 			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
 				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
-				{ $set: { storageRef: { etag: result.ETag } } }
+				{ $set: { storageRef: { etag: result.ETag, requestId: result.$metadata.requestId } } }
 			);
 			logger.trace(`[${txnId}] [${remoteTxnId}] Upload Result: ${JSON.stringify(status)}`);
 		} else {
