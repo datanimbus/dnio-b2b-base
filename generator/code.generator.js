@@ -1693,7 +1693,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}connectorConfig.timeout = parseInt(Mustache.render(commonUtils.parseMustacheVariable((connectorConfig.timeout||30)+''), node));`);
 				code.push(`${tab(2)}}`);
 
-				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath || '\\')}\`;`);
+				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath || '\\\\')}\`;`);
 				code.push(`${tab(2)}let newBody = {};`);
 				generateMappingCode(node, code, false);
 				if (node.options.list) {
