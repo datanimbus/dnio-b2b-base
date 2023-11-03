@@ -8,6 +8,7 @@
     "ajv": "^6.12.6",
     "async": "^3.2.4",
     "chokidar": "^3.5.3",
+    "exceljs": "^4.4.0",
     "express": "^4.18.2",
     "express-fileupload": "^1.4.0",
     "fast-csv": "^4.3.6",
@@ -33,8 +34,6 @@
     "solclientjs": "^10.14.0",
     "ssh2-sftp-client": "^9.1.0",
     "uuid": "^8.3.2",
-    "xlsx": "^0.18.5",
-    "xlsx-populate": "^1.21.0",
     "xmlbuilder": "^15.1.1"
   },
   "name": "ds-b2b-base",

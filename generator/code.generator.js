@@ -118,7 +118,7 @@ async function parseFlow(dataJson) {
 	code.push('const fileUpload = require(\'express-fileupload\');');
 	code.push('const { XMLBuilder, XMLParser } = require(\'fast-xml-parser\');');
 	code.push('const fastcsv = require(\'fast-csv\');');
-	code.push('const XLSX = require(\'xlsx\');');
+	code.push('const exceljs = require(\'exceljs\');');
 	code.push('const { v4: uuid } = require(\'uuid\');');
 	code.push('const _ = require(\'lodash\');');
 	code.push('const cron = require(\'node-cron\');');
@@ -892,8 +892,7 @@ async function parseNodes(dataJson) {
 	code.push('const moment = require(\'moment\');');
 	code.push('const { XMLBuilder, XMLParser } = require(\'fast-xml-parser\');');
 	code.push('const fastcsv = require(\'fast-csv\');');
-	code.push('const XLSX = require(\'xlsx\');');
-	code.push('const xlsxPopulate = require(\'xlsx-populate\');');
+	code.push('const exceljs = require(\'exceljs\');');
 	code.push('const { mssql, mysql, psql } = require(\'@appveen/rest-crud\');');
 	code.push('const Mustache = require(\'mustache\');');
 	code.push('const solace = require(\'solclientjs\');');
@@ -2742,9 +2741,10 @@ function generateFileConvertorCode(node, code) {
 		code.push(`${tab(3)}});`);
 		code.push(`${tab(3)}csvOutputStream.on('close', async function() {`);
 
-		if (dataFormat.formatType === 'EXCEL') {
-			code.push(`${tab(4)}const wb = XLSX.readFile(filePath, { raw: true });`);
-			code.push(`${tab(4)}XLSX.writeFile(wb, filePath, { bookType: 'xlsx', type: 'binary', compression: true });`);
+		if (dataFormat.formatType === 'EXCEL') {		
+			code.push(`${tab(4)}const workbook = new exceljs.Workbook();`);
+			code.push(`${tab(4)}await workbook.csv.readFile(filePath);`);
+			code.push(`${tab(4)}await workbook.xlsx.writeFile(filePath);`);
 		}
 		code.push(`${tab(4)}resolve();`);
 		code.push(`${tab(3)}});`);

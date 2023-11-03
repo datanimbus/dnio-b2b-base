@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const XLSX = require('xlsx');
+const exceljs = require('exceljs');
 const fastcsv = require('fast-csv');
 const log4js = require('log4js');
 const { XMLBuilder } = require('fast-xml-parser');
@@ -56,8 +56,9 @@ async function renderCommonFile(req, renderOptions, newBody) {
 				csvOutputStream.on('close', async function () {
 					if (renderOptions.dataFormat.formatType === 'EXCEL') {
 						logger.info(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}] Converting CSV to EXCEL `);
-						const wb = XLSX.readFile(renderOptions.filePath, { raw: true });
-						XLSX.writeFile(wb, renderOptions.filePath, { bookType: 'xlsx', type: 'binary', compression: true });
+						const workbook = new exceljs.Workbook();
+						await workbook.csv.readFile(renderOptions.filePath);
+						await workbook.xlsx.writeFile(renderOptions.filePath);
 						logger.info(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}] CSV to EXCEL Conversion Done! `);
 					}
 					resolve();

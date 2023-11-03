@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const XLSX = require('xlsx');
+const exceljs = require('exceljs');
 const fastcsv = require('fast-csv');
 const log4js = require('log4js');
 const { XMLParser } = require('fast-xml-parser');
@@ -15,8 +15,9 @@ async function parseCommonFile(req, parseOptions) {
 	try {
 		if (parseOptions.dataFormat.formatType == 'EXCEL') {
 			logger.info(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}] Converting EXCEL to CSV `);
-			const workBook = XLSX.readFile(parseOptions.filePath);
-			XLSX.writeFile(workBook, parseOptions.filePath, { bookType: 'csv' });
+			const workbook = new exceljs.Workbook();
+			await workbook.xlsx.readFile(parseOptions.filePath);
+			await workbook.csv.writeFile(parseOptions.filePath, { sheetId: 1 });
 			logger.info(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}] EXCEL to CSV Conversion Done! `);
 		}
 
@@ -103,8 +104,9 @@ async function parseHRSFFile(req, parseOptions) {
 	try {
 		if (parseOptions.dataFormat.formatType == 'EXCEL') {
 			logger.info(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}] Converting EXCEL to CSV `);
-			const workBook = XLSX.readFile(parseOptions.filePath);
-			XLSX.writeFile(workBook, parseOptions.filePath, { bookType: 'csv' });
+			const workbook = new exceljs.Workbook();
+			await workbook.xlsx.readFile(parseOptions.filePath);
+			await workbook.csv.writeFile(parseOptions.filePath, { sheetId: 1 });
 			logger.info(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}] EXCEL to CSV Conversion Done! `);
 		}
 
