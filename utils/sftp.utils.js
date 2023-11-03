@@ -23,7 +23,7 @@ async function sftpPutFile(configData) {
 		}
 
 		const retryOptions = {
-			retries: configData.retry.count || 1,
+			retries: (configData.retry.count+1) || 1,
 			factor: configData.retry.factor || 1,
 			minTimeout: (configData.retry.interval || 1) * 1000,
 			maxTimeout: (configData.timeout || 10) * 1000,
@@ -84,7 +84,7 @@ async function sftpListFile(configData) {
 		}
 
 		const retryOptions = {
-			retries: configData.retry.count || 1,
+			retries: (configData.retry.count+1) || 1,
 			factor: configData.retry.factor || 1,
 			minTimeout: (configData.retry.interval || 1) * 1000,
 			maxTimeout: (configData.timeout || 10) * 1000,
@@ -124,7 +124,7 @@ async function sftpReadFile(configData) {
 		}
 
 		const retryOptions = {
-			retries: configData.retry.count || 1,
+			retries: (configData.retry.count+1) || 1,
 			factor: configData.retry.factor || 1,
 			minTimeout: (configData.retry.interval || 1) * 1000,
 			maxTimeout: (configData.timeout || 10) * 1000,
@@ -187,7 +187,7 @@ async function sftpMoveFile(configData) {
 		}
 
 		const retryOptions = {
-			retries: configData.retry.count || 1,
+			retries: (configData.retry.count+1) || 1,
 			factor: configData.retry.factor || 1,
 			minTimeout: (configData.retry.interval || 1) * 1000,
 			maxTimeout: (configData.timeout || 10) * 1000,
@@ -233,7 +233,7 @@ async function sftpDeleteFile(configData) {
 
 
 		const retryOptions = {
-			retries: configData.retry.count || 1,
+			retries: (configData.retry.count+1) || 1,
 			factor: configData.retry.factor || 1,
 			minTimeout: (configData.retry.interval || 1) * 1000,
 			maxTimeout: (configData.timeout || 10) * 1000,
