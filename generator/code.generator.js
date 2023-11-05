@@ -9,8 +9,6 @@ let flowData;
 let hasGlobaErrorHandler = false;
 
 let visitedNodes = [];
-let visitedValidation = [];
-let hasAtLeastOneCondition = false;
 
 function tab(len) {
 	let d = '';
@@ -334,6 +332,8 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(3)}parseOptions.skipRows = ${inputNode.options.skipRows || 0};`);
 		code.push(`${tab(3)}parseOptions.maxRows = ${inputNode.options.maxRows || 0};`);
 		code.push(`${tab(3)}parseOptions.filePath = reqFile.tempFilePath;`);
+		code.push(`${tab(3)}parseOptions.isFirstRowHeader = ${inputNode.options.isFirstRowHeader || false};`);
+
 
 		if (dataFormat.hrsf) {
 			code.push(`${tab(3)}let tempState = await fileParserUtils.parseHRSFFile(req, parseOptions);`);
@@ -427,7 +427,7 @@ async function parseFlow(dataJson) {
 		// 	code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
 		// } else if (dataFormat.formatType === 'FLATFILE') {
 		// 	code.push(`${tab(2)}const contents = fs.readFileSync(reqFile.tempFilePath, 'utf-8');`);
-		// 	code.push(`${tab(2)}state.body = fileUtils.fromFlatFile${dataFormat._id}(contents, ${inputNode.options.isFirstRowHeader || false});`);
+		// 	code.push(`${tab(2)}state.body = fileUtils.parseFlatFile${dataFormat._id}(contents, ${inputNode.options.isFirstRowHeader || false});`);
 		// 	code.push(`${tab(2)}state.responseBody = state.body;`);
 		// 	code.push(`${tab(2)}state.status = "SUCCESS";`);
 		// 	code.push(`${tab(2)}state.statusCode = 200;`);
@@ -1655,7 +1655,7 @@ async function generateNodes(pNode) {
 					if (param.dataType == 'number') {
 						code.push(`${tab(3)}let ${param.key} = parseFloat(\`${node.options[param.key].replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`);`);
 					} else if (param.dataType == 'boolean') {
-						code.push(`${tab(3)}let ${param.key} = convertToBoolean(\`${node.options[param.key].replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`);`);
+						code.push(`${tab(3)}let ${param.key} = commonUtils.convertToActualBoolean(\`${node.options[param.key].replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`);`);
 					} else {
 						code.push(`${tab(3)}let ${param.key} = \`${node.options[param.key].replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
 					}
@@ -1821,7 +1821,7 @@ async function generateNodes(pNode) {
 					// 	code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
 					// } else if (dataFormat.formatType === 'FLATFILE') {
 					// 	code.push(`${tab(2)}const contents = fs.readFileSync(filePath, 'utf-8');`);
-					// 	code.push(`${tab(2)}state.responseBody = fileUtils.fromFlatFile${dataFormat._id}(contents, ${node.options.isFirstRowHeader || false});`);
+					// 	code.push(`${tab(2)}state.responseBody = fileUtils.parseFlatFile${dataFormat._id}(contents, ${node.options.isFirstRowHeader || false});`);
 					// 	code.push(`${tab(2)}state.status = "SUCCESS";`);
 					// 	code.push(`${tab(2)}state.statusCode = 200;`);
 					// 	code.push(`${tab(2)}state.fileContent = filePath;`);
@@ -2059,350 +2059,6 @@ function parseBody(body, parent) {
 		}
 	}
 	return parent ? tempBody : JSON.stringify(tempBody);
-}
-
-
-function parseDataStructures(dataJson) {
-	visitedValidation = [];
-	const code = [];
-	code.push('const fs = require(\'fs\');');
-	code.push('const path = require(\'path\');');
-	code.push('const log4js = require(\'log4js\');');
-	code.push('const Ajv = require(\'ajv\');');
-	code.push('const _ = require(\'lodash\');');
-	code.push('');
-	code.push('const ajv = new Ajv();');
-	code.push('const logger = log4js.getLogger(global.loggerName);');
-	code.push('');
-	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
-		Object.keys(dataJson.dataStructures).forEach(schemaID => {
-			let schema = dataJson.dataStructures[schemaID];
-			code.push(`let schema_${schemaID} = fs.readFileSync(\`./schemas/${schemaID}.schema.json\`).toString();`);
-			code.push(`schema_${schemaID} = JSON.parse(schema_${schemaID});`);
-			if (schema.strictValidation) {
-				code.push(`const validate_${schemaID} = ajv.compile(schema_${schemaID});`);
-			}
-		});
-	}
-	return _.concat(code, generateDataStructures(dataJson.inputNode, dataJson.nodes)).join('\n');
-}
-
-function generateDataStructures(node, nodes) {
-	let code = [];
-	const exportsCode = [];
-	let schemaID;
-	if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
-		schemaID = (node.dataStructure.outgoing._id);
-	}
-	const functionName = 'validate_structure_' + node._id;
-	exportsCode.push(`module.exports.${functionName} = ${functionName};`);
-	code.push(`function ${functionName}(req, data) {`);
-	if (schemaID) {
-		code.push(`${tab(1)}const errors = {};`);
-		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Validation Data Structure ${(node._id)} Node\`);`);
-		code.push(`${tab(1)}if (Array.isArray(data)) {`);
-		code.push(`${tab(2)}for (let i=0;i<data.length;i++) {`);
-		code.push(`${tab(3)}const item = data[i];`);
-		code.push(`${tab(3)}const valid = validate_${schemaID}(item);`);
-		code.push(`${tab(3)}if (!valid) errors[i] = ajv.errorsText(validate_${schemaID}.errors);`);
-		code.push(`${tab(2)}}`);
-		code.push(`${tab(1)}} else {`);
-		code.push(`${tab(2)}const valid = validate_${schemaID}(data);`);
-		code.push(`${tab(2)}if (!valid) errors['0'] = ajv.errorsText(validate_${schemaID}.errors);`);
-		code.push(`${tab(1)}}`);
-		code.push(`${tab(1)}if (!_.isEmpty(errors)) {`);
-		code.push(`${tab(2)}throw errors;`);
-		code.push(`${tab(1)}}`);
-	} else {
-		code.push(`${tab(1)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] No Data Structure found for ${(node._id)} Node\`);`);
-	}
-	code.push(`${tab(1)}return null;`);
-	code.push('}');
-	let tempNodes = (node.onSuccess || []);
-	for (let index = 0; index < tempNodes.length; index++) {
-		const ss = tempNodes[index];
-		const nextNode = nodes.find(e => e._id === ss._id);
-		if (nextNode) {
-			if (visitedValidation.indexOf(nextNode._id) > -1) {
-				return;
-			}
-			visitedValidation.push(nextNode._id);
-			code = code.concat(generateDataStructures(nextNode, nodes));
-		}
-	}
-	return _.concat(code, exportsCode).join('\n');
-}
-
-
-function parseDataStructuresForFileUtils(dataJson) {
-	const code = [];
-	code.push('/* eslint-disable quotes */');
-	code.push('/* eslint-disable camelcase */');
-	code.push('const _ = require(\'lodash\');');
-	code.push('const commonUtils = require(\'./common.utils\');');
-	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
-		Object.keys(dataJson.dataStructures).forEach(schemaId => {
-			const definition = dataJson.dataStructures[schemaId].definition;
-			const formatType = dataJson.dataStructures[schemaId].formatType || 'JSON';
-			// Function to return array of values;
-			code.push(`function getValuesOf${schemaId} (data) {`);
-			code.push(`${tab(1)}const values = [];`);
-			definition.forEach(def => {
-				const properties = def.properties;
-				code.push(`${tab(1)}values.push(_.get(data, '${properties.dataPath}') || '');`);
-			});
-			code.push(`${tab(1)}return values;`);
-			code.push('}');
-			// Function to return array of headers;
-			code.push(`function getHeaderOf${schemaId} () {`);
-			code.push(`${tab(1)}const headers = [];`);
-			definition.forEach(def => {
-				const properties = def.properties;
-				code.push(`${tab(1)}headers.push('${properties.name}');`);
-			});
-			code.push(`${tab(1)}return headers;`);
-			code.push('}');
-
-
-			// Function to Convert Data from CSV to JSON;
-			code.push(`function convertData${schemaId} (rowData) {`);
-			code.push(`${tab(1)}const tempData = {};`);
-			definition.forEach(def => {
-				const properties = def.properties;
-				const sourceKey = formatType == 'JSON' ? (properties.dataPath || properties.key) : properties.name;
-				if (def.type == 'Number') {
-					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', +(_.get(rowData, '${sourceKey}')));`);
-				} else if (def.type == 'Boolean') {
-					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', commonUtils.convertToBoolean(_.get(rowData, '${sourceKey}')));`);
-				} else if (def.type == 'Date') {
-					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', commonUtils.convertToDate(_.get(rowData, '${sourceKey}'), '${properties.dateFormat || 'yyyy-MM-dd'}'));`);
-				} else {
-					code.push(`${tab(1)}_.set(tempData, '${(properties.dataPath || properties.key)}', _.get(rowData, '${sourceKey}'));`);
-				}
-			});
-			code.push(`${tab(1)}return tempData;`);
-			code.push('}');
-
-			// Function to Read FLAT FILE data;
-			code.push(`function fromFlatFile${schemaId} (contents, isFirstRowHeader) {`);
-			code.push(`${tab(1)}let records = [];`);
-			code.push(`${tab(1)}let rows = contents.split('\\n');`);
-			code.push(`${tab(1)}if (isFirstRowHeader) {`);
-			code.push(`${tab(2)}rows = rows.splice(1);`);
-			code.push(`${tab(1)}}`);
-			code.push(`${tab(1)}rows.forEach((rowData)=>{`);
-			code.push(`${tab(1)}let tempData = {};`);
-			code.push(`${tab(1)}let rowSegments = rowData.split('');`);
-			definition.forEach((def, i) => {
-				const properties = def.properties;
-				const targetKey = properties.dataPathSegs;
-				code.push(`${tab(1)}let var_${i} = _.trim(rowSegments.splice(0,${properties.fieldLength}).join(''));`);
-				if (def.type == 'Number') {
-					code.push(`${tab(1)}_.set(tempData, ${JSON.stringify(targetKey)}, var_${i});`);
-				} else if (def.type == 'Boolean') {
-					code.push(`${tab(1)}_.set(tempData, ${JSON.stringify(targetKey)}, var_${i});`);
-				} else if (def.type == 'Date') {
-					code.push(`${tab(1)}_.set(tempData, ${JSON.stringify(targetKey)}, var_${i});`);
-				} else {
-					code.push(`${tab(1)}_.set(tempData, ${JSON.stringify(targetKey)}, var_${i});`);
-				}
-			});
-			code.push(`${tab(2)}records.push(tempData);`);
-			code.push(`${tab(1)}});`);
-			code.push(`${tab(1)}return records;`);
-			code.push('}');
-
-
-			// Function to Write FLAT FILE data;
-			code.push(`function toFlatFile${schemaId} (records) {`);
-			code.push(`${tab(1)}let rows = [];`);
-			code.push(`${tab(1)}records.forEach((rowData)=>{`);
-			code.push(`${tab(1)}let line = '';`);
-			definition.forEach((def, i) => {
-				const properties = def.properties;
-				const sourceKey = properties.dataPathSegs;
-				if (def.type == 'Number') {
-					code.push(`${tab(2)}let var_${i} = (_.get(rowData, ${JSON.stringify(sourceKey)}))+'';`);
-				} else if (def.type == 'Boolean') {
-					code.push(`${tab(2)}let var_${i} = convertToBoolean(_.get(rowData, ${JSON.stringify(sourceKey)}));`);
-				} else if (def.type == 'Date') {
-					code.push(`${tab(2)}let var_${i} = commonUtils.convertToDate(_.get(rowData, ${JSON.stringify(sourceKey)}), '${properties.dateFormat || 'yyyy-MM-dd'}');`);
-				} else {
-					code.push(`${tab(2)}let var_${i} = _.get(rowData, ${JSON.stringify(sourceKey)});`);
-				}
-				code.push(`${tab(2)}var_${i} = var_${i}.split('').slice(0, ${properties.fieldLength}).join('');`);
-				code.push(`${tab(2)}var_${i} = _.padEnd(var_${i}, ${properties.fieldLength}, ' ');`);
-				code.push(`${tab(2)}line+=var_${i};`);
-			});
-			code.push(`${tab(2)}rows.push(line);`);
-			code.push(`${tab(1)}});`);
-			code.push(`${tab(1)}return rows.join('\\n');`);
-			code.push('}');
-
-			code.push(`module.exports.getValuesOf${schemaId} = getValuesOf${schemaId};`);
-			code.push(`module.exports.getHeaderOf${schemaId} = getHeaderOf${schemaId};`);
-			code.push(`module.exports.convertData${schemaId} = convertData${schemaId};`);
-			code.push(`module.exports.toFlatFile${schemaId} = toFlatFile${schemaId};`);
-			code.push(`module.exports.fromFlatFile${schemaId} = fromFlatFile${schemaId};`);
-		});
-		code.push(`${tab(0)}function convertToBoolean(value) {`);
-		code.push(`${tab(1)}if (typeof value === 'string' && ['true', 't', 'TRUE', 'yes'].indexOf(value) > -1) {`);
-		code.push(`${tab(2)}return 'TRUE';`);
-		code.push(`${tab(1)}}`);
-		code.push(`${tab(1)}if (typeof value === 'boolean') {`);
-		code.push(`${tab(2)}return value ? 'TRUE' : 'FALSE';`);
-		code.push(`${tab(1)}}`);
-		code.push(`${tab(1)}if (typeof value === 'number') {`);
-		code.push(`${tab(2)}return value != 0 ? 'TRUE' : 'FALSE';`);
-		code.push(`${tab(1)}}`);
-		code.push(`${tab(1)}return 'FALSE';`);
-		code.push(`${tab(0)}}`);
-	}
-	return code.join('\n');
-}
-
-
-function parseDataStructuresForMasking(dataJson) {
-	let code = [];
-	code.push('/* eslint-disable quotes */');
-	code.push('/* eslint-disable camelcase */');
-	code.push('const _ = require(\'lodash\');');
-	code.push('const commonUtils = require(\'./common.utils\');');
-	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
-		Object.keys(dataJson.dataStructures).forEach(schemaId => {
-			const definition = dataJson.dataStructures[schemaId].definition;
-			// const formatType = dataJson.dataStructures[schemaId].formatType || 'JSON';
-			// Function to return array of values;
-			code.push(`function maskDataFor${schemaId} (data) {`);
-			code = code.concat(parseForMasking(definition));
-			code.push(`${tab(1)}return data;`);
-			code.push(`${tab(0)}}`);
-
-			code.push(`${tab(0)}module.exports.maskDataFor${schemaId} = maskDataFor${schemaId};`);
-		});
-	}
-
-	code.push(`${tab(0)}function maskCommon (data) {`);
-	console.log(flowData.appData.maskingPaths);
-	(flowData.appData.maskingPaths || []).forEach((item, i) => {
-		item.index = i;
-		if (item.dataPath.indexOf('[#]') > -1) {
-			let path = JSON.parse(item.dataPath);
-			let arrayIndexes = path.map((e, i) => {
-				if (e == '[#]') return i;
-			}).filter(e => e).reverse();
-			let multiPaths = [];
-			for (let index = 0; index < arrayIndexes.length; index++) {
-				const arrCurrIndex = arrayIndexes[index];
-				let temp = path.splice(arrCurrIndex);
-				temp.splice(0, 1);
-				multiPaths.push(temp);
-			}
-			multiPaths.push(path);
-			multiPaths.reverse();
-			code.push(`${tab(3)}// =========================================`);
-			code.push(`${tab(3)}// Masking of ${item.dataPath} Start`);
-			code.push(`${tab(3)}// =========================================`);
-			code = code.concat(maskRecursive(item, multiPaths, 'data', 0));
-			code.push(`${tab(3)}// =========================================`);
-			code.push(`${tab(3)}`);
-		} else {
-			code.push(`${tab(3)}// =========================================`);
-			code.push(`${tab(3)}// Masking of ${item.dataPath} Start`);
-			code.push(`${tab(3)}// =========================================`);
-			code.push(`${tab(3)}let var_${i} = _.get(data, ${item.dataPath});`);
-			code.push(`${tab(3)}if(var_${i}) {`);
-			code.push(`${tab(4)}var_${i} = commonUtils.maskStringData(var_${i}, '${item.maskType}', ${item.chars});`);
-			code.push(`${tab(4)}_.set(data, ${item.dataPath}, var_${i});`);
-			code.push(`${tab(3)}}`);
-			code.push(`${tab(3)}// =========================================`);
-			code.push(`${tab(3)}`);
-		}
-	});
-	code.push(`${tab(1)}return data;`);
-	code.push(`${tab(0)}}`);
-	code.push(`${tab(0)}module.exports.maskCommon = maskCommon;`);
-	function maskRecursive(maskConfig, multiPaths, prev, i) {
-		let tempCode = [];
-		let curr = multiPaths[i];
-		let varName = `var_${maskConfig.index}_${i}`;
-		tempCode.push(`${tab(0)}let ${varName} = _.get(${prev}, ${JSON.stringify(curr)});`);
-		tempCode.push(`${tab(0)}if (${varName}) {`);
-		tempCode.push(`${tab(0)}if (_.isArray(${varName})) {`);
-		tempCode.push(`${tab(0)}let new_${varName} = ${varName}.map(item=>{`);
-		if (multiPaths.length - 1 == i) {
-			// Mask Item
-			tempCode.push(`${tab(0)}item = commonUtils.maskStringData(item, '${maskConfig.maskType}', ${maskConfig.chars});`);
-		} else {
-			tempCode = tempCode.concat(maskRecursive(maskConfig, multiPaths, 'item', i + 1));
-		}
-		tempCode.push(`${tab(0)}return item;`);
-		tempCode.push(`${tab(0)}});`);
-		tempCode.push(`${tab(0)}_.set(${prev}, ${JSON.stringify(curr)}, new_${varName});`);
-		tempCode.push(`${tab(0)}} else {`);
-		if (multiPaths.length - 1 == i) {
-			// Mask ${varName}
-			tempCode.push(`${tab(0)}${varName} = commonUtils.maskStringData(${varName}, '${maskConfig.maskType}', ${maskConfig.chars});`);
-		} else {
-			tempCode = tempCode.concat(maskRecursive(maskConfig, multiPaths, varName, i + 1));
-		}
-		tempCode.push(`${tab(0)}_.set(${prev}, ${JSON.stringify(curr)}, ${varName});`);
-		tempCode.push(`${tab(0)}}`);
-		tempCode.push(`${tab(0)}}`);
-		return tempCode;
-	}
-
-	function parseForMasking(definition, isArray) {
-		let tempCode = [];
-		definition.forEach((def, i) => {
-			let properties = def.properties;
-			let dataPathSegs = properties.dataPathSegs;
-			if (def.type == 'Object') {
-				tempCode = tempCode.concat(parseForMasking(def.definition));
-			} else if (def.type == 'Array') {
-				if (def.definition[0].type == 'Object') {
-					tempCode.push(`${tab(1)}let arr_var_${i} = _.get(${isArray ? 'item' : 'data'}, ${JSON.stringify(dataPathSegs)});`);
-					tempCode.push(`${tab(1)}if(arr_var_${i} && !_.isEmpty(arr_var_${i})){`);
-					tempCode.push(`${tab(2)}arr_var_${i} = arr_var_${i}.map((item) => {`);
-					tempCode = tempCode.concat(parseForMasking(def.definition[0].definition, true));
-					// tempCode.push(`${tab(3)}return commonUtils.maskStringData(item, '${properties.masking}', ${chars});`);
-					tempCode.push(`${tab(3)}return item;`);
-					tempCode.push(`${tab(2)}});`);
-					tempCode.push(`${tab(1)}}`);
-					tempCode.push(`${tab(1)}_.set(${isArray ? 'item' : 'data'}, ${JSON.stringify(dataPathSegs)}, arr_var_${i});`);
-				} else {
-					properties.masking = def.definition[0].properties.masking;
-					if (properties.masking && properties.masking.startsWith('some') || properties.masking == 'all') {
-						let chars = parseInt(properties.masking.split('_')[1], 10);
-						tempCode.push(`${tab(1)}let var_${i} = _.get(${isArray ? 'item' : 'data'}, ${JSON.stringify(dataPathSegs)});`);
-						tempCode.push(`${tab(1)}if(var_${i} && !_.isEmpty(var_${i})){`);
-						tempCode.push(`${tab(2)}var_${i} = var_${i}.map((item) => {`);
-						tempCode.push(`${tab(3)}return commonUtils.maskStringData(item, '${properties.masking}', ${chars});`);
-						tempCode.push(`${tab(2)}});`);
-						tempCode.push(`${tab(1)}}`);
-						tempCode.push(`${tab(1)}_.set(${isArray ? 'item' : 'data'}, ${JSON.stringify(dataPathSegs)}, var_${i});`);
-					}
-				}
-			} else {
-				if (properties.masking) {
-					if (properties.masking.startsWith('some') || properties.masking == 'all') {
-						let hashIndex = dataPathSegs.indexOf('[#]');
-						if (hashIndex > -1) {
-							dataPathSegs = dataPathSegs.splice(hashIndex + 1);
-						}
-						let chars = parseInt(properties.masking.split('_')[1], 10);
-						tempCode.push(`${tab(1)}let var_${i} = _.get(${isArray ? 'item' : 'data'}, ${JSON.stringify(dataPathSegs)});`);
-						tempCode.push(`${tab(1)}if(var_${i} && _.trim(var_${i})){`);
-						tempCode.push(`${tab(2)}var_${i} = commonUtils.maskStringData(var_${i}, '${properties.masking}', ${chars});`);
-						tempCode.push(`${tab(1)}}`);
-						tempCode.push(`${tab(1)}_.set(${isArray ? 'item' : 'data'}, ${JSON.stringify(dataPathSegs)}, var_${i});`);
-					}
-				}
-			}
-		});
-		return tempCode;
-	}
-	return code.join('\n');
 }
 
 function generateMappingCode(node, code, useAbsolutePath) {
@@ -2741,7 +2397,7 @@ function generateFileConvertorCode(node, code) {
 		code.push(`${tab(3)}});`);
 		code.push(`${tab(3)}csvOutputStream.on('close', async function() {`);
 
-		if (dataFormat.formatType === 'EXCEL') {		
+		if (dataFormat.formatType === 'EXCEL') {
 			code.push(`${tab(4)}const workbook = new exceljs.Workbook();`);
 			code.push(`${tab(4)}await workbook.csv.readFile(filePath);`);
 			code.push(`${tab(4)}await workbook.xlsx.writeFile(filePath);`);
@@ -2761,13 +2417,10 @@ function generateFileConvertorCode(node, code) {
 		code.push(`${tab(2)}fs.writeFileSync(filePath, xmlContent, 'utf-8');`);
 		code.push(`${tab(2)}`);
 	} else if (dataFormat.formatType === 'FLATFILE') {
-		code.push(`${tab(3)}let content = fileUtils.toFlatFile${node.dataStructure.outgoing._id}(newBody);`);
+		code.push(`${tab(3)}let content = fileUtils.renderFlatFile${node.dataStructure.outgoing._id}(newBody);`);
 		code.push(`${tab(2)}fs.writeFileSync(filePath, content, 'utf-8');`);
 	}
 	code.push(`${tab(2)}state.fileContent = filePath;`);
 }
 module.exports.parseFlow = parseFlow;
 module.exports.parseNodes = parseNodes;
-module.exports.parseDataStructures = parseDataStructures;
-module.exports.parseDataStructuresForFileUtils = parseDataStructuresForFileUtils;
-module.exports.parseDataStructuresForMasking = parseDataStructuresForMasking;
