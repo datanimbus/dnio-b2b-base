@@ -201,7 +201,7 @@ async function getAllLibraries() {
 }
 
 
-function convertToBoolean(value) {
+function convertToActualBoolean(value) {
 	if (typeof value === 'string' && ['true', 't', 'TRUE', 'yes'].indexOf(value) > -1) {
 		return true;
 	}
@@ -215,7 +215,7 @@ function convertToBoolean(value) {
 }
 
 
-function convertToDate(value, format) {
+function convertDateToISOString(value, format) {
 	if (typeof value === 'string') {
 		try {
 			return moment(value, format, false).toISOString();
@@ -431,8 +431,8 @@ module.exports.getConnector = getConnector;
 module.exports.getAllFormulas = getAllFormulas;
 module.exports.getCustomNode = getCustomNode;
 module.exports.getAllLibraries = getAllLibraries;
-module.exports.convertToBoolean = convertToBoolean;
-module.exports.convertToDate = convertToDate;
+module.exports.convertToActualBoolean = convertToActualBoolean;
+module.exports.convertDateToISOString = convertDateToISOString;
 module.exports.handleError = handleError;
 module.exports.handleResponse = handleResponse;
 module.exports.handleValidation = handleValidation;

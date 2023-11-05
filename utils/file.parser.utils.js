@@ -80,7 +80,7 @@ async function parseCommonFile(req, parseOptions) {
 			state.xmlContent = contents;
 		} else if (parseOptions.dataFormat.formatType === 'FLATFILE') {
 			const contents = fs.readFileSync(parseOptions.filePath, 'utf-8');
-			state.responseBody = fileUtils[`fromFlatFile${parseOptions.dataFormat._id}`](contents, (parseOptions.isFirstRowHeader || false));
+			state.responseBody = fileUtils[`parseFlatFile${parseOptions.dataFormat._id}`](contents, (parseOptions.isFirstRowHeader || false));
 		} else if (parseOptions.dataFormat.formatType === 'BINARY') {
 			// Do Nothing
 		}
@@ -127,12 +127,7 @@ async function parseHRSFFile(req, parseOptions) {
 				rowDelimiter = '\\n';
 			}
 			await new Promise((resolve, reject) => {
-				let data = {
-					header: {},
-					footer: {},
-					records: [],
-				};
-				let index = 0;
+				let aoa = [];
 				const fileStream = fs.createReadStream(parseOptions.filePath);
 				const fastcsvOptions = {
 					rowDelimiter: rowDelimiter,
@@ -147,23 +142,18 @@ async function parseHRSFFile(req, parseOptions) {
 						// stateUtils.upsertState(req, state);
 						reject(err);
 					}).on('data', (row) => {
-						if (index == 0) {
-							data.header = row;
-						} else {
-							data.records.push(row);
-						}
-						index++;
+						aoa.push(row);
 					})
 					.on('end', rowCount => {
 						logger.debug('Parsed rows = ', rowCount);
 						state.totalRows = rowCount;
-						state.responseBody = data;
-						resolve(data);
+						state.responseBody = fileUtils[`parseDelimiterFile${parseOptions.dataFormat._id}`](aoa);
+						resolve(state.responseBody);
 					});
 			});
 		} else if (parseOptions.dataFormat.formatType === 'FLATFILE') {
 			const contents = fs.readFileSync(parseOptions.filePath, 'utf-8');
-			state.responseBody = fileUtils[`fromFlatFile${parseOptions.dataFormat._id}`](contents, (parseOptions.isFirstRowHeader || false));
+			state.responseBody = fileUtils[`parseFlatFile${parseOptions.dataFormat._id}`](contents, (parseOptions.isFirstRowHeader || false));
 		}
 		state.status = 'SUCCESS';
 		state.statusCode = 200;

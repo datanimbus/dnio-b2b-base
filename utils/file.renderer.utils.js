@@ -74,7 +74,7 @@ async function renderCommonFile(req, renderOptions, newBody) {
 			}
 			fs.writeFileSync(renderOptions.filePath, xmlContent, 'utf-8');
 		} else if (renderOptions.dataFormat.formatType === 'FLATFILE') {
-			let content = fileUtils[`toFlatFile${renderOptions.dataFormat._id}`](newBody);
+			let content = fileUtils[`renderFlatFile${renderOptions.dataFormat._id}`](newBody);
 			fs.writeFileSync(renderOptions.filePath, content, 'utf-8');
 		}
 		state.status = 'SUCCESS';
