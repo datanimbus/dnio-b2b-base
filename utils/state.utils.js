@@ -8,6 +8,7 @@ const httpClient = require('../http-client');
 const config = require('../config');
 const maskingUtils = require('./masking.utils');
 const interactionUtils = require('./interaction.utils');
+const mongooseUtils = require('./mongoose.utils');
 const commonUtils = require('./common.utils');
 const appData = require('../app-data.json');
 
@@ -160,6 +161,39 @@ async function upsertState(req, state) {
 	}
 }
 
+async function createInteraction(data) {
+	try {
+		const interactionId = await mongooseUtils.createId('INTR', 'b2b.interactions', null, null, 1000);
+		const interactionData = {};
+		interactionData._id = interactionId;
+		interactionData.flowId = config.flowId;
+		interactionData.app = config.app;
+		interactionData.status = 'PENDING';
+		if (!interactionData._metadata) {
+			interactionData._metadata = {};
+		}
+		interactionData._metadata.lastUpdated = new Date();
+		interactionData._metadata.createdAt = new Date();
+		interactionData._metadata.deleted = false;
+
+		// interactionData.txnId = req.headers['data-stack-txn-id'];
+		// interactionData.remoteTxnId = req.headers['data-stack-remote-txn-id'];
+		// interactionData.headers = {};
+		// interactionData.headers['data-stack-txn-id'] = `${txnId[1]}${txnId[2]}`;
+		// interactionData.headers['data-stack-remote-txn-id'] = uuid();
+		// interactionData.headers['content-length'] = req.headers['content-length'];
+		// interactionData.headers['content-type'] = req.headers['content-type'];
+
+		logger.debug('Starting Create Interaction');
+		let status = await mongoose.connection.db.collection(`b2b.${config.flowId}.interactions`).insertOne(interactionData);
+		logger.debug('Interaction Create Status:', status);
+		return interactionId;
+	} catch (err) {
+		logger.debug('Error While Creating Interaction');
+		logger.error(err);
+	}
+}
+
 async function updateInteraction(req, data) {
 	const txnId = req.headers['data-stack-txn-id'];
 	const remoteTxnId = req.headers['data-stack-remote-txn-id'];
@@ -242,3 +276,4 @@ function getMetadataOfData(data) {
 module.exports.getState = getState;
 module.exports.upsertState = upsertState;
 module.exports.updateInteraction = updateInteraction;
+module.exports.createInteraction = createInteraction;

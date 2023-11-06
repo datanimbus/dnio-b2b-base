@@ -252,10 +252,16 @@ async function parseFlow(dataJson) {
 
 	code.push(`${tab(0)}async function makeRequestToThisFlow(payload){`);
 	code.push(`${tab(1)}try {`);
+	code.push(`${tab(2)}const interactionId = await stateUtils.createInteraction(payload);`);
+	code.push(`${tab(2)}const txnId = uuid().split('-');`);
+	code.push(`${tab(2)}const headers = {};`);
+	code.push(`${tab(2)}headers['data-stack-txn-id'] = \`\${txnId[1]}\${txnId[2]}\`;`);
+	code.push(`${tab(2)}headers['data-stack-remote-txn-id'] = uuid();`);
 	code.push(`${tab(2)}const options = {};`);
 	code.push(`${tab(2)}options.method = 'POST';`);
-	code.push(`${tab(2)}options.url = '${config.get('bm')}/b2b/pipes${api}';`);
+	code.push(`${tab(2)}options.url = '${config.get('bm')}/b2b/pipes${api}?interactionId=' + interactionId;`);
 	code.push(`${tab(2)}options.json = payload;`);
+	code.push(`${tab(2)}options.headers = headers;`);
 	code.push(`${tab(2)}logger.trace({ options });`);
 	code.push(`${tab(2)}let response = await httpClient.request(options);`);
 	code.push(`${tab(2)}logger.trace('Response From Flow: ', response);`);
