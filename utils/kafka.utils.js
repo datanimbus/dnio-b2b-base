@@ -105,7 +105,7 @@ function createConsumer(config, onData) {
 					setInterval(() => {
 						if (global.activeMessages < config.batch) {
 							logger.debug('Consuming Records from Kafka');
-							consumer.consume(1);
+							consumer.consume();
 						}
 					}, config.interval || 10);
 					resolve(consumer);
