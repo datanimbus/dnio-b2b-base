@@ -101,9 +101,11 @@ function createConsumer(config, onData) {
 				consumer.subscribe([config.topic]);
 
 				setInterval(() => {
-					logger.debug('Consuming Records from Kafka');
-					consumer.consume(config.batch || 5);
-				}, config.interval || 60000);
+					if (global.activeMessages < 5) {
+						logger.debug('Consuming Records from Kafka');
+						consumer.consume(config.batch || 1);
+					}
+				}, config.interval || 10);
 				resolve(consumer);
 			})
 			.on('data', onData);

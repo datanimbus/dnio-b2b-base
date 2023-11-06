@@ -233,6 +233,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}logger.trace(\`Connecting to Kafka Topic :: \${connectorConfig.topic}\`);`);
 		code.push(`${tab(2)}kafkaUtils.createConsumer(connectorConfig, (message) => {`);
 		code.push(`${tab(3)}logger.trace(\`Processig Message from Kafka :: \${JSON.stringify(message)}\`);`);
+		code.push(`${tab(3)}global.activeMessages++;`);
 		code.push(`${tab(3)}makeRequestToThisFlow(message);`);
 		code.push(`${tab(2)}});`);
 		code.push(`${tab(2)}`);
