@@ -60,7 +60,7 @@ function parseDataStructuresForFileUtils(dataJson) {
 			code.push(`${tab(1)}return headers;`);
 			code.push('}');
 
-			if (schema.hrsf) {
+			if (schema.subType == 'HRSF') {
 				const headerDefinition = getDefinitionFromDataPath(definition, 'header');
 				const recordsDefinition = getDefinitionFromDataPath(definition, 'records');
 				const footerDefinition = getDefinitionFromDataPath(definition, 'footer');
@@ -334,13 +334,15 @@ function parseDataStructuresForFileUtils(dataJson) {
 
 			code.push(`module.exports.getValuesOf${schemaId} = getValuesOf${schemaId};`);
 			code.push(`module.exports.getHeaderOf${schemaId} = getHeaderOf${schemaId};`);
-			if (schema.hrsf) {
+			if (schema.subType == 'HRSF') {
 				if (formatType === 'CSV' || formatType === 'DELIMITER' || formatType === 'EXCEL') {
 					code.push(`module.exports.parseDelimiterFile${schemaId} = parseDelimiterFile${schemaId};`);
 				}
 			} else {
 				if (formatType === 'CSV' || formatType === 'DELIMITER' || formatType === 'EXCEL') {
 					code.push(`module.exports.convertData${schemaId} = convertData${schemaId};`);
+				}
+				if (formatType === 'FLATFILE') {
 					code.push(`module.exports.renderFlatFile${schemaId} = renderFlatFile${schemaId};`);
 				}
 			}

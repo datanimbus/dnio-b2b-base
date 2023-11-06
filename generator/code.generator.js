@@ -344,7 +344,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(3)}parseOptions.isFirstRowHeader = ${inputNode.options.isFirstRowHeader || false};`);
 
 
-		if (dataFormat.hrsf) {
+		if (dataFormat.subType == 'HRSF') {
 			code.push(`${tab(3)}let tempState = await fileParserUtils.parseHRSFFile(req, parseOptions);`);
 		} else {
 			code.push(`${tab(3)}let tempState = await fileParserUtils.parseCommonFile(req, parseOptions);`);
@@ -1741,7 +1741,7 @@ async function generateNodes(pNode) {
 						code.push(`${tab(1)}parseOptions.maxRows = parseInt(\`${parseDynamicVariable(node.options.maxRows || 0)}\`);`);
 					}
 
-					if (dataFormat.hrsf) {
+					if (dataFormat.subType == 'HRSF') {
 						code.push(`${tab(1)}const tempState = await fileParserUtils.parseHRSFFile(req, parseOptions);`);
 					} else {
 						code.push(`${tab(1)}const tempState = await fileParserUtils.parseCommonFile(req, parseOptions);`);
