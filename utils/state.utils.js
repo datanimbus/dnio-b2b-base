@@ -203,6 +203,7 @@ async function updateInteraction(req, data) {
 		logger.debug(`[${txnId}] [${remoteTxnId}] Starting Update Interaction: ${interactionId}`);
 		let status = await mongoose.connection.db.collection(`b2b.${config.flowId}.interactions`).findOneAndUpdate({ _id: interactionId, flowId: config.flowId }, { $set: data });
 		logger.debug(`[${txnId}] [${remoteTxnId}] Interaction Update Status:`, status);
+		global.activeMessages--;
 	} catch (err) {
 		logger.debug(`[${txnId}] [${remoteTxnId}] Error While Updating Interaction: ${interactionId}`);
 		logger.error(err);

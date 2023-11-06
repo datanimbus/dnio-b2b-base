@@ -14,6 +14,7 @@ const codeGen = require('./generator/index');
 const httpClient = require('./http-client');
 
 global.activeRequest = 0;
+global.activeMessages = 0;
 
 (async () => {
 	try {
@@ -70,6 +71,12 @@ global.activeRequest = 0;
 	}
 })();
 
+
+setInterval(() => {
+	if (global.activeMessages>0) {
+		global.activeMessages--;	
+	}
+}, 60*60*1000);
 
 
 function initialize() {

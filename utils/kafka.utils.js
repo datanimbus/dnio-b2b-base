@@ -81,35 +81,42 @@ function createProducer(config) {
 
 
 function createConsumer(config, onData) {
-	logger.debug('Creating Consumer');
+	try {
+		logger.debug('Creating Consumer');
 
-	const consumer = new Kafka.KafkaConsumer({
-		'bootstrap.servers': config['servers'],
-		'sasl.username': config['username'],
-		'sasl.password': config['password'],
-		'security.protocol': config['protocol'],
-		'sasl.mechanisms': config['mechanisms'],
-		'group.id': config['groupId']
-	}, {
-		'auto.offset.reset': 'earliest'
-	});
-
-	return new Promise((resolve, reject) => {
-		consumer
-			.on('ready', () => {
-				logger.debug(`Kafka Consumer Ready, Subscribing to topic :: ${config.topic}`);
-				consumer.subscribe([config.topic]);
-
-				setInterval(() => {
-					logger.debug('Consuming Records from Kafka');
-					consumer.consume(config.batch || 5);
-				}, config.interval || 60000);
-				resolve(consumer);
-			})
-			.on('data', onData);
-
-		consumer.connect();
-	});
+		const consumer = new Kafka.KafkaConsumer({
+			'bootstrap.servers': config['servers'],
+			'sasl.username': config['username'],
+			'sasl.password': config['password'],
+			'security.protocol': config['protocol'],
+			'sasl.mechanisms': config['mechanisms'],
+			'group.id': config['groupId']
+		}, {
+			'auto.offset.reset': 'earliest'
+		});
+		logger.trace('Consumer :: ', consumer);
+	
+		return new Promise((resolve, reject) => {
+			consumer
+				.on('ready', () => {
+					logger.debug(`Kafka Consumer Ready, Subscribing to topic :: ${config.topic}`);
+					consumer.subscribe([config.topic]);
+	
+					setInterval(() => {
+						if (global.activeMessages < config.batch) {
+							logger.debug('Consuming Records from Kafka');
+							consumer.consume(1);
+						}
+					}, config.interval || 10);
+					resolve(consumer);
+				})
+				.on('data', onData);
+	
+			consumer.connect();
+		});
+	} catch (err) {
+		logger.error(`Error creating consumer :: ${err}`);
+	}
 }
 
 
