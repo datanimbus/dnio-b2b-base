@@ -99,6 +99,9 @@ function parseDataStructuresForMasking(dataJson) {
 
 	function parseForMasking(definition, isArray) {
 		let tempCode = [];
+		if (!definition) {
+			return tempCode;
+		}
 		definition.forEach((def, i) => {
 			let properties = def.properties;
 			let dataPathSegs = properties.dataPathSegs;

@@ -34,10 +34,10 @@ async function sftpPutFile(configData) {
 			return await sftp.connect(options);
 		});
 		let targetDirectory = path.dirname(configData.targetPath);
-		logger.info('Creating Folder if not exists: ', status);
 		let status = await retryableMethod(retryOptions, async function () {
 			return await sftp.mkdir(targetDirectory, true);
 		});
+		logger.info('Creating Folder if not exists: ', status);
 		logger.info('Trying SFTP Upload');
 		let temp = await retryableMethod(retryOptions, async function () {
 			return await sftp.fastPut(configData.sourcePath, configData.targetPath + '.incomplete');
@@ -198,10 +198,10 @@ async function sftpMoveFile(configData) {
 			return await sftp.connect(options);
 		});
 		let targetDirectory = path.dirname(configData.targetPath);
-		logger.info('Creating Folder if not exists: ', status);
 		let status = await retryableMethod(retryOptions, async function () {
 			return await sftp.mkdir(targetDirectory, true);
 		});
+		logger.info('Creating Folder if not exists: ', status);
 		logger.info('Trying to Move file from SFTP :', configData.sourcePath);
 		let temp = await retryableMethod(retryOptions, async function () {
 			return await sftp.rename(configData.sourcePath, configData.targetPath);

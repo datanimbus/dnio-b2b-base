@@ -329,27 +329,24 @@ async function parseFlow(dataJson) {
 				_id: uuid()
 			};
 		}
-		const dataFormat = dataJson.dataStructures[inputNode.dataStructure.outgoing._id] || { _id: inputNode.dataStructure.outgoing._id };
-		if (!dataFormat.formatType) {
-			dataFormat.formatType = 'BINARY';
+		const outgoingDataFormat = dataJson.dataStructures[inputNode.dataStructure.outgoing._id] || { _id: inputNode.dataStructure.outgoing._id };
+		if (!outgoingDataFormat.formatType) {
+			outgoingDataFormat.formatType = 'BINARY';
 		}
-		inputNode.dataStructure.outgoing = dataFormat;
+		inputNode.dataStructure.outgoing = outgoingDataFormat;
 
 		code.push(`${tab(3)}const parseOptions = {};`);
-		code.push(`${tab(3)}parseOptions.dataFormat = ${JSON.stringify(dataFormat)};`);
+		code.push(`${tab(3)}parseOptions.dataFormat = ${JSON.stringify(outgoingDataFormat)};`);
 		code.push(`${tab(3)}parseOptions.skipLines = ${inputNode.options.skipLines || 0};`);
 		code.push(`${tab(3)}parseOptions.skipRows = ${inputNode.options.skipRows || 0};`);
 		code.push(`${tab(3)}parseOptions.maxRows = ${inputNode.options.maxRows || 0};`);
 		code.push(`${tab(3)}parseOptions.filePath = reqFile.tempFilePath;`);
 		code.push(`${tab(3)}parseOptions.isFirstRowHeader = ${inputNode.options.isFirstRowHeader || false};`);
-
-
-		if (dataFormat.subType == 'HRSF') {
+		if (outgoingDataFormat.subType == 'HRSF') {
 			code.push(`${tab(3)}let tempState = await fileParserUtils.parseHRSFFile(req, parseOptions);`);
 		} else {
 			code.push(`${tab(3)}let tempState = await fileParserUtils.parseCommonFile(req, parseOptions);`);
 		}
-
 		code.push(`${tab(3)}state.status = tempState.status;`);
 		code.push(`${tab(3)}state.statusCode = tempState.statusCode;`);
 		code.push(`${tab(3)}state.responseBody = tempState.responseBody;`);
@@ -972,11 +969,21 @@ async function generateNodes(pNode) {
 		if (!node.dataStructure.outgoing) {
 			node.dataStructure.outgoing = {};
 		}
-		const dataFormat = dataStructures[node.dataStructure.outgoing._id] || { _id: node.dataStructure.outgoing._id };
-		if (!dataFormat.formatType) {
-			dataFormat.formatType = 'JSON';
+		if (!node.dataStructure.incoming) {
+			node.dataStructure.incoming = {};
 		}
-		node.dataStructure.outgoing = dataFormat;
+		const outgoingDataFormat = dataStructures[node.dataStructure.outgoing._id] || { _id: node.dataStructure.outgoing._id };
+		if (!outgoingDataFormat.formatType) {
+			outgoingDataFormat.formatType = 'JSON';
+		}
+		node.dataStructure.outgoing = outgoingDataFormat;
+
+		const incomingDataFormat = dataStructures[node.dataStructure.incoming._id] || { _id: node.dataStructure.incoming._id };
+		if (!incomingDataFormat.formatType) {
+			incomingDataFormat.formatType = 'JSON';
+		}
+		node.dataStructure.incoming = incomingDataFormat;
+
 		if (node.options) {
 			if (!node.options.get &&
 				!node.options.update &&
@@ -1590,6 +1597,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}} else {`);
 			code.push(`${tab(2)}state.responseBody = newBody[0];`);
 			code.push(`${tab(2)}}`);
+			code.push(`${tab(2)}let fileData = newBody;`);
 			generateFileConvertorCode(node, code);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type.startsWith('PARSE_')) {
@@ -1703,7 +1711,26 @@ async function generateNodes(pNode) {
 
 				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath || '\\\\')}\`;`);
 				code.push(`${tab(2)}let newBody = {};`);
-				generateMappingCode(node, code, false);
+
+				if (node.mappingType == 'custom') {
+					generateMappingCode(node, code, true);
+					code.push(`${tab(2)}state.body = newBody;`);
+					code.push(`${tab(2)}let fileData = newBody;`);
+					code.push(`${tab(2)}newBody = {};`);
+					generateFileConvertorCode(node, code, 'incoming');
+				} else {
+					generateMappingCode(node, code, false);
+					code.push(`${tab(2)}state.body = newBody.body;`);
+					code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
+					code.push(`${tab(3)}customHeaders = _.merge(newBody.headers, customHeaders) || {};`);
+					code.push(`${tab(2)}}`);
+					code.push(`${tab(2)}if (!newBody.fileContent) {`);
+					code.push(`${tab(3)}let fileData = newBody.body;`);
+					generateFileConvertorCode(node, code, 'incoming');
+					code.push(`${tab(2)}}`);
+				}
+				code.push(`${tab(2)}newBody.fileContent = tempState.fileContent;`);
+
 				if (node.options.list) {
 					code.push(`${tab(2)}connectorConfig.filePattern = \`${parseDynamicVariable(node.options.filePattern || '') || ''}\`;`);
 					code.push(`${tab(2)}connectorConfig.targetPath = connectorConfig.folderPath;`);
@@ -2078,7 +2105,7 @@ function generateMappingCode(node, code, useAbsolutePath) {
 	let parsedFormulas = [];
 	let generateArrayMappingCode = function (varName, arrayItems) {
 		let arrayCode = [];
-		let flag = false;
+		let isLoopStarted;
 		if (arrayItems && arrayItems.length > 0) {
 			arrayItems.forEach((item, i) => {
 				parsedDataPaths.push(item.target.dataPath);
@@ -2090,8 +2117,8 @@ function generateMappingCode(node, code, useAbsolutePath) {
 							let removedPathSegments = dataPathSegs.splice(dataPathSegsIndex);
 						}
 						let sourceVarName = _.camelCase(src.nodeId + '.' + dataPathSegs.join('.'));
-						flag = true;
-						if (i == 0) {
+						if (!isLoopStarted) {
+							isLoopStarted = true;
 							if (useAbsolutePath) {
 								dataPathSegs.unshift('responseBody');
 							}
@@ -2111,7 +2138,7 @@ function generateMappingCode(node, code, useAbsolutePath) {
 					});
 				}
 			});
-			if (flag) {
+			if (isLoopStarted) {
 				arrayCode.push('});');
 			}
 		}
@@ -2227,7 +2254,7 @@ function generateConverterCode(node, code) {
 	let parsedFormulas = [];
 	let generateArrayConverterCode = function (varName, arrayItems) {
 		let arrayCode = [];
-		let flag = false;
+		let isLoopStarted;
 		if (arrayItems && arrayItems.length > 0) {
 			arrayItems.forEach((item, i) => {
 				parsedDataPaths.push(item.target.dataPath);
@@ -2239,8 +2266,8 @@ function generateConverterCode(node, code) {
 							let removedPathSegments = dataPathSegs.splice(dataPathSegsIndex);
 						}
 						let sourceVarName = _.camelCase(src.nodeId + '.' + dataPathSegs.join('.'));
-						flag = true;
-						if (i == 0) {
+						if (!isLoopStarted) {
+							isLoopStarted = true;
 							if (dataPathSegsIndex > -1) {
 								arrayCode.push(`let source_${sourceVarName} = _.get(data, ${JSON.stringify(dataPathSegs)}) || [];`);
 							} else {
@@ -2252,7 +2279,7 @@ function generateConverterCode(node, code) {
 					});
 				}
 			});
-			if (flag) {
+			if (isLoopStarted) {
 				arrayCode.push('});');
 			}
 		}
@@ -2350,10 +2377,15 @@ function generateConverterCode(node, code) {
 	});
 }
 
-function generateFileConvertorCode(node, code) {
+function generateFileConvertorCode(node, code, dataStructureType) {
 	let dataFormat = node.dataStructure.outgoing;
 	let ext = '.json';
-	if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id) {
+	if (dataStructureType == 'incoming') {
+		dataFormat = node.dataStructure.incoming;
+	} else {
+		dataFormat = node.dataStructure.outgoing;
+	}
+	if (dataFormat && dataFormat._id) {
 		if (dataFormat.formatType != 'EXCEL') {
 			ext = '.' + _.lowerCase(dataFormat.formatType);
 		} else {
@@ -2362,74 +2394,26 @@ function generateFileConvertorCode(node, code) {
 	}
 	code.push(`${tab(2)}let ext = '${ext}';`);
 	code.push(`${tab(2)}let outputFileName = '${node._id}' + ext;`);
-
 	code.push(`${tab(2)}const filePath = path.join(process.cwd(), 'downloads', outputFileName);`);
 
-	if (dataFormat.formatType === 'CSV' || dataFormat.formatType === 'DELIMITER' || dataFormat.formatType === 'EXCEL') {
-		let delimiter = ',';
-		if (dataFormat.formatType === 'DELIMITER') {
-			delimiter = dataFormat.character;
-		}
-		let rowDelimiter = dataFormat.lineSeparator;
-		if (rowDelimiter === '\\\\n') {
-			rowDelimiter = '\\n';
-		} else if (rowDelimiter === '\\\\r\\\\n') {
-			rowDelimiter = '\\r\\n';
-		} else if (rowDelimiter === '\\\\r') {
-			rowDelimiter = '\\r';
-		} else {
-			rowDelimiter = '\\n';
-		}
-		code.push(`${tab(2)}const pr = await new Promise((resolve, reject) => {`);
-		code.push(`${tab(3)}const csvOutputStream = fs.createWriteStream(filePath);`);
-		code.push(`${tab(3)}const stream = fastcsv.format({ rowDelimiter: '${rowDelimiter}', delimiter: '${delimiter}', ${dataFormat.formatType === 'DELIMITER' ? 'quote: false' : ''} });`);
-		code.push(`${tab(3)}stream.pipe(csvOutputStream);`);
-		// code.push(`${tab(2)}const generateHeaders = ${node.meta.generateHeaders || false};`);
-		// code.push(`${tab(2)}if (generateHeaders) {`);
-		// code.push(`${tab(2)}stream.write(fileUtils.getHeaderOf${dataFormat._id}());`);
-		// code.push(`${tab(2)}}`);
-		code.push(`${tab(3)}if (Array.isArray(newBody)) {`);
-		code.push(`${tab(4)}newBody.forEach(data => {`);
-		code.push(`${tab(4)}stream.write(fileUtils.getValuesOf${dataFormat._id}(data));`);
-		code.push(`${tab(3)}});`);
-		code.push(`${tab(3)}} else {`);
-		code.push(`${tab(4)}stream.write(fileUtils.getValuesOf${dataFormat._id}(newBody));`);
-		code.push(`${tab(3)}}`);
-		code.push(`${tab(3)}stream.end();`);
-		code.push(`${tab(3)}csvOutputStream.on('error', err => {`);
-		code.push(`${tab(4)}state.status = "ERROR";`);
-		code.push(`${tab(4)}state.statusCode = 400;`);
-		code.push(`${tab(4)}state.body = err;`);
-		code.push(`${tab(4)}state.responseBody = err;`);
-		code.push(`${tab(4)}stateUtils.upsertState(req, state);`);
-		code.push(`${tab(4)}reject(err);`);
-		code.push(`${tab(3)}});`);
-		code.push(`${tab(3)}csvOutputStream.on('close', async function() {`);
-
-		if (dataFormat.formatType === 'EXCEL') {
-			code.push(`${tab(4)}const workbook = new exceljs.Workbook();`);
-			code.push(`${tab(4)}await workbook.csv.readFile(filePath);`);
-			code.push(`${tab(4)}await workbook.xlsx.writeFile(filePath);`);
-		}
-		code.push(`${tab(4)}resolve();`);
-		code.push(`${tab(3)}});`);
-		code.push(`${tab(2)}});`);
-	} else if (dataFormat.formatType === 'JSON') {
-		code.push(`${tab(2)}fs.writeFileSync(filePath, JSON.stringify(newBody), 'utf-8');`);
-		code.push(`${tab(2)}`);
-	} else if (dataFormat.formatType === 'XML') {
-		code.push(`${tab(2)}let xmlContent = new XMLBuilder({format: true, arrayNodeName: '${dataFormat.rootNodeName || 'ROOT'}'}).build(newBody);`);
-		if (dataFormat.xmlInitFormat) {
-			code.push(`${tab(2)}const xmlInitFormat = '${dataFormat.xmlInitFormat}\\r\\n';`);
-			code.push(`${tab(2)}xmlContent = xmlInitFormat + xmlContent;`);
-		}
-		code.push(`${tab(2)}fs.writeFileSync(filePath, xmlContent, 'utf-8');`);
-		code.push(`${tab(2)}`);
-	} else if (dataFormat.formatType === 'FLATFILE') {
-		code.push(`${tab(3)}let content = fileUtils.renderFlatFile${node.dataStructure.outgoing._id}(newBody);`);
-		code.push(`${tab(2)}fs.writeFileSync(filePath, content, 'utf-8');`);
+	code.push(`${tab(3)}const renderOptions = {};`);
+	code.push(`${tab(3)}renderOptions.filePath = filePath;`);
+	code.push(`${tab(3)}renderOptions.dataFormat = ${JSON.stringify(dataFormat)};`);
+	code.push(`${tab(3)}renderOptions.skipLines = ${node.options.skipLines || 0};`);
+	code.push(`${tab(3)}renderOptions.skipRows = ${node.options.skipRows || 0};`);
+	code.push(`${tab(3)}renderOptions.maxRows = ${node.options.maxRows || 0};`);
+	code.push(`${tab(3)}renderOptions.isFirstRowHeader = ${node.options.isFirstRowHeader || false};`);
+	if (dataFormat.subType == 'HRSF') {
+		code.push(`${tab(2)}const tempState = await fileRenderUtils.renderHRSFFile(req, renderOptions, fileData);`);
+	} else {
+		code.push(`${tab(2)}const tempState = await fileRenderUtils.renderCommonFile(req, renderOptions, fileData);`);
 	}
-	code.push(`${tab(2)}state.fileContent = filePath;`);
+	// code.push(`${tab(3)}state.status = tempState.status;`);
+	// code.push(`${tab(3)}state.statusCode = tempState.statusCode;`);
+	// code.push(`${tab(3)}state.responseBody = tempState.responseBody;`);
+	// code.push(`${tab(3)}state.body = tempState.responseBody;`);
+	// code.push(`${tab(3)}state.xmlContent = tempState.xmlContent;`);
+	code.push(`${tab(3)}state.fileContent = tempState.fileContent;`);
 }
 module.exports.parseFlow = parseFlow;
 module.exports.parseNodes = parseNodes;

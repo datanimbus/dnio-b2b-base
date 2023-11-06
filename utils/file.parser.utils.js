@@ -38,10 +38,10 @@ async function parseCommonFile(req, parseOptions) {
 				rowDelimiter = '\\n';
 			}
 			await new Promise((resolve, reject) => {
-				let records = [];
+				let aoa = [];
 				const fileStream = fs.createReadStream(parseOptions.filePath);
 				const fastcsvOptions = {
-					headers: fileUtils[`getHeaderOf${parseOptions.dataFormat._id}`](),
+					// headers: fileUtils[`getHeaderOf${parseOptions.dataFormat._id}`](),
 					skipLines: parseOptions.skipLines,
 					skipRows: parseOptions.skipRows,
 					maxRows: parseOptions.maxRows,
@@ -54,21 +54,18 @@ async function parseCommonFile(req, parseOptions) {
 				} else {
 					fastcsvOptions.discardUnmappedColumns = true;
 				}
-				fastcsv.parseStream(fileStream, fastcsvOptions).transform(row => {
-					let temp = fileUtils[`convertData${parseOptions.dataFormat._id}`](row);
-					return temp;
-				}).on('error', err => {
-					// state.status = 'ERROR';
-					// state.statusCode = 400;
-					// state.responseBody = err;
-					// stateUtils.upsertState(req, state);
-					reject(err);
-				}).on('data', row => records.push(row))
+				fastcsv.parseStream(fileStream, fastcsvOptions)
+					.on('error', err => {
+						reject(err);
+					}).on('data', row => {
+						aoa.push(row);
+					})
 					.on('end', rowCount => {
 						logger.debug('Parsed rows = ', rowCount);
 						state.totalRecords = rowCount;
-						state.responseBody = records;
-						resolve(records);
+						state.totalRows = rowCount;
+						state.responseBody = fileUtils[`parseDelimiterFile${parseOptions.dataFormat._id}`](aoa);
+						resolve(state.responseBody);
 					});
 			});
 		} else if (parseOptions.dataFormat.formatType === 'JSON') {
@@ -130,16 +127,15 @@ async function parseHRSFFile(req, parseOptions) {
 				let aoa = [];
 				const fileStream = fs.createReadStream(parseOptions.filePath);
 				const fastcsvOptions = {
+					skipLines: parseOptions.skipLines,
+					skipRows: parseOptions.skipRows,
+					maxRows: parseOptions.maxRows,
 					rowDelimiter: rowDelimiter,
 					delimiter: delimiter,
 					ignoreEmpty: true,
 				};
 				fastcsv.parseStream(fileStream, fastcsvOptions)
 					.on('error', (err) => {
-						// state.status = 'ERROR';
-						// state.statusCode = 400;
-						// state.responseBody = err;
-						// stateUtils.upsertState(req, state);
 						reject(err);
 					}).on('data', (row) => {
 						aoa.push(row);

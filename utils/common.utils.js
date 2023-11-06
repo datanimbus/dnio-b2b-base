@@ -214,6 +214,19 @@ function convertToActualBoolean(value) {
 	return false;
 }
 
+function convertToCSVBoolean(value) {
+	if (typeof value === 'string' && ['true', 't', 'TRUE', 'yes'].indexOf(value) > -1) {
+		return 'TRUE';
+	}
+	if (typeof value === 'boolean') {
+		return value ? 'TRUE' : 'FALSE';
+	}
+	if (typeof value === 'number') {
+		return value != 0 ? 'TRUE' : 'FALSE';
+	}
+	return 'FALSE';
+}
+
 
 function convertDateToISOString(value, format) {
 	if (typeof value === 'string') {
@@ -221,6 +234,32 @@ function convertDateToISOString(value, format) {
 			return moment(value, format, false).toISOString();
 		} catch (err) {
 			logger.error('unable to parse Date with format:', format);
+			logger.error(err);
+			return value;
+		}
+	}
+	return value;
+}
+
+function parseDate(value, format) {
+	if (typeof value === 'string') {
+		try {
+			return moment(value, format, false).toISOString();
+		} catch (err) {
+			logger.error('unable to parse date with format:', format);
+			logger.error(err);
+			return value;
+		}
+	}
+	return value;
+}
+
+function renderDate(value, format) {
+	if (typeof value === 'string') {
+		try {
+			return moment(value).format(format);
+		} catch (err) {
+			logger.error('unable to render date with format:', format);
 			logger.error(err);
 			return value;
 		}
@@ -432,7 +471,10 @@ module.exports.getAllFormulas = getAllFormulas;
 module.exports.getCustomNode = getCustomNode;
 module.exports.getAllLibraries = getAllLibraries;
 module.exports.convertToActualBoolean = convertToActualBoolean;
+module.exports.convertToCSVBoolean = convertToCSVBoolean;
 module.exports.convertDateToISOString = convertDateToISOString;
+module.exports.parseDate = parseDate;
+module.exports.renderDate = renderDate;
 module.exports.handleError = handleError;
 module.exports.handleResponse = handleResponse;
 module.exports.handleValidation = handleValidation;
