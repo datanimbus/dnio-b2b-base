@@ -222,6 +222,8 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(0)}}`);
 	} else if (inputNode.type === 'KAFKA_CONSUMER') {
 		const connector = await commonUtils.getConnector(inputNode.options.connector._id);
+		connector.values.username = connector.values.user;
+		delete connector.values.user;
 		code.push(`${tab(0)}try {`);
 		code.push(`${tab(1)}(async () => {`);
 		code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
