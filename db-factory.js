@@ -21,7 +21,7 @@ global.falseBooleanValues = ['n', 'no', 'false', '0'];
 	try {
 		mongoose.connection.on('connected', () => logger.info('MongoDB Connected to ', config.appDB));
 		mongoose.connection.on('disconnected', () => logger.error('MongoDB Connection Lost !'));
-		mongoose.connection.on('reconnected', () => logger.warning('MongoDB ReConnected to ', config.appDB));
+		mongoose.connection.on('reconnected', () => logger.warn('MongoDB ReConnected to ', config.appDB));
 		mongoose.connection.on('error', (err) => logger.error('MongoDB Error', err));
 		
 		await mongoose.connect(config.mongoUrl, { dbName: config.appDB });
