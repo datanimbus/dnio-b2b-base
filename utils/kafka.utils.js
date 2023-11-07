@@ -110,7 +110,10 @@ function createConsumer(config, onData) {
 					}, config.interval || 10);
 					resolve(consumer);
 				})
-				.on('data', onData);
+				.on('data', onData)
+				.on('event.error', e => {
+					logger.error('Error connecting to Kafka :: ', e);
+				});
 	
 			consumer.connect();
 		});
