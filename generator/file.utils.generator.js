@@ -35,14 +35,18 @@ function getDefinitionFromDataPath(definition, dataPath) {
 
 function getCodeToParseCSVDataType(def, i, key) {
 	let tempCode = [];
+	let fieldNo = i;
+	if(def.properties.fieldNo){
+		fieldNo = def.properties.fieldNo;
+	}
 	if (def.type == 'Number') {
-		tempCode.push(`${tab(1)}let var_${i} = +(${key}[${i}]);`);
+		tempCode.push(`${tab(1)}let var_${i} = +(${key}[${fieldNo}]);`);
 	} else if (def.type == 'Boolean') {
-		tempCode.push(`${tab(1)}let var_${i} = commonUtils.convertToActualBoolean(${key}[${i}]);`);
+		tempCode.push(`${tab(1)}let var_${i} = commonUtils.convertToActualBoolean(${key}[${fieldNo}]);`);
 	} else if (def.type == 'Date') {
-		tempCode.push(`${tab(1)}let var_${i} = commonUtils.parseDate(${key}[${i}], '${def.properties.dateFormat || 'yyyy-MM-dd'}');`);
+		tempCode.push(`${tab(1)}let var_${i} = commonUtils.parseDate(${key}[${fieldNo}], '${def.properties.dateFormat || 'yyyy-MM-dd'}');`);
 	} else {
-		tempCode.push(`${tab(1)}let var_${i} = ${key}[${i}];`);
+		tempCode.push(`${tab(1)}let var_${i} = ${key}[${fieldNo}];`);
 	}
 	return tempCode;
 }
