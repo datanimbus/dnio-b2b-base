@@ -409,6 +409,19 @@ async function parseDataStructures(dataJson) {
 					code.push('');
 					code.push('');
 				}
+				code.push(`async function validate_schema_${schemaID} (data) {`);
+				code.push('\tlet error = null;');
+				code.push('\ttry {');
+				code.push(`\t\tlet document_${schemaID} = new model_${schemaID}(data);`);
+				code.push(`\t\tawait document_${schemaID}.validate();`);
+				code.push('\t} catch(err) {');
+				code.push('\t\tlogger.error(err);');
+				code.push('\t\terror = err;');
+				code.push('\t} finally {');
+				code.push('\t\treturn error;');
+				code.push('\t}');
+				code.push('}');
+				code.push(`module.exports.validate_schema_${schemaID} = validate_schema_${schemaID};`);
 			} catch (err) {
 				console.log(err);
 			}
