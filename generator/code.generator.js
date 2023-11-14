@@ -184,7 +184,7 @@ async function parseFlow(dataJson) {
 		}
 	});
 	code.push(`${tab(0)}const ENV = {};`);
-	code.push(`${tab(1)}Object.keys(process.env).forEach((key)=>{`);
+	code.push(`${tab(1)}Object.keys(process.env).forEach((key) => {`);
 	code.push(`${tab(2)}ENV[key] = process.env[key];`);
 	code.push(`${tab(1)}});`);
 
