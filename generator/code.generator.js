@@ -120,9 +120,6 @@ async function parseFlow(dataJson) {
 	code.push('const { v4: uuid } = require(\'uuid\');');
 	code.push('const _ = require(\'lodash\');');
 	code.push('const cron = require(\'node-cron\');');
-	code.push('const solace = require(\'solclientjs\');');
-	// code.push('const { Kafka } = require(\'kafkajs\');');
-	code.push('const tf = require(\'@tensorflow/tfjs-node\');');
 	code.push('const chokidar = require(\'chokidar\');');
 	code.push('const builder = require(\'xmlbuilder\');');
 	code.push('const ldap = require(\'ldapjs\');');
@@ -901,9 +898,6 @@ async function parseNodes(dataJson) {
 	code.push('const exceljs = require(\'exceljs\');');
 	code.push('const { mssql, mysql, psql } = require(\'@appveen/rest-crud\');');
 	code.push('const Mustache = require(\'mustache\');');
-	code.push('const solace = require(\'solclientjs\');');
-	code.push('const { Kafka } = require(\'kafkajs\');');
-	code.push('const tf = require(\'@tensorflow/tfjs-node\');');
 	code.push('const chokidar = require(\'chokidar\');');
 	code.push('var builder = require(\'xmlbuilder\');');
 	code.push('var ldap = require(\'ldapjs\');');
