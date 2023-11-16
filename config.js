@@ -21,12 +21,12 @@ function isK8sEnv() {
 }
 
 function parseBoolean(val) {
-    if (typeof val === 'boolean') return val;
-    else if (typeof val === 'string') {
-        return val.toLowerCase() === 'true';
-    } else {
-        return false;
-    }
+	if (typeof val === 'boolean') return val;
+	else if (typeof val === 'string') {
+		return val.toLowerCase() === 'true';
+	} else {
+		return false;
+	}
 }
 
 function get(_service) {
