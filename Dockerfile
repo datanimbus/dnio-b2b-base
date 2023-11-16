@@ -8,7 +8,7 @@ FROM node:18-alpine
 RUN apk update
 RUN apk upgrade
 
-RUN apk add curl tar git openssl python3 make build-essential
+RUN apk add curl tar git openssl python3
 
 WORKDIR /tmp/app
 
