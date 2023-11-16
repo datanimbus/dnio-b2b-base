@@ -995,7 +995,8 @@ async function generateNodes(pNode) {
 		// 	code.push(`${tab(1)}const ${_.snakeCase(item.key)} = node['${item.value}'];`);
 		// });
 		code.push(`${tab(1)}try {`);
-		let functionName = 'validate_structure_' + (node._id);
+		// let functionName = 'validate_structure_' + (node._id);
+		let functionName = 'validate_schema_' + (node?.dataStructure?.outgoing?._id);
 		if (node.type === 'API' || node.type == 'API_MULTIPART' || node.type.startsWith('DATASERVICE') || node.type === 'FUNCTION' || node.type === 'FLOW' || node.type === 'AUTH-DATASTACK') {
 			code.push(`${tab(2)}const options = {};`);
 			code.push(`${tab(2)}let customHeaders = { 'content-type': 'application/json' };`);
@@ -1445,7 +1446,10 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Response Data of ${(node._id)} \`, JSON.stringify(state));`);
 			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id && node.dataStructure.outgoing.strictValidation) {
 				code.push(`${tab(2)}if (state.statusCode == 200) {`);
-				code.push(`${tab(3)}const errors = validationUtils.${functionName}(req, response.body);`);
+				// code.push(`${tab(3)}const errors = validationUtils.${functionName}(req, response.body);`);
+				code.push(`${tab(3)}const errors = modelUtils.${functionName}(response.body);`);
+				
+
 				code.push(`${tab(3)}commonUtils.handleValidation(errors, state, req, node);`);
 				code.push(`${tab(2)}}`);
 			}
@@ -1460,7 +1464,8 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}let newBody = {};`);
 			generateMappingCode(node, code, true);
 			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id && node.dataStructure.outgoing.strictValidation) {
-				code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, newBody);`);
+				// code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, newBody);`);
+				code.push(`${tab(2)}const errors = modelUtils.${functionName}(newBody);`);
 				code.push(`${tab(2)}if (errors) {`);
 				code.push(`${tab(3)}state.status = "ERROR";`);
 				code.push(`${tab(3)}state.statusCode = 400;`);
@@ -1495,7 +1500,8 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}}`);
 
 			if (node.dataStructure && node.dataStructure.outgoing && node.dataStructure.outgoing._id && node.dataStructure.outgoing.strictValidation) {
-				code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, newBody);`);
+				// code.push(`${tab(2)}const errors = validationUtils.${functionName}(req, newBody);`);
+				code.push(`${tab(2)}const errors = modelUtils.${functionName}(newBody);`);
 				code.push(`${tab(2)}if (errors) {`);
 				code.push(`${tab(3)}state.status = "ERROR";`);
 				code.push(`${tab(3)}state.statusCode = 400;`);
