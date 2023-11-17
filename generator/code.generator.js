@@ -246,6 +246,12 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}`);
 		code.push(`${tab(2)}process.on('SIGINT', () => {`);
 		code.push(`${tab(3)}logger.info('Disconnecting consumer ...');`);
+		code.push(`${tab(3)}consumer.disconnect(function(err) {`);
+		code.push(`${tab(4)}if (err) {`);
+		code.push(`${tab(5)}logger.error('Error Disconnecting Kafka :', err);`);
+		code.push(`${tab(4)}}`);
+		code.push(`${tab(4)}process.exit(0);`);
+		code.push(`${tab(3)}});`);
 		code.push(`${tab(3)}consumer.disconnect();`);
 		code.push(`${tab(2)}});`);
 		code.push(`${tab(1)}})();`);
@@ -279,6 +285,7 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(0)}}`);
 
 	code.push('async function handleRequest(req, res) {');
+	code.push(`${tab(1)}global.activeRequest++;`);
 	code.push(`${tab(1)}let txnId = req.headers['data-stack-txn-id'];`);
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
 	code.push(`${tab(1)}res.setHeader('dnio-interaction-id', (req.query.interactionId || 'TEST'));`);

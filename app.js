@@ -71,10 +71,10 @@ global.activeMessages = 0;
 
 
 setInterval(() => {
-	if (global.activeMessages>0) {
-		global.activeMessages--;	
+	if (global.activeMessages > 0) {
+		global.activeMessages--;
 	}
-}, 60*60*1000);
+}, 60 * 60 * 1000);
 
 
 function initialize() {
@@ -89,7 +89,6 @@ function initialize() {
 
 	app.use(express.urlencoded({ extended: true }));
 	app.use(middlewares.addHeaders);
-	// app.use(middlewares.trackActiveRequests);
 
 	app.use('/api/b2b', require('./route'));
 	app.get('/api/b2b/internal/export/route', async function (req, res) {
@@ -130,25 +129,25 @@ function initialize() {
 			// clearInterval(global.pullJob)
 			let intVal = setInterval(() => {
 				// Waiting For all pending requests to finish;
-				if (global.activeRequest == 0) {
+				if (global.activeRequest < 1) {
 					// Closing Express Server;
 					clearInterval(intVal);
 					server.close(() => {
 						logger.info('Server Stopped.');
 						intVal = setInterval(() => {
-							let queueLen = global.interactionQueue.length();
-							if (queueLen != 0) {
-								logger.info('Waiting for Interactions Data to be Stored:', queueLen);
+							if (global.activeMessages > 0) {
+								logger.info('Waiting for Messages to be Processed:', global.activeMessages);
 								return;
 							}
 							clearInterval(intVal);
+							process.exit(0);
 							// Waiting For all DB Operations to finish;
-							Promise.all(global.dbPromises).then(() => {
-								process.exit(0);
-							}).catch(err => {
-								logger.error(err);
-								process.exit(0);
-							});
+							// Promise.all(global.dbPromises).then(() => {
+							// 	process.exit(0);
+							// }).catch(err => {
+							// 	logger.error(err);
+							// 	process.exit(0);
+							// });
 						}, 2000);
 					});
 				} else {

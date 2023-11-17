@@ -20,13 +20,4 @@ e.addHeaders = (_req, _res, _next) => {
 };
 
 
-e.trackActiveRequests = (_req, _res, _next) => {
-	global.activeRequest++;
-	_res.on('end', () => {
-		global.activeRequest--;
-	});
-	_next();
-};
-
-
 module.exports = e;
