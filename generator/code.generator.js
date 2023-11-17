@@ -1711,6 +1711,7 @@ async function generateNodes(pNode) {
 
 				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath || '\\\\')}\`;`);
 				code.push(`${tab(2)}let newBody = {};`);
+				code.push(`${tab(2)}let tempState = {};`);
 
 				if (node.mappingType == 'custom') {
 					generateMappingCode(node, code, true);
@@ -1720,7 +1721,7 @@ async function generateNodes(pNode) {
 					generateFileConvertorCode(node, code, 'incoming');
 				} else {
 					generateMappingCode(node, code, false);
-					code.push(`${tab(2)}state.body = newBody.body;`);
+					code.push(`${tab(2)}state.body = newBody.body || {};`);
 					code.push(`${tab(2)}if(!_.isEmpty(newBody.headers)){`);
 					code.push(`${tab(3)}customHeaders = _.merge(newBody.headers, customHeaders) || {};`);
 					code.push(`${tab(2)}}`);
@@ -1769,9 +1770,9 @@ async function generateNodes(pNode) {
 					}
 
 					if (dataFormat.subType == 'HRSF') {
-						code.push(`${tab(1)}const tempState = await fileParserUtils.parseHRSFFile(req, parseOptions);`);
+						code.push(`${tab(1)}tempState = await fileParserUtils.parseHRSFFile(req, parseOptions);`);
 					} else {
-						code.push(`${tab(1)}const tempState = await fileParserUtils.parseCommonFile(req, parseOptions);`);
+						code.push(`${tab(1)}tempState = await fileParserUtils.parseCommonFile(req, parseOptions);`);
 					}
 
 					code.push(`${tab(3)}state.status = tempState.status;`);
@@ -2404,9 +2405,9 @@ function generateFileConvertorCode(node, code, dataStructureType) {
 	code.push(`${tab(3)}renderOptions.maxRows = ${node.options.maxRows || 0};`);
 	code.push(`${tab(3)}renderOptions.isFirstRowHeader = ${node.options.isFirstRowHeader || false};`);
 	if (dataFormat.subType == 'HRSF') {
-		code.push(`${tab(2)}const tempState = await fileRenderUtils.renderHRSFFile(req, renderOptions, fileData);`);
+		code.push(`${tab(2)}tempState = await fileRenderUtils.renderHRSFFile(req, renderOptions, fileData);`);
 	} else {
-		code.push(`${tab(2)}const tempState = await fileRenderUtils.renderCommonFile(req, renderOptions, fileData);`);
+		code.push(`${tab(2)}tempState = await fileRenderUtils.renderCommonFile(req, renderOptions, fileData);`);
 	}
 	// code.push(`${tab(3)}state.status = tempState.status;`);
 	// code.push(`${tab(3)}state.statusCode = tempState.statusCode;`);
