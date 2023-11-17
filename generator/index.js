@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const mkdirp = require('mkdirp');
 const log4js = require('log4js');
-const { exec, execSync } = require('child_process');
 
 const codeGen = require('./code.generator');
 const fileUtilsGen = require('./file.utils.generator');
@@ -11,7 +10,6 @@ const validationUtilsGen = require('./validation.utils.generator');
 const schemaUtils = require('./schema.utils');
 const definitionUtils = require('./definition.utils');
 const commonUtils = require('../utils/common.utils');
-const config = require('../config');
 
 const logger = log4js.getLogger(global.loggerName);
 

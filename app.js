@@ -7,8 +7,6 @@ const log4js = require('log4js');
 const express = require('express');
 const JWT = require('jsonwebtoken');
 
-const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
-
 let config = require('./config');
 const codeGen = require('./generator/index');
 const httpClient = require('./http-client');

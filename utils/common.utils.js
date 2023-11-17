@@ -11,7 +11,6 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const crypto = require('crypto');
 const zlib = require('zlib');
-const { MongoClient } = require('mongodb');
 const ALGORITHM = 'aes-256-gcm';
 
 const config = require('../config');
@@ -288,7 +287,7 @@ function writeDataToXLS(filepath, data, headers) {
 	});
 }
 
-function handleError(err, state, req, node) {
+function handleError(err, state, req, _node) {
 	// state.error = err;
 	if (err.statusCode) {
 		state.statusCode = err.statusCode;
@@ -314,7 +313,7 @@ function handleError(err, state, req, node) {
 	state.status = 'ERROR';
 }
 
-function handleResponse(response, state, req, node) {
+function handleResponse(response, state, _req, _node) {
 	logger.trace('Handle Response - ', JSON.stringify(response, null, 4));
 	if (!response.statusCode) {
 		response.statusCode = 200;
@@ -332,7 +331,7 @@ function handleResponse(response, state, req, node) {
 	}
 }
 
-function handleValidation(errors, state, req, node) {
+function handleValidation(errors, state, _req, _node) {
 	if (errors && !_.isEmpty(errors)) {
 		state.status = 'ERROR';
 		state.statusCode = 400;

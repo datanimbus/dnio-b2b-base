@@ -20,15 +20,6 @@ function isK8sEnv() {
 	return process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT;
 }
 
-function parseBoolean(val) {
-	if (typeof val === 'boolean') return val;
-	else if (typeof val === 'string') {
-		return val.toLowerCase() === 'true';
-	} else {
-		return false;
-	}
-}
-
 function get(_service) {
 	if (isK8sEnv()) {
 		if (_service == 'ne') return `http://ne.${DATA_STACK_NAMESPACE}`;

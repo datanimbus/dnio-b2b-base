@@ -95,13 +95,13 @@ function createConsumer(config, onData) {
 			'auto.offset.reset': 'earliest'
 		});
 		logger.trace('Consumer :: ', consumer);
-	
+
 		return new Promise((resolve, reject) => {
 			consumer
 				.on('ready', () => {
 					logger.debug(`Kafka Consumer Ready, Subscribing to topic :: ${config.topic}`);
 					consumer.subscribe([config.topic]);
-	
+
 					setInterval(() => {
 						if (global.activeMessages < config.batch) {
 							logger.debug('Consuming Records from Kafka');
@@ -111,10 +111,11 @@ function createConsumer(config, onData) {
 					resolve(consumer);
 				})
 				.on('data', onData)
-				.on('event.error', e => {
+				.on('event.error', (e) => {
 					logger.error('Error connecting to Kafka :: ', e);
+					reject(e);
 				});
-	
+
 			consumer.connect();
 		});
 	} catch (err) {

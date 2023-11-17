@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 const log4js = require('log4js');
 const { BlobServiceClient } = require('@azure/storage-blob');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');

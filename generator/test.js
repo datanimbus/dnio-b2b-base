@@ -4,7 +4,7 @@ const codeGen = require('./code.generator');
 const flowJSON = require('./sample.json');
 
 // const stages = codeGen.parseFlow(sampleJSON);
-const code = codeGen.parseFlow(flowJSON);
+// const code = codeGen.parseFlow(flowJSON);
 
 
 (async () => {

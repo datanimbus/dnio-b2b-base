@@ -4,7 +4,6 @@ const { v4: uuid } = require('uuid');
 const mongoose = require('mongoose');
 const _ = require('lodash');
 
-const httpClient = require('../http-client');
 const config = require('../config');
 const maskingUtils = require('./masking.utils');
 const interactionUtils = require('./interaction.utils');
@@ -161,7 +160,7 @@ async function upsertState(req, state) {
 	}
 }
 
-async function createInteraction(data) {
+async function createInteraction(_data) {
 	try {
 		const interactionId = await mongooseUtils.createId('INTR', 'b2b.interactions', null, null, 1000);
 		const interactionData = {};

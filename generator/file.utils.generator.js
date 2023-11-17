@@ -36,7 +36,7 @@ function getDefinitionFromDataPath(definition, dataPath) {
 function getCodeToParseCSVDataType(def, i, key) {
 	let tempCode = [];
 	let fieldNo = i;
-	if(def.properties.fieldNo){
+	if (def.properties.fieldNo) {
 		fieldNo = def.properties.fieldNo;
 	}
 	if (def.type == 'Number') {
@@ -51,7 +51,7 @@ function getCodeToParseCSVDataType(def, i, key) {
 	return tempCode;
 }
 
-function getCodeToRenderCSVDataType(def, i, key) {
+function getCodeToRenderCSVDataType(def, i, _key) {
 	let tempCode = [];
 	if (def.type == 'Number') {
 		tempCode.push(`${tab(1)}var_${i} = +var_${i};`);
@@ -81,7 +81,7 @@ function getCodeToParseFLATFILEDataType(def, i, key) {
 	return tempCode;
 }
 
-function getCodeToRenderFLATFILEDataType(def, i, key) {
+function getCodeToRenderFLATFILEDataType(def, i, _key) {
 	let tempCode = [];
 	if (def.type == 'Number') {
 		tempCode.push(`${tab(2)}var_${i} = var_${i} + '';`);
@@ -520,7 +520,7 @@ function parseDataStructuresForFileUtils(dataJson) {
 					code.push(`${tab(1)}if (addHeaderRow) {`);
 					code.push(`${tab(2)}let headrow = [];`);
 					//Iterate for Headers
-					definition.filter(e => !e.properties.disabled).forEach((def, i) => {
+					definition.filter(e => !e.properties.disabled).forEach((def, _i) => {
 						code.push(`${tab(1)}headrow.push('${def.properties.name}');`);
 					});
 					code.push(`${tab(2)}aoa.push(headrow);`);

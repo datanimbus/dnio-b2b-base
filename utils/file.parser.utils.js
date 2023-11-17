@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 const exceljs = require('exceljs');
 const fastcsv = require('fast-csv');
 const log4js = require('log4js');

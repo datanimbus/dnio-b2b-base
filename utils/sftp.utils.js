@@ -150,27 +150,27 @@ async function sftpReadFile(configData) {
 	}
 }
 
-function waitForFileToComplete(sftp, filePath) {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let previousFileSize = -1;
-			let timer;
-			const stats = await sftp.stat(filePath);
-			previousFileSize = stats.size;
-			timer = setInterval(async () => {
-				const stats = await sftp.stat(filePath);
-				if (stats.size === previousFileSize) {
-					clearInterval(timer); // File size has remained constant
-					resolve(true);
-				} else {
-					previousFileSize = stats.size;
-				}
-			}, 2000); // Wait for 2 seconds
-		} catch (err) {
-			reject(err);
-		}
-	});
-}
+// function waitForFileToComplete(sftp, filePath) {
+// 	return new Promise(async (resolve, reject) => {
+// 		try {
+// 			let previousFileSize = -1;
+// 			let timer;
+// 			const stats = await sftp.stat(filePath);
+// 			previousFileSize = stats.size;
+// 			timer = setInterval(async () => {
+// 				const stats = await sftp.stat(filePath);
+// 				if (stats.size === previousFileSize) {
+// 					clearInterval(timer); // File size has remained constant
+// 					resolve(true);
+// 				} else {
+// 					previousFileSize = stats.size;
+// 				}
+// 			}, 2000); // Wait for 2 seconds
+// 		} catch (err) {
+// 			reject(err);
+// 		}
+// 	});
+// }
 
 async function sftpMoveFile(configData) {
 	let sftp = new Client();

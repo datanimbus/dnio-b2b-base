@@ -1,6 +1,4 @@
 const mongoose = require('mongoose');
-const { MongoClient } = require('mongodb');
-const JWT = require('jsonwebtoken');
 const log4js = require('log4js');
 
 const config = require('./config');
@@ -8,7 +6,6 @@ const httpClient = require('./http-client');
 
 const LOGGER_NAME = config.isK8sEnv() ? `[${config.hostname}] [INTEGRATION-FLOW v${config.imageTag}]` : `[INTEGRATION-FLOW v${config.imageTag}]`;
 const logger = log4js.getLogger(LOGGER_NAME);
-const token = JWT.sign({ name: 'B2B-MANAGER', _id: 'admin', isSuperAdmin: true }, config.RBAC_JWT_KEY, {});
 
 // For threads to pick txnId and user headers
 global.userHeader = 'user';
