@@ -230,10 +230,18 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}connectorConfig.groupId = '${config.flowId}';`);
 		code.push(`${tab(2)}logger.info('Creating Kafka Consumer');`);
 		code.push(`${tab(2)}logger.trace(\`Connecting to Kafka Topic :: \${connectorConfig.topic}\`);`);
-		code.push(`${tab(2)}kafkaUtils.createConsumer(connectorConfig, (message) => {`);
+		code.push(`${tab(2)}const consumer = await kafkaUtils.createConsumer(connectorConfig, (message) => {`);
+		code.push(`${tab(3)}let dataString = Buffer.from(message.value).toString();`);
+		code.push(`${tab(3)}let data;`);
 		code.push(`${tab(3)}logger.trace(\`Processig Message from Kafka :: \${JSON.stringify(message)}\`);`);
+		code.push(`${tab(3)}try {`);
+		code.push(`${tab(4)}data = JSON.parse(dataString);`);
+		code.push(`${tab(3)}} catch (err) {`);
+		code.push(`${tab(4)}logger.warn('Parsing Failed, Data is not JSON');`);
+		code.push(`${tab(4)}data = { message: dataString };`);
+		code.push(`${tab(3)}}`);
 		code.push(`${tab(3)}global.activeMessages++;`);
-		code.push(`${tab(3)}makeRequestToThisFlow(message);`);
+		code.push(`${tab(3)}makeRequestToThisFlow(data);`);
 		code.push(`${tab(2)}});`);
 		code.push(`${tab(2)}`);
 		code.push(`${tab(2)}process.on('SIGINT', () => {`);
@@ -1448,7 +1456,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}if (state.statusCode == 200) {`);
 				// code.push(`${tab(3)}const errors = validationUtils.${functionName}(req, response.body);`);
 				code.push(`${tab(3)}const errors = modelUtils.${functionName}(response.body);`);
-				
+
 
 				code.push(`${tab(3)}commonUtils.handleValidation(errors, state, req, node);`);
 				code.push(`${tab(2)}}`);

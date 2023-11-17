@@ -88,7 +88,7 @@ function createConsumer(config, onData) {
 			'bootstrap.servers': config['servers'],
 			'sasl.username': config['username'],
 			'sasl.password': config['password'],
-			'security.protocol': config['protocol'],
+			'security.protocol': (config['protocol'] || 'plaintext'),
 			'sasl.mechanisms': config['mechanisms'],
 			'group.id': config['groupId']
 		}, {
@@ -101,16 +101,18 @@ function createConsumer(config, onData) {
 				.on('ready', () => {
 					logger.debug(`Kafka Consumer Ready, Subscribing to topic :: ${config.topic}`);
 					consumer.subscribe([config.topic]);
-
 					setInterval(() => {
 						if (global.activeMessages < config.batch) {
-							logger.debug('Consuming Records from Kafka');
-							consumer.consume();
+							consumer.consume(1);
 						}
-					}, config.interval || 10);
+					}, config.interval || 20);
 					resolve(consumer);
 				})
-				.on('data', onData)
+				.on('data', function (message) {
+					logger.debug('Consuming data from Kafka');
+					logger.trace(JSON.stringify(message));
+					onData(message);
+				})
 				.on('event.error', (e) => {
 					logger.error('Error connecting to Kafka :: ', e);
 					reject(e);
