@@ -101,7 +101,8 @@ const e = {
 	encryptionKey: process.env.ENCRYPTION_KEY || '34857057658800771270426551038148',
 	get,
 	serverTimeout: process.env.SERVER_TIMEOUT || '60',
-	b2bAllowNpmInstall: process.env.B2B_ALLOW_NPM_INSTALL || 'true'
+	b2bAllowNpmInstall: process.env.B2B_ALLOW_NPM_INSTALL || 'true',
+	kafkaPollingInterval: process.env.KAFKA_POLLING_INTERVAL || 200
 };
 
 module.exports = e;

@@ -105,7 +105,7 @@ function createConsumer(config, onData) {
 						if (global.activeMessages < config.batch) {
 							consumer.consume(1);
 						}
-					}, config.interval || 20);
+					}, config.interval || 100);
 					resolve(consumer);
 				})
 				.on('data', function (message) {

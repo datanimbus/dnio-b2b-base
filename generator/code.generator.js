@@ -226,7 +226,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}const connectorConfig = ${JSON.stringify(connector.values)};`);
 		code.push(`${tab(2)}connectorConfig.topic = '${inputNode.options.topicName}';`);
 		code.push(`${tab(2)}connectorConfig.batch = ${inputNode.options.throttle};`);
-		code.push(`${tab(2)}connectorConfig.interval = ${inputNode.options.interval};`);
+		code.push(`${tab(2)}connectorConfig.interval = ${inputNode.options.interval} || ${config.kafkaPollingInterval};`);
 		code.push(`${tab(2)}connectorConfig.groupId = '${config.flowId}';`);
 		code.push(`${tab(2)}logger.info('Creating Kafka Consumer');`);
 		code.push(`${tab(2)}logger.trace(\`Connecting to Kafka Topic :: \${connectorConfig.topic}\`);`);
@@ -250,9 +250,8 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(4)}if (err) {`);
 		code.push(`${tab(5)}logger.error('Error Disconnecting Kafka :', err);`);
 		code.push(`${tab(4)}}`);
-		code.push(`${tab(4)}process.exit(0);`);
 		code.push(`${tab(3)}});`);
-		code.push(`${tab(3)}consumer.disconnect();`);
+		code.push(`${tab(3)}process.exit(0);`);
 		code.push(`${tab(2)}});`);
 		code.push(`${tab(1)}})();`);
 		code.push(`${tab(0)}} catch (err) {`);
@@ -264,7 +263,7 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(1)}return makeRequestToThisFlow(payload);`);
 	code.push(`${tab(0)}}`);
 
-	code.push(`${tab(0)}async function makeRequestToThisFlow(data, configOptions){`);
+	code.push(`${tab(0)}async function makeRequestToThisFlow(data, configOptions) {`);
 	code.push(`${tab(1)}try {`);
 	code.push(`${tab(2)}const txnId = uuid().split('-');`);
 	code.push(`${tab(2)}const headers = {};`);
