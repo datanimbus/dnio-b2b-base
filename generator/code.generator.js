@@ -264,15 +264,15 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(1)}return makeRequestToThisFlow(payload);`);
 	code.push(`${tab(0)}}`);
 
-	code.push(`${tab(0)}async function makeRequestToThisFlow(data, options){`);
+	code.push(`${tab(0)}async function makeRequestToThisFlow(data, configOptions){`);
 	code.push(`${tab(1)}try {`);
 	code.push(`${tab(2)}const txnId = uuid().split('-');`);
 	code.push(`${tab(2)}const headers = {};`);
 	code.push(`${tab(2)}headers['data-stack-txn-id'] = \`\${txnId[1]}\${txnId[2]}\`;`);
 	code.push(`${tab(2)}headers['data-stack-remote-txn-id'] = uuid();`);
-	code.push(`${tab(2)}if (options && !_.isEmpty(options)) {`);
-	code.push(`${tab(3)}headers['content-length'] = options.contentLength;`);
-	code.push(`${tab(3)}headers['content-type'] = options.contentType;`);
+	code.push(`${tab(2)}if (configOptions && !_.isEmpty(configOptions)) {`);
+	code.push(`${tab(3)}headers['content-length'] = configOptions.contentLength;`);
+	code.push(`${tab(3)}headers['content-type'] = configOptions.contentType;`);
 	code.push(`${tab(2)}} else {`);
 	code.push(`${tab(3)}let bufferData = Buffer.from(JSON.stringify(data))`);
 	code.push(`${tab(3)}headers['content-length'] = bufferData.length;`);
