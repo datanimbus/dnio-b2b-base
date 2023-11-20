@@ -160,7 +160,7 @@ async function upsertState(req, state) {
 	}
 }
 
-async function createInteraction(_data) {
+async function createInteraction(data) {
 	try {
 		const interactionId = await mongooseUtils.createId('INTR', 'b2b.interactions', null, null, 1000);
 		const interactionData = {};
@@ -168,6 +168,7 @@ async function createInteraction(_data) {
 		interactionData.flowId = config.flowId;
 		interactionData.app = config.app;
 		interactionData.status = 'PENDING';
+		interactionData.headers = data.headers;
 		if (!interactionData._metadata) {
 			interactionData._metadata = {};
 		}

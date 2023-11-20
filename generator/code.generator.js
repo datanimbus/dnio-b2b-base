@@ -264,17 +264,29 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(1)}return makeRequestToThisFlow(payload);`);
 	code.push(`${tab(0)}}`);
 
-	code.push(`${tab(0)}async function makeRequestToThisFlow(payload){`);
+	code.push(`${tab(0)}async function makeRequestToThisFlow(data, options){`);
 	code.push(`${tab(1)}try {`);
-	code.push(`${tab(2)}const interactionId = await stateUtils.createInteraction(payload);`);
 	code.push(`${tab(2)}const txnId = uuid().split('-');`);
 	code.push(`${tab(2)}const headers = {};`);
 	code.push(`${tab(2)}headers['data-stack-txn-id'] = \`\${txnId[1]}\${txnId[2]}\`;`);
 	code.push(`${tab(2)}headers['data-stack-remote-txn-id'] = uuid();`);
+	code.push(`${tab(2)}if (options && !_.isEmpty(options)) {`);
+	code.push(`${tab(3)}headers['content-length'] = options.contentLength;`);
+	code.push(`${tab(3)}headers['content-type'] = options.contentType;`);
+	code.push(`${tab(2)}} else {`);
+	code.push(`${tab(3)}let bufferData = Buffer.from(JSON.stringify(data))`);
+	code.push(`${tab(3)}headers['content-length'] = bufferData.length;`);
+	code.push(`${tab(3)}headers['content-type'] = 'application/json';`);
+	code.push(`${tab(2)}}`);
+
+	code.push(`${tab(2)}const payload = {};`);
+	code.push(`${tab(2)}const payload.body = data;`);
+	code.push(`${tab(2)}payload.headers = headers;`);
+	code.push(`${tab(2)}const interactionId = await stateUtils.createInteraction(payload);`);
 	code.push(`${tab(2)}const options = {};`);
 	code.push(`${tab(2)}options.method = 'POST';`);
 	code.push(`${tab(2)}options.url = '${config.get('bm')}/b2b/pipes${api}?interactionId=' + interactionId;`);
-	code.push(`${tab(2)}options.json = payload;`);
+	code.push(`${tab(2)}options.json = data;`);
 	code.push(`${tab(2)}options.headers = headers;`);
 	code.push(`${tab(2)}logger.trace({ options });`);
 	code.push(`${tab(2)}let response = await httpClient.request(options);`);
