@@ -280,7 +280,7 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(2)}}`);
 
 	code.push(`${tab(2)}const payload = {};`);
-	code.push(`${tab(2)}const payload.body = data;`);
+	code.push(`${tab(2)}payload.body = data;`);
 	code.push(`${tab(2)}payload.headers = headers;`);
 	code.push(`${tab(2)}const interactionId = await stateUtils.createInteraction(payload);`);
 	code.push(`${tab(2)}const options = {};`);
