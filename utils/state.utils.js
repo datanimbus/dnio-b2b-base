@@ -111,6 +111,7 @@ async function upsertState(req, state) {
 		);
 		logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Node State Result: ${JSON.stringify(status)}`);
 
+		let storageRef;
 		let blobOptions = {};
 		blobOptions.blobName = path.join(appData._id, config.flowId, interactionId, state.nodeId + '.json');
 		blobOptions.data = JSON.stringify(nodeDataPayload);
@@ -122,29 +123,48 @@ async function upsertState(req, state) {
 		blobOptions.metadata['dnioInteractionId'] = interactionId;
 		blobOptions.metadata['dnioNodeId'] = state.nodeId;
 
+		logger.debug('Blob Name :', blobOptions.blobName);
+		logger.trace('Blob Data :', blobOptions);
+
 		if (appData && appData.interactionStore && appData.interactionStore.storeType == 'azureblob') {
-			logger.trace(`[${txnId}] [${remoteTxnId}] Uploading Data to Azure Blob: ${JSON.stringify(blobOptions.metadata)}`);
-			let result = await interactionUtils.uploadBufferToAzureBlob(appData.containerClient, blobOptions);
-			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
-				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
-				{ $set: { storageRef: { etag: result.etag, requestId: result.requestId } } }
-			);
-			logger.trace(`[${txnId}] [${remoteTxnId}] Upload Result: ${JSON.stringify(status)}`);
+			try {
+				logger.trace(`[${txnId}] [${remoteTxnId}] Uploading Data to Azure Blob: ${JSON.stringify(blobOptions.metadata)}`);
+				let result = await interactionUtils.uploadBufferToAzureBlob(appData.containerClient, blobOptions);
+				storageRef = { etag: result.etag, requestId: result.requestId };
+				logger.trace(`[${txnId}] [${remoteTxnId}] Upload Result: ${JSON.stringify(storageRef)}`);
+			} catch (err) {
+				logger.error('Error uploading file to Azure Blob :', err);
+				storageRef = { error: err };
+
+			}
 		} else if (appData && appData.interactionStore && appData.interactionStore.storeType == 'awss3') {
-			blobOptions.bucket = appData.interactionStore.configuration.connector.bucket;
-			logger.trace(`[${txnId}] [${remoteTxnId}] Uploading Data to S3 Bucket: ${JSON.stringify(blobOptions.metadata)}`);
-			let result = await interactionUtils.uploadBufferToS3Bucket(appData.s3Client, blobOptions);
-			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
-				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
-				{ $set: { storageRef: { etag: result.ETag, requestId: result.$metadata.requestId } } }
-			);
-			logger.trace(`[${txnId}] [${remoteTxnId}] Upload Result: ${JSON.stringify(status)}`);
+			try {
+				blobOptions.bucket = appData.interactionStore.configuration.connector.bucket;
+				logger.trace(`[${txnId}] [${remoteTxnId}] Uploading Data to S3 Bucket: ${JSON.stringify(blobOptions.metadata)}`);
+				let result = await interactionUtils.uploadBufferToS3Bucket(appData.s3Client, blobOptions);
+				storageRef = { etag: result.ETag, requestId: result.$metadata.requestId };
+				logger.trace(`[${txnId}] [${remoteTxnId}] Upload Result: ${JSON.stringify(status)}`);
+			} catch (err) {
+				logger.error('Error uploading file to S3 Bucket :', err);
+				storageRef = { error: err };
+
+			}
 		} else {
 			logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Node Data: ${JSON.stringify(state._id)}`);
 			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state.data`).findOneAndUpdate(
 				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
 				{ $set: nodeDataPayload },
 				{ upsert: true }
+			);
+			logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Node Data Result: ${JSON.stringify(status)}`);
+		}
+
+		if (appData
+			&& appData.interactionStore
+			&& (appData.interactionStore.storeType == 'azureblob' || appData.interactionStore.storeType == 'awss3')) {
+			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
+				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
+				{ $set: { storageRef: storageRef } }
 			);
 			logger.trace(`[${txnId}] [${remoteTxnId}] Upsert Node Data Result: ${JSON.stringify(status)}`);
 		}
