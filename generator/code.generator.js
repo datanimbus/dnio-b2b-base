@@ -932,7 +932,7 @@ async function parseNodes(dataJson) {
 	code.push('const httpClient = require(\'../http-client\');');
 	code.push('const commonUtils = require(\'./common.utils\');');
 	code.push('const stateUtils = require(\'./state.utils\');');
-	code.push('const validationUtils = require(\'./validation.utils\');');
+	// code.push('const validationUtils = require(\'./validation.utils\');');
 	code.push('const fileUtils = require(\'./file.utils\');');
 	code.push('const storageEngine = require(\'./storage.utils\');');
 	code.push('const kafkaUtils = require(\'./kafka.utils\');');
