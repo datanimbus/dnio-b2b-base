@@ -80,7 +80,7 @@ function createProducer(config) {
 }
 
 
-async function createConsumer(config, onData) {
+function createConsumer(config, onData) {
 	try {
 		logger.debug('Creating Consumer');
 		const consumer = new Kafka.KafkaConsumer({
@@ -94,9 +94,8 @@ async function createConsumer(config, onData) {
 			'auto.offset.reset': 'earliest'
 		});
 		logger.trace('Consumer :: ', consumer);
-		let producer = await createProducer(config);
 
-		return await new Promise((resolve, reject) => {
+		return new Promise((resolve, reject) => {
 			consumer
 				.on('ready', () => {
 					logger.debug(`Kafka Consumer Ready, Subscribing to topic :: ${config.topic}`);
@@ -104,27 +103,23 @@ async function createConsumer(config, onData) {
 					let intval = setInterval(() => {
 						if (global.initDone) {
 							logger.debug('Flow is ready starting Kafka Consumer.');
-							consumer.consume();
 							clearInterval(intval);
+							setInterval(() => {
+								if (global.activeMessages < config.batch) {
+									consumer.consume(1);
+								}
+							}, config.interval || 200);
+							// consumer.consume();
 						} else {
 							logger.debug('Waiting for flow to be ready...');
 						}
 					}, 2000);
-					// setInterval(() => {
-					// 	if (global.activeMessages < config.batch) {
-					// 		consumer.consume(1);
-					// 	}
-					// }, config.interval || 100);
 					resolve(consumer);
 				})
 				.on('data', function (message) {
-					if (global.activeMessages < config.batch) {
-						logger.debug('Consuming data from Kafka');
-						logger.trace(JSON.stringify(message));
-						onData(message);
-					} else {
-						producer.produce(config.topic, null, message.value);
-					}
+					logger.debug('Consuming data from Kafka');
+					logger.trace(JSON.stringify(message));
+					onData(message);
 				})
 				.on('event.error', (e) => {
 					logger.error('Error connecting to Kafka :: ', e);
