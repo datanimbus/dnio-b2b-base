@@ -44,7 +44,6 @@ global.falseBooleanValues = ['n', 'no', 'false', '0'];
 				'Content-Type': 'application/json'
 			}
 		});
-		global.initDone = true;
 		logger.debug(`BM API Call status :: ${resp.statusCode}`);
 		logger.trace('BM API Call response body :: ', resp.body);
 	} catch (err) {
