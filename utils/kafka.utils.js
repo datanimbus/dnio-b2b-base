@@ -101,7 +101,15 @@ async function createConsumer(config, onData) {
 				.on('ready', () => {
 					logger.debug(`Kafka Consumer Ready, Subscribing to topic :: ${config.topic}`);
 					consumer.subscribe([config.topic]);
-					consumer.consume();
+					let intval = setInterval(() => {
+						if (global.initDone) {
+							logger.debug('Flow is ready starting Kafka Consumer.');
+							consumer.consume();
+							clearInterval(intval);
+						} else {
+							logger.debug('Waiting for flow to be ready...');
+						}
+					}, 2000);
 					// setInterval(() => {
 					// 	if (global.activeMessages < config.batch) {
 					// 		consumer.consume(1);
