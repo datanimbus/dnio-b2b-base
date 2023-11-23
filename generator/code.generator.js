@@ -2438,8 +2438,8 @@ function generateFileConvertorCode(node, code, dataStructureType) {
 		}
 	}
 	code.push(`${tab(2)}let ext_1 = '${ext}';`);
-	code.push(`${tab(2)}let uniqueId = commonUtils.getUniqueID();`);
-	code.push(`${tab(2)}let outputFileName_1 = '${node._id}_'+ uniqueId + ext_1;`);
+	code.push(`${tab(2)}let uniqueId_1 = commonUtils.getUniqueID();`);
+	code.push(`${tab(2)}let outputFileName_1 = '${node._id}_'+ uniqueId_1 + ext_1;`);
 	code.push(`${tab(2)}const filePath = path.join(process.cwd(), 'downloads', outputFileName_1);`);
 
 	code.push(`${tab(3)}const renderOptions = {};`);
