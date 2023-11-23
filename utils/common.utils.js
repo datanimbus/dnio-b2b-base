@@ -708,6 +708,10 @@ function parseMustacheVariable(value) {
 	}
 }
 
+function getUniqueID() {
+	return Date.now() + '_' + crypto.randomInt(1000);
+}
+
 
 module.exports.getApp = getApp;
 module.exports.getDataService = getDataService;
@@ -732,3 +736,4 @@ module.exports.getCustomNode = getCustomNode;
 module.exports.getAllLibraries = getAllLibraries;
 module.exports.maskStringData = maskStringData;
 module.exports.parseMustacheVariable = parseMustacheVariable;
+module.exports.getUniqueID = getUniqueID;
