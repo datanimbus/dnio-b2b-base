@@ -2418,8 +2418,8 @@ function generateFileConvertorCode(node, code, dataStructureType) {
 			ext = '.xlsx';
 		}
 	}
-	code.push(`${tab(2)}let ext = '${ext}';`);
-	code.push(`${tab(2)}let outputFileName = '${node._id}' + ext;`);
+	code.push(`${tab(2)}let ext_1 = '${ext}';`);
+	code.push(`${tab(2)}let outputFileName = '${node._id}' + ext_1;`);
 	code.push(`${tab(2)}const filePath = path.join(process.cwd(), 'downloads', outputFileName);`);
 
 	code.push(`${tab(3)}const renderOptions = {};`);
