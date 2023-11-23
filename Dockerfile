@@ -5,9 +5,6 @@
 
 FROM node:18-alpine
 
-RUN apk update
-RUN apk upgrade
-
 RUN apk add bash ca-certificates g++ make gcc python3
 RUN set -ex; apk add --no-cache --virtual .fetch-deps curl tar git;
 # RUN apk add curl tar git openssl python3 make gcc
