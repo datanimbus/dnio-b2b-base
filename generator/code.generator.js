@@ -1448,7 +1448,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}state.responseBody = response.responseBody;`);
 			code.push(`${tab(2)}return _.cloneDeep(state);`);
 		} else if (node.type === 'FILE_READ') {
-			code.push(`${tab(2)}const content = fs.readFileSync(path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}\`));`);
+			code.push(`${tab(2)}const content = fs.readFileSync(path.join(_.trim(\`${parseDynamicVariable(node.options.folderPath)} \`),_.trim(\`${parseDynamicVariable(node.options.fileName)} \`)));`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.fileContent = content;`);
@@ -1456,7 +1456,7 @@ async function generateNodes(pNode) {
 		} else if (node.type === 'FILE_WRITE') {
 			code.push(`${tab(2)}let newBody = {};`);
 			generateMappingCode(node, code, false);
-			code.push(`${tab(2)}fs.copyFileSync(newBody.fileContent, path.join(\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}}\`))`);
+			code.push(`${tab(2)}fs.copyFileSync(newBody.fileContent, path.join(_.trim(\`${parseDynamicVariable(node.options.folderPath)} \`),_.trim(\`${parseDynamicVariable(node.options.fileName)} \`)))`);
 			code.push(`${tab(2)}state.statusCode = 200;`);
 			code.push(`${tab(2)}state.status = 'SUCCESS';`);
 			code.push(`${tab(2)}state.responseBody = { message: 'File Write Successful' };`);
@@ -1597,11 +1597,11 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}connectorConfig.timeout = parseInt(Mustache.render(commonUtils.parseMustacheVariable((connectorConfig.timeout||30)+''), node));`);
 				code.push(`${tab(2)}}`);
 
-				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath || '\\')}\`;`);
+				code.push(`${tab(2)}connectorConfig.folderPath = _.trim(\`${parseDynamicVariable(node.options.folderPath || '\\')} \`);`);
 				code.push(`${tab(2)}let newBody = {};`);
 				generateMappingCode(node, code, false);
 				if (node.options.list) {
-					code.push(`${tab(2)}connectorConfig.filePattern = \`${parseDynamicVariable(node.options.filePattern || '') || ''}\`;`);
+					code.push(`${tab(2)}connectorConfig.filePattern = _.trim(\`${parseDynamicVariable(node.options.filePattern || '') || ''} \`);`);
 					code.push(`${tab(2)}connectorConfig.targetPath = connectorConfig.folderPath;`);
 					code.push(`${tab(2)}state.body.targetPath = connectorConfig.folderPath;`);
 					code.push(`${tab(2)}let fileList = await commonUtils.sftpListFile(connectorConfig);`);
@@ -1623,7 +1623,7 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}const filePath = path.join(process.cwd(), 'downloads', outputFileName);`);
 
 					if (node.options.fileName && _.trim(node.options.fileName)) {
-						code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
+						code.push(`${tab(2)}connectorConfig.fileName = _.trim(\`${parseDynamicVariable(node.options.fileName) || ''} \` || '${uuid()}');`);
 						code.push(`${tab(2)}connectorConfig.sourcePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
 					} else {
 						code.push(`${tab(2)}connectorConfig.sourcePath = connectorConfig.folderPath;`);
@@ -1732,12 +1732,12 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Read from: \${state.body.sourcePath} \`);`);
 				} else if (node.options.move) {
 					if (node.options.fileName && _.trim(node.options.fileName)) {
-						code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
-						code.push(`${tab(2)}connectorConfig.sourcePath = path.join(\`${parseDynamicVariable(node.options.sourceFolderPath) || ''}\`, connectorConfig.fileName);`);
-						code.push(`${tab(2)}connectorConfig.targetPath = path.join(\`${parseDynamicVariable(node.options.targetFolderPath) || ''}\`, connectorConfig.fileName);`);
+						code.push(`${tab(2)}connectorConfig.fileName = _.trim(\`${parseDynamicVariable(node.options.fileName) || ''} \` || '${uuid()}');`);
+						code.push(`${tab(2)}connectorConfig.sourcePath = path.join(_.trim(\`${parseDynamicVariable(node.options.sourceFolderPath) || ''} \`), connectorConfig.fileName);`);
+						code.push(`${tab(2)}connectorConfig.targetPath = path.join(_.trim(\`${parseDynamicVariable(node.options.targetFolderPath) || ''} \`), connectorConfig.fileName);`);
 					} else {
-						code.push(`${tab(2)}connectorConfig.sourcePath = \`${parseDynamicVariable(node.options.sourceFolderPath) || ''}\`;`);
-						code.push(`${tab(2)}connectorConfig.targetPath = \`${parseDynamicVariable(node.options.targetFolderPath) || ''}\`;`);
+						code.push(`${tab(2)}connectorConfig.sourcePath = _.trim(\`${parseDynamicVariable(node.options.sourceFolderPath) || ''} \`);`);
+						code.push(`${tab(2)}connectorConfig.targetPath = _.trim(\`${parseDynamicVariable(node.options.targetFolderPath) || ''} \`);`);
 					}
 					code.push(`${tab(2)}state.body.sourcePath = connectorConfig.sourcePath;`);
 					code.push(`${tab(2)}state.body.targetPath = connectorConfig.targetPath;`);
@@ -1746,7 +1746,7 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Moved to: \${state.body.targetPath} \`);`);
 				} else if (node.options.delete) {
 					if (node.options.fileName && _.trim(node.options.fileName)) {
-						code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
+						code.push(`${tab(2)}connectorConfig.fileName = _.trim(\`${parseDynamicVariable(node.options.fileName) || ''} \` || '${uuid()}');`);
 						code.push(`${tab(2)}connectorConfig.sourcePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
 					} else {
 						code.push(`${tab(2)}connectorConfig.sourcePath = connectorConfig.folderPath;`);
@@ -1758,7 +1758,7 @@ async function generateNodes(pNode) {
 				} else {
 					code.push(`${tab(2)}connectorConfig.sourcePath = newBody.fileContent;`);
 					if (node.options.fileName && _.trim(node.options.fileName)) {
-						code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
+						code.push(`${tab(2)}connectorConfig.fileName = _.trim(\`${parseDynamicVariable(node.options.fileName) || ''} \` || '${uuid()}');`);
 						code.push(`${tab(2)}connectorConfig.targetPath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
 					} else {
 						code.push(`${tab(2)}connectorConfig.targetPath = connectorConfig.folderPath;`);
@@ -1783,7 +1783,7 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}await crud.connect();`);
 				code.push(`${tab(2)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Database Connected\`);`);
 				code.push(`${tab(2)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Executing ${connector.type} Query\`);`);
-				code.push(`${tab(2)}const result = await crud.sqlQuery(\`${parseDynamicVariable(node.options.query)}\`);`);
+				code.push(`${tab(2)}const result = await crud.sqlQuery(\`${parseDynamicVariable(node.options.query)} \`);`);
 				code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Query Executed\`);`);
 				code.push(`${tab(2)}logger.trace(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] ${connector.type} Query Result\`, result);`);
 				code.push(`${tab(2)}state.responseBody = result;`);
@@ -1809,11 +1809,9 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}data.connectionString = connectorConfig.connectionString;`);
 					code.push(`${tab(2)}data.containerName = connectorConfig.container;`);
 					if (node.options.folderPath) {
-						code.push(`${tab(2)}const blobName = path.join('/',\`${parseDynamicVariable(node.options.folderPath)}\`,\`${parseDynamicVariable(node.options.fileName)}\`);`);
-						// code.push(`${tab(2)}data.blobName = \`${node.options.folderPath}/${node.options.fileName.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
+						code.push(`${tab(2)}const blobName = path.join('/',_.trim(\`${parseDynamicVariable(node.options.folderPath)} \`),_.trim(\`${parseDynamicVariable(node.options.fileName)} \`));`);
 					} else {
-						code.push(`${tab(2)}const blobName = path.join('/',\`${parseDynamicVariable(node.options.fileName)}\`);`);
-						// code.push(`${tab(2)}data.blobName = \`${config.app}/${config.flowId}_${config.flowName}/${node.options.fileName.replace(/{{/g, '${_.get(node, \'').replace(/}}/g, '\')}')}\`;`);
+						code.push(`${tab(2)}const blobName = path.join('/',_.trim(\`${parseDynamicVariable(node.options.fileName)} \`));`);
 					}
 					code.push(`${tab(2)}data.blobName = blobName;`);
 					code.push(`${tab(2)}data.metadata = {`);
