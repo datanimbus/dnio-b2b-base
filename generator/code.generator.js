@@ -1775,11 +1775,17 @@ async function generateNodes(pNode) {
 						}
 					}
 					code.push(`${tab(2)}let ext = '${ext}';`);
-					code.push(`${tab(2)}let outputFileName = '${node._id}' + ext;`);
+					code.push(`${tab(2)}let uniqueId = commonUtils.getUniqueID();`);
+					code.push(`${tab(2)}let outputFileName = '${node._id}_'+ uniqueId + ext;`);
 					code.push(`${tab(2)}const filePath = path.join(process.cwd(), 'downloads', outputFileName);`);
 
-					code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
-					code.push(`${tab(2)}connectorConfig.sourcePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
+					if (node.options.fileName && _.trim(node.options.fileName)) {
+						code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
+						code.push(`${tab(2)}connectorConfig.sourcePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
+					} else {
+						code.push(`${tab(2)}connectorConfig.sourcePath = connectorConfig.folderPath;`);
+					}
+
 					code.push(`${tab(2)}connectorConfig.targetPath = filePath;`);
 					code.push(`${tab(2)}state.body.sourcePath = connectorConfig.sourcePath;`);
 					code.push(`${tab(2)}let status = await sftpUtils.sftpReadFile(connectorConfig);`);
@@ -1900,25 +1906,38 @@ async function generateNodes(pNode) {
 					// code.push(`${tab(2)}state.fileContent = filePath;`);
 					code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Read from: \${state.body.sourcePath} \`);`);
 				} else if (node.options.move) {
-					code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
-					code.push(`${tab(2)}connectorConfig.sourcePath = path.join(\`${parseDynamicVariable(node.options.sourceFolderPath) || ''}\`, connectorConfig.fileName);`);
-					code.push(`${tab(2)}connectorConfig.targetPath = path.join(\`${parseDynamicVariable(node.options.targetFolderPath) || ''}\`, connectorConfig.fileName);`);
+					if (node.options.fileName && _.trim(node.options.fileName)) {
+						code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
+						code.push(`${tab(2)}connectorConfig.sourcePath = path.join(\`${parseDynamicVariable(node.options.sourceFolderPath) || ''}\`, connectorConfig.fileName);`);
+						code.push(`${tab(2)}connectorConfig.targetPath = path.join(\`${parseDynamicVariable(node.options.targetFolderPath) || ''}\`, connectorConfig.fileName);`);
+					} else {
+						code.push(`${tab(2)}connectorConfig.sourcePath = \`${parseDynamicVariable(node.options.sourceFolderPath) || ''}\`;`);
+						code.push(`${tab(2)}connectorConfig.targetPath = \`${parseDynamicVariable(node.options.targetFolderPath) || ''}\`;`);
+					}
 					code.push(`${tab(2)}state.body.sourcePath = connectorConfig.sourcePath;`);
 					code.push(`${tab(2)}state.body.targetPath = connectorConfig.targetPath;`);
 					code.push(`${tab(2)}let status = await sftpUtils.sftpMoveFile(connectorConfig);`);
 					code.push(`${tab(2)}state.responseBody = { statusCode: 200, targetPath: connectorConfig.targetPath, sourcePath: connectorConfig.sourcePath, message: status.message };`);
 					code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Moved to: \${state.body.targetPath} \`);`);
 				} else if (node.options.delete) {
-					code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
-					code.push(`${tab(2)}connectorConfig.sourcePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
+					if (node.options.fileName && _.trim(node.options.fileName)) {
+						code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
+						code.push(`${tab(2)}connectorConfig.sourcePath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
+					} else {
+						code.push(`${tab(2)}connectorConfig.sourcePath = connectorConfig.folderPath;`);
+					}
 					code.push(`${tab(2)}state.body.sourcePath = connectorConfig.sourcePath;`);
 					code.push(`${tab(2)}let status = await sftpUtils.sftpDeleteFile(connectorConfig);`);
 					code.push(`${tab(2)}state.responseBody = { statusCode: 200, sourcePath: connectorConfig.sourcePath, message: status.message };`);
 					code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Moved to: \${state.body.targetPath} \`);`);
 				} else {
-					code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
 					code.push(`${tab(2)}connectorConfig.sourcePath = newBody.fileContent;`);
-					code.push(`${tab(2)}connectorConfig.targetPath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
+					if (node.options.fileName && _.trim(node.options.fileName)) {
+						code.push(`${tab(2)}connectorConfig.fileName = (\`${parseDynamicVariable(node.options.fileName) || ''}\` || '${uuid()}');`);
+						code.push(`${tab(2)}connectorConfig.targetPath = path.join(connectorConfig.folderPath, connectorConfig.fileName);`);
+					} else {
+						code.push(`${tab(2)}connectorConfig.targetPath = connectorConfig.folderPath;`);
+					}
 					code.push(`${tab(2)}state.body.targetPath = connectorConfig.targetPath;`);
 					code.push(`${tab(2)}let status = await sftpUtils.sftpPutFile(connectorConfig);`);
 					code.push(`${tab(2)}state.responseBody = { statusCode: 200, targetPath: connectorConfig.targetPath, message: status.message };`);
