@@ -1811,99 +1811,7 @@ async function generateNodes(pNode) {
 					code.push(`${tab(3)}state.responseBody = tempState.responseBody;`);
 					code.push(`${tab(3)}state.xmlContent = tempState.xmlContent;`);
 					code.push(`${tab(3)}state.fileContent = tempState.fileContent;`);
-
-					// if (dataFormat.formatType == 'EXCEL') {
-					// 	code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Converting EXCEL to CSV \`);`);
-					// 	code.push(`${tab(1)}const workBook = XLSX.readFile(filePath);`);
-					// 	code.push(`${tab(1)}XLSX.writeFile(workBook, filePath, { bookType: "csv" });`);
-					// 	code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] EXCEL to CSV Conversion Done! \`);`);
-					// }
-					// if (dataFormat.formatType === 'CSV' || dataFormat.formatType == 'EXCEL' || dataFormat.formatType === 'DELIMITER') {
-					// 	code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Parsing File\`);`);
-					// 	let rowDelimiter = '';
-					// 	if (dataFormat.lineSeparator === '\\\\n') {
-					// 		rowDelimiter = '\\n';
-					// 	} else if (dataFormat.lineSeparator === '\\\\r\\\\n') {
-					// 		rowDelimiter = '\\r\\n';
-					// 	} else if (dataFormat.lineSeparator === '\\\\r') {
-					// 		rowDelimiter = '\\r';
-					// 	} else {
-					// 		rowDelimiter = '\\n';
-					// 	}
-					// 	code.push(`${tab(1)}const skipLines = parseInt(\`${parseDynamicVariable(node.options.skipLines || 0)}\`);`);
-					// 	code.push(`${tab(1)}const skipRows = parseInt(\`${parseDynamicVariable(node.options.skipRows || 0)}\`);`);
-					// 	code.push(`${tab(1)}const maxRows = parseInt(\`${parseDynamicVariable(node.options.maxRows || 0)}\`);`);
-					// 	code.push(`${tab(1)}const pr = await new Promise((resolve, reject) => {`);
-					// 	code.push(`${tab(2)}let records = [];`);
-					// 	code.push(`${tab(2)}const fileStream = fs.createReadStream(filePath);`);
-					// 	code.push(`${tab(2)}fastcsv.parseStream(fileStream, {`);
-					// 	code.push(`${tab(3)}headers: fileUtils.getHeaderOf${node.dataStructure.outgoing._id}(),`);
-					// 	code.push(`${tab(3)}skipLines: skipLines,`);
-					// 	code.push(`${tab(3)}skipRows: skipRows,`);
-					// 	code.push(`${tab(3)}maxRows: maxRows,`);
-					// 	code.push(`${tab(3)}rowDelimiter: '${rowDelimiter}',`);
-					// 	code.push(`${tab(3)}delimiter: '${dataFormat.character}',`);
-					// 	code.push(`${tab(3)}ignoreEmpty: true,`);
-					// 	if (dataFormat.strictValidation) {
-					// 		code.push(`${tab(3)}strictColumnHandling: true,`);
-					// 	} else {
-					// 		code.push(`${tab(3)}discardUnmappedColumns: true,`);
-					// 	}
-					// 	code.push(`${tab(2)}}).transform(row => {`);
-					// 	code.push(`${tab(3)}let temp = fileUtils.convertData${dataFormat._id}(row);`);
-					// 	code.push(`${tab(3)}return temp;`);
-					// 	code.push(`${tab(2)}}).on('error', err => {`);
-					// 	code.push(`${tab(3)}state.status = "ERROR";`);
-					// 	code.push(`${tab(3)}state.statusCode = 400;`);
-					// 	code.push(`${tab(3)}state.responseBody = err;`);
-					// 	code.push(`${tab(3)}stateUtils.upsertState(req, state);`);
-					// 	code.push(`${tab(3)}reject(err);`);
-					// 	code.push(`${tab(2)}}).on('data', row => records.push(row))`);
-					// 	code.push(`${tab(2)}.on('end', rowCount => {`);
-					// 	code.push(`${tab(3)}logger.debug('Parsed rows = ', rowCount);`);
-					// 	code.push(`${tab(3)}state.totalRecords = rowCount;`);
-					// 	code.push(`${tab(3)}state.statusCode = 200;`);
-					// 	code.push(`${tab(3)}state.responseBody = records;`);
-					// 	// code.push(`${tab(2)}const contents = fs.readFileSync(filePath, 'utf-8');`);
-					// 	code.push(`${tab(2)}state.fileContent = filePath;`);
-					// 	code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
-					// 	// code.push(`${tab(3)}logger.trace('Parsed Data - ', state.body);`);
-					// 	code.push(`${tab(3)}resolve(records);`);
-					// 	code.push(`${tab(2)}});`);
-					// 	code.push(`${tab(1)}});`);
-					// 	code.push(`${tab(1)} `);
-					// } else if (dataFormat.formatType === 'JSON') {
-					// 	code.push(`${tab(2)}const contents = fs.readFileSync(filePath, 'utf-8');`);
-					// 	code.push(`${tab(2)}state.status = "SUCCESS";`);
-					// 	code.push(`${tab(2)}state.statusCode = 200;`);
-					// 	code.push(`${tab(2)}state.responseBody = JSON.parse(contents);`);
-					// 	code.push(`${tab(2)}state.fileContent = filePath;`);
-					// 	code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
-					// } else if (dataFormat.formatType === 'XML') {
-					// 	code.push(`${tab(2)}const contents = fs.readFileSync(filePath, 'utf-8');`);
-					// 	code.push(`${tab(2)}state.status = "SUCCESS";`);
-					// 	code.push(`${tab(2)}state.statusCode = 200;`);
-					// 	code.push(`${tab(2)}state.responseBody = xmlParser.parse(contents);`);
-					// 	code.push(`${tab(2)}state.fileContent = filePath;`);
-					// 	code.push(`${tab(2)}state.xmlContent = contents;`);
-					// 	code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
-					// } else if (dataFormat.formatType === 'FLATFILE') {
-					// 	code.push(`${tab(2)}const contents = fs.readFileSync(filePath, 'utf-8');`);
-					// 	code.push(`${tab(2)}state.responseBody = fileUtils.parseFlatFile${dataFormat._id}(contents, ${node.options.isFirstRowHeader || false});`);
-					// 	code.push(`${tab(2)}state.status = "SUCCESS";`);
-					// 	code.push(`${tab(2)}state.statusCode = 200;`);
-					// 	code.push(`${tab(2)}state.fileContent = filePath;`);
-					// 	code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
-					// } else if (dataFormat.formatType === 'BINARY') {
-					// 	code.push(`${tab(2)}state.status = "SUCCESS";`);
-					// 	code.push(`${tab(2)}state.statusCode = 200;`);
-					// 	code.push(`${tab(2)}state.fileContent = filePath;`);
-					// 	code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Parsed Successfully!\`);`);
-					// }
-
-
-					// code.push(`${tab(2)}state.responseBody = { statusCode: 200, sourcePath: connectorConfig.sourcePath };`);
-					// code.push(`${tab(2)}state.fileContent = filePath;`);
+					
 					code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] File Read from: \${state.body.sourcePath} \`);`);
 				} else if (node.options.move) {
 					if (node.options.fileName && _.trim(node.options.fileName)) {
@@ -2440,10 +2348,10 @@ function generateFileConvertorCode(node, code, dataStructureType) {
 	code.push(`${tab(2)}let ext_1 = '${ext}';`);
 	code.push(`${tab(2)}let uniqueId_1 = commonUtils.getUniqueID();`);
 	code.push(`${tab(2)}let outputFileName_1 = '${node._id}_'+ uniqueId_1 + ext_1;`);
-	code.push(`${tab(2)}const filePath = path.join(process.cwd(), 'downloads', outputFileName_1);`);
+	code.push(`${tab(2)}const filePath_1 = path.join(process.cwd(), 'downloads', outputFileName_1);`);
 
 	code.push(`${tab(3)}const renderOptions = {};`);
-	code.push(`${tab(3)}renderOptions.filePath = filePath;`);
+	code.push(`${tab(3)}renderOptions.filePath = filePath_1;`);
 	code.push(`${tab(3)}renderOptions.dataFormat = ${JSON.stringify(dataFormat)};`);
 	code.push(`${tab(3)}renderOptions.skipLines = ${node.options.skipLines || 0};`);
 	code.push(`${tab(3)}renderOptions.skipRows = ${node.options.skipRows || 0};`);
