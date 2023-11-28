@@ -43,7 +43,7 @@ function getCodeToParseCSVDataType(def, i, key) {
 		tempCode.push(`${tab(1)}let var_${i} = +(${key}[${fieldNo}]);`);
 	} else if (def.type == 'Boolean') {
 		tempCode.push(`${tab(1)}let var_${i} = commonUtils.convertToActualBoolean(${key}[${fieldNo}]);`);
-	} else if (def.type == 'Date') {
+	} else if (def.type == 'Date' || def.properties.dateType) {
 		tempCode.push(`${tab(1)}let var_${i} = commonUtils.parseDate(${key}[${fieldNo}], '${def.properties.dateFormat || 'yyyy-MM-dd'}');`);
 	} else {
 		tempCode.push(`${tab(1)}let var_${i} = ${key}[${fieldNo}];`);
@@ -57,7 +57,7 @@ function getCodeToRenderCSVDataType(def, i, _key) {
 		tempCode.push(`${tab(1)}var_${i} = +var_${i};`);
 	} else if (def.type == 'Boolean') {
 		tempCode.push(`${tab(1)}var_${i} = commonUtils.convertToCSVBoolean(var_${i});`);
-	} else if (def.type == 'Date') {
+	} else if (def.type == 'Date' || def.properties.dateType) {
 		tempCode.push(`${tab(1)}var_${i} = commonUtils.renderDate(var_${i}, '${def.properties.dateFormat || 'yyyy-MM-dd'}');`);
 	} else {
 		// code.push(`${tab(1)}_.get(item, '${(properties.dataPath || properties.key)}');`);
@@ -73,7 +73,7 @@ function getCodeToParseFLATFILEDataType(def, i, key) {
 		tempCode.push(`${tab(1)}var_${i} = +var_${i};`);
 	} else if (def.type == 'Boolean') {
 		tempCode.push(`${tab(1)}var_${i} = commonUtils.convertToActualBoolean(var_${i});`);
-	} else if (def.type == 'Date') {
+	} else if (def.type == 'Date' || def.properties.dateType) {
 		tempCode.push(`${tab(1)}var_${i} = commonUtils.parseDate(var_${i}, '${def.properties.dateFormat || 'yyyy-MM-dd'}');`);
 	} else {
 		// code.push(`${tab(1)}_.set(tempData, ${JSON.stringify(targetKey)}, var_${i});`);
@@ -87,7 +87,7 @@ function getCodeToRenderFLATFILEDataType(def, i, _key) {
 		tempCode.push(`${tab(2)}var_${i} = var_${i} + '';`);
 	} else if (def.type == 'Boolean') {
 		tempCode.push(`${tab(2)}var_${i} = commonUtils.convertToCSVBoolean(var_${i});`);
-	} else if (def.type == 'Date') {
+	} else if (def.type == 'Date' || def.properties.dateType) {
 		tempCode.push(`${tab(2)}var_${i} = commonUtils.renderDate(var_${i}, '${def.properties.dateFormat || 'yyyy-MM-dd'}');`);
 	} else {
 		// tempCode.push(`${tab(2)}var_${i} = _.get(rowData, ${JSON.stringify(sourceKey)});`);
