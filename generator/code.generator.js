@@ -1956,6 +1956,7 @@ function generateMappingCode(node, code, useAbsolutePath) {
 	let generateArrayMappingCode = function (varName, arrayItems) {
 		let arrayCode = [];
 		let isLoopStarted;
+		let processLater = [];
 		if (arrayItems && arrayItems.length > 0) {
 			arrayItems.forEach((item, i) => {
 				parsedDataPaths.push(item.target.dataPath);
@@ -1986,7 +1987,15 @@ function generateMappingCode(node, code, useAbsolutePath) {
 						src.dataPathSegs.unshift(src.nodeId);
 						arrayCode.push(`_.set(newBody, ${JSON.stringify(item.target.dataPathSegs).replace(/"\[#\]"/, 'i')}, _.get(node, ${JSON.stringify(src.dataPathSegs).replace(/"\[#\]"/, 'i')}));`);
 					});
+				} else if (item.advanceFormula) {
+					processLater.push(item);
 				}
+			});
+			processLater.forEach((item) => {
+				arrayCode.push(`let func_${varName} = function() {`);
+				arrayCode.push(`return ${fixCondition(item.advanceFormula)};`);
+				arrayCode.push('};');
+				arrayCode.push(`_.set(newBody, ${JSON.stringify(item.target.dataPathSegs).replace(/"\[#\]"/, 'i')}, func_${varName}());`);
 			});
 			if (isLoopStarted) {
 				arrayCode.push('});');
@@ -2102,6 +2111,7 @@ function generateConverterCode(node, code) {
 	}
 	let parsedDataPaths = [];
 	let parsedFormulas = [];
+	let processLater = [];
 	let generateArrayConverterCode = function (varName, arrayItems) {
 		let arrayCode = [];
 		let isLoopStarted;
@@ -2127,7 +2137,15 @@ function generateConverterCode(node, code) {
 						}
 						arrayCode.push(`_.set(newData, ${JSON.stringify(item.target.dataPathSegs).replace(/"\[#\]"/, 'i')}, _.get(item, ${JSON.stringify(src.dataPathSegs).replace(/"\[#\]"/, 'i')}));`);
 					});
+				} else if (item.advanceFormula) {
+					processLater.push(item);
 				}
+			});
+			processLater.forEach((item) => {
+				arrayCode.push(`let func_${varName} = function() {`);
+				arrayCode.push(`return ${fixCondition(item.advanceFormula)};`);
+				arrayCode.push('};');
+				arrayCode.push(`_.set(newBody, ${JSON.stringify(item.target.dataPathSegs).replace(/"\[#\]"/, 'i')}, func_${varName}());`);
 			});
 			if (isLoopStarted) {
 				arrayCode.push('});');
