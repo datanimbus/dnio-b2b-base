@@ -37,7 +37,7 @@ function getCodeToParseCSVDataType(def, i, key) {
 	let tempCode = [];
 	let fieldNo = i;
 	if (def.properties.fieldNo) {
-		fieldNo = def.properties.fieldNo;
+		fieldNo = parseInt(def.properties.fieldNo) - 1;
 	}
 	if (def.type == 'Number') {
 		tempCode.push(`${tab(1)}let var_${i} = +(${key}[${fieldNo}]);`);

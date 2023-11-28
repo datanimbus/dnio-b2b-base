@@ -270,7 +270,12 @@ function retryableMethod(options, fn) {
 					return;
 				}
 				logger.error(error);
-				reject(new Error('Failed after retries.'));
+				if(error){
+					reject(error);
+				} else {
+					reject(new Error('Failed after retries.'));
+				}
+				
 			}
 
 		});
