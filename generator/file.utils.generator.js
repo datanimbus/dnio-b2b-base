@@ -92,7 +92,7 @@ function getCodeToRenderFLATFILEDataType(def, i, _key) {
 	} else {
 		// tempCode.push(`${tab(2)}var_${i} = _.get(rowData, ${JSON.stringify(sourceKey)});`);
 	}
-	tempCode.push(`${tab(2)}var_${i} = (var_${i}||'').split('').slice(0, ${def.properties.fieldLength}).join('');`);
+	tempCode.push(`${tab(2)}var_${i} = ((var_${i}||'')+'').split('').slice(0, ${def.properties.fieldLength}).join('');`);
 	tempCode.push(`${tab(2)}var_${i} = _.padEnd(var_${i}, ${def.properties.fieldLength}, ' ');`);
 	return tempCode;
 }
