@@ -69,9 +69,9 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 			// }
 		}
 	} else {
-		schemaArr.forEach(attribute => {
-			let key = attribute.key;
-			let newNestedKey = nestedKey ? nestedKey + '.' + key : key;
+		schemaArr.forEach((attribute) => {
+			let newNestedKey = attribute.properties.dataPath;
+			let key = attribute.properties.dataPath.split('.').pop();
 			if (attribute['type'] === 'Array') {
 				mongoSchema[key] = {};
 				mongoSchema[key]['type'] = [];

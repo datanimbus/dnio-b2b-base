@@ -28,5 +28,6 @@ COPY . .
 
 ENV NODE_ENV='production'
 
+RUN chmod -R 777 /tmp/app
 
 CMD [ "node", "app.js" ]
