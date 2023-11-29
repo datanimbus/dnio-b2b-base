@@ -320,12 +320,14 @@ async function parseFlow(dataJson) {
 	code = code.concat(CreateNodeVariables(flowData));
 
 	// code.push(`${tab(1)}const ${_.snakeCase(inputNode.name)} = state;`);
-	code.push(`${tab(1)}let isResponseSent = false;`);
+	// code.push(`${tab(1)}let isResponseSent = false;`);
+	code.push(`${tab(1)}let additionalOptions = {};`);
+	code.push(`${tab(1)}additionalOptions.isResponseSent = false;`);
 	if (inputNode.type === 'API') {
 		code.push(`${tab(1)}setTimeout(function() {`);
-		code.push(`${tab(2)}if (!isResponseSent) {`);
+		code.push(`${tab(2)}if (!additionalOptions.isResponseSent) {`);
 		code.push(`${tab(3)}res.status(202).json({ message: 'Your requested process is taking more then expected time, Please check interactions for final status.' });`);
-		code.push(`${tab(3)}isResponseSent = true;`);
+		code.push(`${tab(3)}additionalOptions.isResponseSent = true;`);
 		code.push(`${tab(2)}}`);
 		code.push(`${tab(1)}}, ${(inputNode.options.timeout || 60) * 1000});`);
 	}
@@ -333,7 +335,7 @@ async function parseFlow(dataJson) {
 	if (inputNode.type === 'FILE' || (inputNode.options && inputNode.options.contentType === 'multipart/form-data')) {
 		if (inputNode.type === 'FILE') {
 			code.push(`${tab(1)}res.status(202).json({ message: 'File is being processed' });`);
-			code.push(`${tab(1)}isResponseSent = true;`);
+			code.push(`${tab(1)}additionalOptions.isResponseSent = true;`);
 		}
 		code.push(`${tab(1)}const reqFile = req.files.file;`);
 		code.push(`${tab(1)}logger.debug(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Request file info - \`, reqFile);`);
@@ -506,7 +508,7 @@ async function parseFlow(dataJson) {
 			code.push(`${tab(2)}state.status = 'ERROR';`);
 			code.push(`${tab(2)}state.responseBody = { message: "Request Param '${p}' Not Found in the request"};`);
 			code.push(`${tab(2)}node['${inputNode._id}'] = state;`);
-			code.push(`${tab(2)}isResponseSent = true;`);
+			code.push(`${tab(2)}additionalOptions.isResponseSent = true;`);
 			code.push(`${tab(2)}return res.status((state.statusCode || 400)).json(state.responseBody);`);
 			code.push(`${tab(1)}}`);
 		});
@@ -556,7 +558,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
 	}
 
-	code.push(`${tab(1)}if (!isResponseSent) {`);
+	code.push(`${tab(1)}if (!additionalOptions.isResponseSent) {`);
 	if (inputNode.dataStructure.outgoing && inputNode.dataStructure.outgoing._id) {
 		code.push(`${tab(2)}if(Array.isArray(response.responseBody)) {`);
 		code.push(`${tab(3)}response.responseBody = response.responseBody.map(item => {`);
@@ -568,11 +570,11 @@ async function parseFlow(dataJson) {
 	}
 
 	code.push(`${tab(2)}res.status((response.statusCode || 200)).json(response.responseBody);`);
-	code.push(`${tab(2)}isResponseSent = true;`);
+	code.push(`${tab(2)}additionalOptions.isResponseSent = true;`);
 	code.push(`${tab(1)}}`);
 	code.push('}');
 
-	code.push('async function handleError(response, req, res, txnId, remoteTxnId, state, node, isResponseSent) {');
+	code.push('async function handleError(response, req, res, txnId, remoteTxnId, state, node, additionalOptions) {');
 	code.push(`${tab(1)}node['CONSTANTS'] = {};`);
 	constants.forEach((item) => {
 		if (item.dataType == 'String') {
@@ -762,8 +764,8 @@ function generateCode(node, nodes, isErrorNode) {
 		}
 
 		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
-		code.push(`${tab(2)}if (!isResponseSent) {`);
-		code.push(`${tab(2)}isResponseSent = true;`);
+		code.push(`${tab(2)}if (!additionalOptions.isResponseSent) {`);
+		code.push(`${tab(2)}additionalOptions.isResponseSent = true;`);
 		if (node.options.contentType == 'application/xml') {
 			code.push(`${tab(2)}state.xmlContent = xmlBuilder.build({ROOT:state.body});`);
 			code.push(`${tab(2)}res.set('Content-Type','application/xml');`);
@@ -842,10 +844,10 @@ function generateCode(node, nodes, isErrorNode) {
 				code = code.concat(generateCode(tNode, nodes, isErrorNode));
 			}
 		} else if (hasGlobaErrorHandler && !isErrorNode) {
-			code.push(`${tab(4)}return handleError(response, req, res, txnId, remoteTxnId, state, node, isResponseSent);`);
+			code.push(`${tab(4)}return handleError(response, req, res, txnId, remoteTxnId, state, node, additionalOptions);`);
 		} else {
-			code.push(`${tab(3)}if (!isResponseSent) {`);
-			code.push(`${tab(4)}isResponseSent = true;`);
+			code.push(`${tab(3)}if (!additionalOptions.isResponseSent) {`);
+			code.push(`${tab(4)}additionalOptions.isResponseSent = true;`);
 			// code.push(`${tab(4)}return res.status((response.statusCode || 200)).json({ message: 'Error occured at ${node.name || node._id}' });`);
 			code.push(`${tab(4)}return res.status((response.statusCode || 400)).json(response.responseBody);`);
 			code.push(`${tab(3)}}`);
@@ -887,10 +889,10 @@ function generateCode(node, nodes, isErrorNode) {
 	}
 	code.push(`${tab(1)}} catch (err) {`);
 	code.push(`${tab(2)}logger.error(err);`);
-	code.push(`${tab(2)}if (!isResponseSent) {`);
+	code.push(`${tab(2)}if (!additionalOptions.isResponseSent) {`);
 	// code.push(`${tab(3)}res.status(500).json({ message: 'Error occured at ${node.name || node._id}' });`);
 	code.push(`${tab(4)}res.status(500).json(err.body ? err.body : err);`);
-	code.push(`${tab(3)}isResponseSent = true;`);
+	code.push(`${tab(3)}additionalOptions.isResponseSent = true;`);
 	code.push(`${tab(2)}}`);
 	code.push(`${tab(1)}} finally {`);
 	code.push(`${tab(2)}node['${node._id}'] = state;`);
