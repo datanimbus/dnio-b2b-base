@@ -1605,20 +1605,21 @@ async function generateNodes(pNode) {
 				code.push(`${tab(3)}connectorConfig.retry = {};`);
 				code.push(`${tab(2)}}`);
 
-				code.push(`${tab(2)}if (connectorConfig.retry.count) {`);
-				code.push(`${tab(2)}connectorConfig.retry.count = parseInt(Mustache.render(commonUtils.parseMustacheVariable((connectorConfig.retry.count||1)+''), node));`);
+				code.push(`${tab(2)}if (node.options.retry.count) {`);
+				code.push(`${tab(2)}connectorConfig.retry.count = parseInt(Mustache.render(commonUtils.parseMustacheVariable((node.options.retry.count||1)+''), node));`);
 				code.push(`${tab(2)}}`);
-				code.push(`${tab(2)}if (connectorConfig.retry.factor) {`);
-				code.push(`${tab(2)}connectorConfig.retry.factor = parseInt(Mustache.render(commonUtils.parseMustacheVariable((connectorConfig.retry.factor||1)+''), node));`);
+				code.push(`${tab(2)}if (node.options.retry.factor) {`);
+				code.push(`${tab(2)}connectorConfig.retry.factor = parseInt(Mustache.render(commonUtils.parseMustacheVariable((node.options.retry.factor||1)+''), node));`);
 				code.push(`${tab(2)}}`);
-				code.push(`${tab(2)}if (connectorConfig.retry.interval) {`);
-				code.push(`${tab(2)}connectorConfig.retry.interval = parseInt(Mustache.render(commonUtils.parseMustacheVariable((connectorConfig.retry.interval||1)+''), node));`);
+				code.push(`${tab(2)}if (node.options.retry.interval) {`);
+				code.push(`${tab(2)}connectorConfig.retry.interval = parseInt(Mustache.render(commonUtils.parseMustacheVariable((node.options.retry.interval||1)+''), node));`);
 				code.push(`${tab(2)}}`);
-				code.push(`${tab(2)}if (connectorConfig.timeout) {`);
-				code.push(`${tab(2)}connectorConfig.timeout = parseInt(Mustache.render(commonUtils.parseMustacheVariable((connectorConfig.timeout||30)+''), node));`);
+				code.push(`${tab(2)}if (node.options.timeout) {`);
+				code.push(`${tab(2)}connectorConfig.timeout = parseInt(Mustache.render(commonUtils.parseMustacheVariable((node.options.timeout||30)+''), node));`);
 				code.push(`${tab(2)}}`);
 
-				code.push(`${tab(2)}connectorConfig.folderPath = _.trim(\`${parseDynamicVariable(node.options.folderPath || '\\')} \`);`);
+        code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath || '\\\\')}\`;`);
+        
 				code.push(`${tab(2)}let newBody = {};`);
 				code.push(`${tab(2)}let tempState = {};`);
 
