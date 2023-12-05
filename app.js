@@ -95,6 +95,10 @@ function initialize() {
 		let content = fs.readFileSync(path.join(__dirname, 'route.js'), 'utf-8');
 		res.json({ content });
 	});
+	app.get('/api/b2b/internal/export/node.utils', async function (req, res) {
+		let content = fs.readFileSync(path.join(__dirname, 'utils/node.utils.js'), 'utf-8');
+		res.json({ content });
+	});
 	app.use('/api/b2b/internal/health/ready', async function (req, res) {
 		try {
 			if (global.appcenterDB) {
