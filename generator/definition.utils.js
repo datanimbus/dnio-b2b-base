@@ -70,8 +70,8 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 		}
 	} else {
 		schemaArr.forEach((attribute) => {
-			let newNestedKey = attribute.properties.dataPath;
-			let key = attribute.properties.dataPath.split('.').pop();
+			let newNestedKey = (attribute.properties.dataPath || attribute.key);
+			let key = newNestedKey.split('.').pop();
 			if (attribute['type'] === 'Array') {
 				mongoSchema[key] = {};
 				mongoSchema[key]['type'] = [];
