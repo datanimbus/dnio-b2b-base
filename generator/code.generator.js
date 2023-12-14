@@ -6,6 +6,7 @@ const commonUtils = require('../utils/common.utils');
 
 let logger = global.logger;
 let flowData;
+let nodeList;
 let hasGlobaErrorHandler = false;
 
 let visitedNodes = [];
@@ -91,6 +92,8 @@ async function parseFlow(dataJson) {
 	}
 	const inputNode = dataJson.inputNode;
 	const nodes = dataJson.nodes;
+	nodeList = _.cloneDeep(dataJson.nodes);
+	nodeList.unshift(inputNode);
 	let apiHasParams = false;
 	let params = [];
 	let api = '/' + dataJson.app + inputNode.options.path;
@@ -1474,7 +1477,7 @@ async function generateNodes(pNode) {
 			code.push(`${tab(2)}} else {`);
 			code.push(`${tab(2)}logger.info(\`[\${req.header('data-stack-txn-id')}] [\${req.header('data-stack-remote-txn-id')}] Ending ${(node._id)} Node with 200\`);`);
 			code.push(`${tab(2)}}`);
-			code.push(`${tab(2)}return _.cloneDeep(state);`);
+			// code.push(`${tab(2)}return _.cloneDeep(state);`);
 			// code.push(`${tab(2)}return { statusCode: state.statusCode, body: state.body, headers: state.headers };`);
 		} else if ((node.type === 'TRANSFORM' || node.type === 'MAPPING') && node.mappings) {
 			code.push(`${tab(2)}let newBody = {};`);
@@ -1618,8 +1621,8 @@ async function generateNodes(pNode) {
 					code.push(`${tab(2)}connectorConfig.timeout = parseInt(Mustache.render(commonUtils.parseMustacheVariable((${node.options.timeout}||30)+''), node));`);
 				}
 
-        code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath || '\\\\')}\`;`);
-        
+				code.push(`${tab(2)}connectorConfig.folderPath = \`${parseDynamicVariable(node.options.folderPath || '\\\\')}\`;`);
+
 				code.push(`${tab(2)}let newBody = {};`);
 				code.push(`${tab(2)}let tempState = {};`);
 

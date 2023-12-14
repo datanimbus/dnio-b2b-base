@@ -443,6 +443,9 @@ function maskStringData(strVal, maskType, charsToShow) {
 	if (!strVal) {
 		return '';
 	}
+	if (typeof strVal != 'string') {
+		return strVal;
+	}
 	if (!charsToShow) {
 		charsToShow = 5;
 	}
