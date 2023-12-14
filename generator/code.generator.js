@@ -1055,6 +1055,10 @@ async function generateNodes(pNode) {
 				code.push(`${tab(2)}state.method = '${node.options.method || 'POST'}';`);
 				code.push(`${tab(2)}options.url = state.url;`);
 				code.push(`${tab(2)}options.method = state.method;`);
+				code.push(`${tab(2)}options.https = { rejectUnauthorized: false };`);
+				if (node.options.rejectUnauthorized) {
+					code.push(`${tab(2)}options.https.rejectUnauthorized = ${node.options.rejectUnauthorized};`);
+				}
 				/** ---------------RE-TRY LOGIC STARTS--------------- */
 				if (node.options.timeout) {
 					code.push(`${tab(2)}const timeoutValue = parseInt(\`${parseDynamicVariable(node.options.timeout)}\`) * 1000;`);
