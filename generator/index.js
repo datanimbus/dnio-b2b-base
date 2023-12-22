@@ -6,7 +6,7 @@ const log4js = require('log4js');
 const codeGen = require('./code.generator');
 const fileUtilsGen = require('./file.utils.generator');
 const maskUtilsGen = require('./mask.utils.generator');
-const validationUtilsGen = require('./validation.utils.generator');
+// const validationUtilsGen = require('./validation.utils.generator');
 const schemaUtils = require('./schema.utils');
 const definitionUtils = require('./definition.utils');
 const commonUtils = require('../utils/common.utils');
@@ -49,7 +49,7 @@ async function createProject(flowJSON) {
 		fs.writeFileSync(path.join(folderPath, 'route.js'), routerJSContent);
 		fs.writeFileSync(path.join(folderPath, 'utils', 'node.utils.js'), nodeUtilsContent);
 		fs.writeFileSync(path.join(folderPath, 'utils', 'file.utils.js'), fileUtilsGen.parseDataStructuresForFileUtils(flowJSON));
-		fs.writeFileSync(path.join(folderPath, 'utils', 'validation.utils.js'), validationUtilsGen.parseDataStructuresForValidation(flowJSON));
+		// fs.writeFileSync(path.join(folderPath, 'utils', 'validation.utils.js'), validationUtilsGen.parseDataStructuresForValidation(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'utils', 'masking.utils.js'), maskUtilsGen.parseDataStructuresForMasking(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'utils', 'model.utils.js'), modelContent);
 		fs.writeFileSync(path.join(folderPath, 'flow.json'), JSON.stringify(flowJSON));

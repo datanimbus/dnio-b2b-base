@@ -12,6 +12,6 @@ const flowJSON = require('./sample.json');
 	writeFileSync('../route.js', codeGen.parseFlow(flowJSON));
 	writeFileSync('../node.utils.js', nodeUtilsContent);
 	writeFileSync('../file.utils.js', codeGen.parseDataStructuresForFileUtils(flowJSON));
-	writeFileSync('../validation.utils.js', codeGen.parseDataStructures(flowJSON));
+	// writeFileSync('../validation.utils.js', codeGen.parseDataStructures(flowJSON));
 	// writeFileSync('../flow.json', JSON.stringify(flowJSON));
 })();
