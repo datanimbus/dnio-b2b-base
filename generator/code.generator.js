@@ -137,12 +137,12 @@ async function parseFlow(dataJson) {
 	// 	});
 	// }
 	code.push('');
-	code.push('const httpClient = require(\'./http-client\');');
+	code.push('const httpClient = require(\'../http-client\');');
 	code.push('const stateUtils = require(\'./utils/state.utils\');');
 	code.push('const nodeUtils = require(\'./utils/node.utils\');');
 	code.push('const fileUtils = require(\'./utils/file.utils\');');
 	code.push('const maskingUtils = require(\'./utils/masking.utils\');');
-	code.push('const kafkaUtils = require(\'./utils/kafka.utils\');');
+	code.push('const kafkaUtils = require(\'../utils/kafka.utils\');');
 	code.push('const fileParserUtils = require(\'./utils/file.parser.utils\');');
 	code.push('const fileRenderUtils = require(\'./utils/file.renderer.utils\');');
 	code.push('');
@@ -934,15 +934,14 @@ async function parseNodes(dataJson) {
 	code.push('const FormData = require(\'form-data\');');
 	code.push('const mongoose = require(\'mongoose\');');
 	code.push('');
-	code.push('const httpClient = require(\'../http-client\');');
-	code.push('const commonUtils = require(\'./common.utils\');');
+	code.push('const httpClient = require(\'../../http-client\');');
+	code.push('const commonUtils = require(\'../../utils/common.utils\');');
+	code.push('const storageEngine = require(\'../../utils/storage.utils\');');
+	code.push('const kafkaUtils = require(\'../../utils/kafka.utils\');');
+	code.push('const sftpUtils = require(\'../../utils/sftp.utils\');');
 	code.push('const stateUtils = require(\'./state.utils\');');
-	// code.push('const validationUtils = require(\'./validation.utils\');');
-	code.push('const fileUtils = require(\'./file.utils\');');
-	code.push('const storageEngine = require(\'./storage.utils\');');
-	code.push('const kafkaUtils = require(\'./kafka.utils\');');
 	code.push('const modelUtils = require(\'./model.utils\');');
-	code.push('const sftpUtils = require(\'./sftp.utils\');');
+	code.push('const fileUtils = require(\'./file.utils\');');
 	code.push('const fileParserUtils = require(\'./file.parser.utils\');');
 	code.push('const fileRenderUtils = require(\'./file.renderer.utils\');');
 

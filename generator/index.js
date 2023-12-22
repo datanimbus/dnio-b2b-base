@@ -23,12 +23,13 @@ async function createProject(flowJSON) {
 		}
 		logger.info(`Generating flow code for flow Port :: ${flowJSON.port}`);
 		// const folderPath = path.join(process.cwd(), 'generatedFlows', flowJSON._id);
-		const folderPath = process.cwd();
+		const folderPath = path.join(process.cwd(), flowJSON._id);
 
 		mkdirp.sync(path.join(folderPath, 'schemas'));
 		mkdirp.sync(path.join(folderPath, 'model'));
 		mkdirp.sync(path.join(folderPath, 'SFTP-Files'));
 		mkdirp.sync(path.join(folderPath, 'downloads'));
+		mkdirp.sync(path.join(folderPath, 'utils'));
 
 		if (flowJSON.dataStructures && Object.keys(flowJSON.dataStructures).length > 0) {
 			Object.keys(flowJSON.dataStructures).forEach(schemaID => {
@@ -53,6 +54,11 @@ async function createProject(flowJSON) {
 		fs.writeFileSync(path.join(folderPath, 'utils', 'model.utils.js'), modelContent);
 		fs.writeFileSync(path.join(folderPath, 'flow.json'), JSON.stringify(flowJSON));
 		fs.writeFileSync(path.join(folderPath, 'app-data.json'), JSON.stringify(appData));
+
+		// Copy Utils Files
+		fs.copyFileSync(path.join(process.cwd(), 'utils', 'state.utils.js'), path.join(folderPath, 'utils', 'state.utils.js'));
+		fs.copyFileSync(path.join(process.cwd(), 'utils', 'file.parser.utils.js'), path.join(folderPath, 'utils', 'file.parser.utils.js'));
+		fs.copyFileSync(path.join(process.cwd(), 'utils', 'file.renderer.utils.js'), path.join(folderPath, 'utils', 'file.renderer.utils.js'));
 
 		// fs.rmdirSync(path.join(folderPath, 'generator'), { recursive: true });
 

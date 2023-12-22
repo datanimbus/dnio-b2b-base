@@ -16,55 +16,85 @@ global.activeMessages = 0;
 
 (async () => {
 	try {
-		const configRes = await httpClient.request({
-			url: config.baseUrlBM + '/internal/env',
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		});
+		let configRes;
+		try {
+			configRes = await httpClient.request({
+				url: config.baseUrlBM + '/internal/env',
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
+		} catch (err) {
+			console.log('Error While Fetching ENV Variables');
+			console.log(err);
+			process.exit(0);
+		}
 		Object.keys(configRes.body).forEach(env => {
 			process.env[env] = process.env[env] ? process.env[env] : configRes.body[env];
 		});
 		config = require('./config');
-
+		const token = JWT.sign({ name: 'DS_BM', _id: 'admin', isSuperAdmin: true }, config.RBAC_JWT_KEY);
+		global.BM_TOKEN = token;
 		if (!config.flowId) {
 			throw new Error('Flow ID not found in ENV');
 		}
-		const token = JWT.sign({ name: 'DS_BM', _id: 'admin', isSuperAdmin: true }, config.RBAC_JWT_KEY);
-		global.BM_TOKEN = token;
-		const res = await httpClient.request({
-			url: config.baseUrlBM + '/' + config.app + '/flow/' + config.flowId,
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': 'JWT ' + token
+		let flowIds = config.flowId.split(',');
+		let routerCode = [];
+		routerCode.push('const router = require(\'express\').Router({ mergeParams: true });\n');
+		await flowIds.reduce(async (prev, curr) => {
+			await prev;
+			try {
+				const res = await httpClient.request({
+					url: config.baseUrlBM + '/' + config.app + '/flow/' + curr,
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': 'JWT ' + token
+					}
+				});
+				if (res.statusCode !== 200) {
+					throw res.body;
+				}
+				const flowData = res.body;
+				config.appNamespace = flowData.namespace;
+				config.imageTag = flowData._id + ':' + flowData.version;
+				config.appDB = config.DATA_STACK_NAMESPACE + '-' + flowData.app;
+				config.flowName = flowData.name;
+				config.port = flowData.port || 8000;
+				if (config.app !== flowData.app) {
+					config.app = flowData.app;
+				}
+				if (flowData.inputNode && flowData.inputNode.options && flowData.inputNode.options.timeout) {
+					config.serverTimeout = flowData.inputNode.options.timeout;
+				}
+				try {
+					await codeGen.createProject(flowData);
+					routerCode.push(`router.use('/', require('./${flowData._id}/route.js'));\n`);
+				} catch (err) {
+					console.log('Error Creating Files');
+					console.log(err);
+				}
+			} catch (err) {
+				console.log('Error Fetching Flow Details');
+				console.log(err);
 			}
-		});
-		if (res.statusCode !== 200) {
-			throw res.body;
+		}, Promise.resolve());
+		routerCode.push('module.exports = router;');
+		fs.writeFileSync(path.join(process.cwd(), 'router.js'), routerCode.join('\n'));
+
+		if (config.isK8sEnv()) {
+			// Cleanup Files
+			fs.rmSync(path.join(process.cwd(), 'utils', 'state.utils.js'));
+			fs.rmSync(path.join(process.cwd(), 'utils', 'file.parser.utils.js'));
+			fs.rmSync(path.join(process.cwd(), 'utils', 'file.renderer.utils.js'));
+			fs.rmdirSync(path.join(process.cwd(), 'generator'), { recursive: true });
 		}
-		const flowData = res.body;
-		config.appNamespace = flowData.namespace;
-		config.imageTag = flowData._id + ':' + flowData.version;
-		config.appDB = config.DATA_STACK_NAMESPACE + '-' + flowData.app;
-		config.flowName = flowData.name;
-		config.port = flowData.port || 8080;
-		if (config.app !== flowData.app) {
-			config.app = flowData.app;
-		}
-		if (flowData.inputNode && flowData.inputNode.options && flowData.inputNode.options.timeout) {
-			config.serverTimeout = flowData.inputNode.options.timeout;
-		}
-		try {
-			await codeGen.createProject(flowData);
-			initialize();
-		} catch (err) {
-			console.log('Error Creating Files');
-			console.log(err);
-		}
+
+		// Start Server
+		initialize();
 	} catch (err) {
-		console.log('Error Requesting BM');
+		console.log('Global Error');
 		console.log(err);
 	}
 })();
@@ -90,7 +120,7 @@ function initialize() {
 	app.use(express.urlencoded({ extended: true }));
 	app.use(middlewares.addHeaders);
 
-	app.use('/api/b2b', require('./route'));
+	app.use('/api/b2b', require('./router.js'));
 	app.get('/api/b2b/internal/export/route', async function (req, res) {
 		let content = fs.readFileSync(path.join(__dirname, 'route.js'), 'utf-8');
 		res.json({ content });

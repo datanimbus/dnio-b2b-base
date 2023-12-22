@@ -4,11 +4,11 @@ const { v4: uuid } = require('uuid');
 const mongoose = require('mongoose');
 const _ = require('lodash');
 
-const config = require('../config');
+const config = require('../../config');
 const maskingUtils = require('./masking.utils');
-const interactionUtils = require('./interaction.utils');
-const mongooseUtils = require('./mongoose.utils');
-const commonUtils = require('./common.utils');
+const interactionUtils = require('../../utils/interaction.utils');
+const mongooseUtils = require('../../utils/mongoose.utils');
+const commonUtils = require('../../utils/common.utils');
 const appData = require('../app-data.json');
 
 const logger = log4js.getLogger(global.loggerName);

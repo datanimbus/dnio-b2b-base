@@ -369,7 +369,7 @@ async function parseDataStructures(dataJson) {
 	code.push('const mongoose = require(\'mongoose\');');
 	code.push('const _ = require(\'lodash\');');
 	code.push('');
-	code.push('const mongooseUtils = require(\'./mongoose.utils\');');
+	code.push('const mongooseUtils = require(\'../../utils/mongoose.utils\');');
 	code.push('');
 	code.push('const logger = log4js.getLogger(global.loggerName);');
 	code.push('');

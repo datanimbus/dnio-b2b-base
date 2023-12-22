@@ -12,7 +12,7 @@ function parseDataStructuresForMasking(dataJson) {
 	code.push('/* eslint-disable quotes */');
 	code.push('/* eslint-disable camelcase */');
 	code.push('const _ = require(\'lodash\');');
-	code.push('const commonUtils = require(\'./common.utils\');');
+	code.push('const commonUtils = require(\'../../utils/common.utils\');');
 	if (dataJson.dataStructures && Object.keys(dataJson.dataStructures).length > 0) {
 		Object.keys(dataJson.dataStructures).forEach(schemaId => {
 			const definition = dataJson.dataStructures[schemaId].definition;
