@@ -303,7 +303,7 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(1)}let remoteTxnId = req.headers['data-stack-remote-txn-id'];`);
 	code.push(`${tab(1)}res.setHeader('dnio-interaction-id', (req.query.interactionId || 'TEST'));`);
 	code.push(`${tab(1)}let response = req;`);
-	code.push(`${tab(1)}let state = stateUtils.getState(response, '${inputNode._id}', false, '${(inputNode.options.contentType || '')}');`);
+	code.push(`${tab(1)}let state = stateUtils.getState('${flowData._id}', response, '${inputNode._id}', false, '${(inputNode.options.contentType || '')}');`);
 	code.push(`${tab(1)}state.inputFormatId = '${inputNode.dataStructure.outgoing._id}';`);
 	code.push(`${tab(1)}state.outputFormatId = '${inputNode.dataStructure.outgoing._id}';`);
 	code.push(`${tab(1)}let node = {};`);
@@ -347,10 +347,10 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}state.statusCode = 400;`);
 		code.push(`${tab(2)}state.body = { message: 'No files were uploaded' };`);
 		code.push(`${tab(2)}state.responseBody = { message: 'No files were uploaded' };`);
-		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
+		code.push(`${tab(2)}stateUtils.upsertState('${flowData._id}', req, state);`);
 		code.push(`${tab(2)}return;`);
 		code.push(`${tab(1)}}`);
-		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: reqFile });`);
+		code.push(`${tab(1)}stateUtils.updateInteraction('${flowData._id}', req, { payloadMetaData: reqFile });`);
 		if (!inputNode.dataStructure.outgoing) {
 			inputNode.dataStructure.outgoing = {
 				_id: uuid()
@@ -489,7 +489,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}metaData.attributeCount = state.body ? Object.keys(state.body).length : 0;`);
 		code.push(`${tab(2)}metaData.totalRecords = 1;`);
 		code.push(`${tab(1)}}`);
-		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: metaData });`);
+		code.push(`${tab(1)}stateUtils.updateInteraction('${flowData._id}', req, { payloadMetaData: metaData });`);
 	} else if (inputNode.options && inputNode.options.contentType === 'application/xml') {
 		code.push(`${tab(1)}const metaData = {};`);
 		code.push(`${tab(1)}if (Array.isArray(state.body)) {`);
@@ -501,7 +501,7 @@ async function parseFlow(dataJson) {
 		code.push(`${tab(2)}metaData.attributeCount = state.body ? Object.keys(state.body).length : 0;`);
 		code.push(`${tab(2)}metaData.totalRecords = 1;`);
 		code.push(`${tab(1)}}`);
-		code.push(`${tab(1)}stateUtils.updateInteraction(req, { payloadMetaData: metaData });`);
+		code.push(`${tab(1)}stateUtils.updateInteraction('${flowData._id}', req, { payloadMetaData: metaData });`);
 	}
 
 	if (apiHasParams) {
@@ -523,7 +523,7 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(1)}state.responseBody = state.body;`);
 	code.push(`${tab(1)}node['${inputNode._id}'] = state;`);
 	code.push(`${tab(1)}response = _.cloneDeep(state);`);
-	code.push(`${tab(1)}stateUtils.upsertState(req, state);`);
+	code.push(`${tab(1)}stateUtils.upsertState('${flowData._id}', req, state);`);
 	// code.push(`${tab(1)}logger.trace(\`[\${txnId}] [\${remoteTxnId}] Input node Request Body - \`, JSON.stringify(state.body));`);
 	code.push(`${tab(1)}logger.debug(\`[\${txnId}] [\${remoteTxnId}] Input node Request Headers - \`, JSON.stringify(state.headers));`);
 	let tempNodes = (inputNode.onSuccess || []);
@@ -558,7 +558,7 @@ async function parseFlow(dataJson) {
 		}
 	}
 	if (!tempNodes || tempNodes.length == 0) {
-		code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
+		code.push(`${tab(1)}stateUtils.updateInteraction('${flowData._id}', req, { status: 'SUCCESS' });`);
 	}
 
 	code.push(`${tab(1)}if (!additionalOptions.isResponseSent) {`);
@@ -592,7 +592,7 @@ async function parseFlow(dataJson) {
 	code.push(`${tab(1)}});`);
 	code = code.concat(ResetNodeVariables(flowData, true));
 	if (flowData.errorNode && flowData.errorNode._id) {
-		code.push(`${tab(1)}state = stateUtils.getState(response, '${flowData.errorNode._id}', false, '${(flowData.errorNode.options.contentType || '')}');`);
+		code.push(`${tab(1)}state = stateUtils.getState('${flowData._id}', response, '${flowData.errorNode._id}', false, '${(flowData.errorNode.options.contentType || '')}');`);
 		code.push(`${tab(1)}node['${flowData.errorNode._id}'] = state;`);
 		code.push(`${tab(1)}state.responseBody = state.body;`);
 	}
@@ -637,7 +637,7 @@ async function parseFlow(dataJson) {
 			}
 		}
 		if (!errNodes || errNodes.length == 0) {
-			code.push(`${tab(1)}stateUtils.updateInteraction(req, { status: 'ERROR' });`);
+			code.push(`${tab(1)}stateUtils.updateInteraction('${flowData._id}', req, { status: 'ERROR' });`);
 		}
 	}
 	code.push('}');
@@ -745,7 +745,7 @@ function generateCode(node, nodes, isErrorNode) {
 			}
 		}
 	} else if (node.type === 'RESPONSE') {
-		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
+		code.push(`${tab(2)}state = stateUtils.getState('${flowData._id}', response, '${node._id}', false, '${(node.options.contentType || '')}');`);
 		code.push(`${tab(1)}state.inputFormatId = '${node.dataStructure.incoming._id}';`);
 		code.push(`${tab(1)}state.outputFormatId = '${node.dataStructure.outgoing._id}';`);
 		if (node.options && node.options.statusCode) {
@@ -766,7 +766,7 @@ function generateCode(node, nodes, isErrorNode) {
 			// code.push(`${tab(2)}}`);
 		}
 
-		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
+		code.push(`${tab(2)}stateUtils.upsertState('${flowData._id}', req, state);`);
 		code.push(`${tab(2)}if (!additionalOptions.isResponseSent) {`);
 		code.push(`${tab(2)}additionalOptions.isResponseSent = true;`);
 		if (node.options.contentType == 'application/xml') {
@@ -782,7 +782,7 @@ function generateCode(node, nodes, isErrorNode) {
 		}
 		code.push(`${tab(2)}}`);
 	} else {
-		code.push(`${tab(2)}state = stateUtils.getState(response, '${node._id}', false, '${(node.options.contentType || '')}');`);
+		code.push(`${tab(2)}state = stateUtils.getState('${flowData._id}', response, '${node._id}', false, '${(node.options.contentType || '')}');`);
 		code.push(`${tab(1)}state.inputFormatId = '${node.dataStructure.incoming._id}';`);
 		code.push(`${tab(1)}state.outputFormatId = '${node.dataStructure.outgoing._id}';`);
 		if (node.type === 'FOREACH') {
@@ -904,9 +904,9 @@ function generateCode(node, nodes, isErrorNode) {
 	// code.push(`${tab(2)}} catch(err) {`);
 	// code.push(`${tab(3)}logger.error('HOOK-ERROR', err);`);
 	// code.push(`${tab(2)}}`);
-	code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
+	code.push(`${tab(2)}stateUtils.upsertState('${flowData._id}', req, state);`);
 	if (!node.onSuccess || node.onSuccess.length == 0) {
-		code.push(`${tab(2)}stateUtils.updateInteraction(req, { status: 'SUCCESS' });`);
+		code.push(`${tab(2)}stateUtils.updateInteraction('${flowData._id}', req, { status: 'SUCCESS' });`);
 	}
 	code.push(`${tab(1)}}`);
 	return code;
@@ -1612,13 +1612,13 @@ async function generateNodes(pNode) {
 				code.push(`${tab(3)}connectorConfig.retry = {};`);
 				code.push(`${tab(2)}}`);
 
-				if (node.options.retry.count) {
+				if (node.options.retry && node.options.retry.count) {
 					code.push(`${tab(2)}connectorConfig.retry.count = parseInt(Mustache.render(commonUtils.parseMustacheVariable((${node.options.retry.count}||1)+''), node));`);
 				}
-				if (node.options.retry.factor) {
+				if (node.options.retry && node.options.retry.factor) {
 					code.push(`${tab(2)}connectorConfig.retry.factor = parseInt(Mustache.render(commonUtils.parseMustacheVariable((${node.options.retry.factor}||1)+''), node));`);
 				}
-				if (node.options.retry.interval) {
+				if (node.options.retry && node.options.retry.interval) {
 					code.push(`${tab(2)}connectorConfig.retry.interval = parseInt(Mustache.render(commonUtils.parseMustacheVariable((${node.options.retry.interval}||1)+''), node));`);
 				}
 				if (node.options.timeout) {
@@ -1896,7 +1896,7 @@ async function generateNodes(pNode) {
 		// code.push(`${tab(2)}return { statusCode: state.statusCode, body: err, headers: state.headers };`);
 		code.push(`${tab(1)}} finally {`);
 		code.push(`${tab(2)}node['${node._id}'] = state;`);
-		code.push(`${tab(2)}stateUtils.upsertState(req, state);`);
+		code.push(`${tab(2)}stateUtils.upsertState('${flowData._id}', req, state);`);
 		code.push(`${tab(1)}}`);
 		code.push('}');
 		return;

@@ -34,10 +34,10 @@ if (appData
 	});
 }
 
-function getState(req, nodeId, isChild, contentType) {
+function getState(flowId, req, nodeId, isChild, contentType) {
 	const data = {};
 	data._id = uuid();
-	data.flowId = config.flowId;
+	data.flowId = flowId;
 	data.nodeId = nodeId;
 	// data.txnId = isChild ? uuid() : req.headers['data-stack-txn-id'];
 	// data.remoteTxnId = req.headers['data-stack-remote-txn-id'];
@@ -71,7 +71,7 @@ function getState(req, nodeId, isChild, contentType) {
 	return data;
 }
 
-async function upsertState(req, state) {
+async function upsertState(flowId, req, state) {
 	const txnId = req.headers['data-stack-txn-id'];
 	const remoteTxnId = req.headers['data-stack-remote-txn-id'];
 	const interactionId = req.query.interactionId;
@@ -104,7 +104,7 @@ async function upsertState(req, state) {
 
 	logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Node State: ${JSON.stringify(state._id)}`);
 	try {
-		let status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
+		let status = await mongoose.connection.db.collection(`b2b.${flowId}.node-state`).findOneAndUpdate(
 			{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
 			{ $set: nodeStatePayload },
 			{ upsert: true }
@@ -113,13 +113,13 @@ async function upsertState(req, state) {
 
 		let storageRef;
 		let blobOptions = {};
-		blobOptions.blobName = path.join(appData._id, config.flowId, interactionId, state.nodeId + '.json');
+		blobOptions.blobName = path.join(appData._id, flowId, interactionId, state.nodeId + '.json');
 		blobOptions.data = JSON.stringify(nodeDataPayload);
 		blobOptions.metadata = {};
 		blobOptions.metadata['dnioTxnId'] = txnId;
 		blobOptions.metadata['dnioRemoteTxnId'] = remoteTxnId;
 		blobOptions.metadata['dnioApp'] = appData._id;
-		blobOptions.metadata['dnioFlowId'] = config.flowId;
+		blobOptions.metadata['dnioFlowId'] = flowId;
 		blobOptions.metadata['dnioInteractionId'] = interactionId;
 		blobOptions.metadata['dnioNodeId'] = state.nodeId;
 
@@ -151,7 +151,7 @@ async function upsertState(req, state) {
 			}
 		} else {
 			logger.debug(`[${txnId}] [${remoteTxnId}] Starting Upsert Node Data: ${JSON.stringify(state._id)}`);
-			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state.data`).findOneAndUpdate(
+			status = await mongoose.connection.db.collection(`b2b.${flowId}.node-state.data`).findOneAndUpdate(
 				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
 				{ $set: nodeDataPayload },
 				{ upsert: true }
@@ -162,7 +162,7 @@ async function upsertState(req, state) {
 		if (appData
 			&& appData.interactionStore
 			&& (appData.interactionStore.storeType == 'azureblob' || appData.interactionStore.storeType == 'awss3')) {
-			status = await mongoose.connection.db.collection(`b2b.${config.flowId}.node-state`).findOneAndUpdate(
+			status = await mongoose.connection.db.collection(`b2b.${flowId}.node-state`).findOneAndUpdate(
 				{ nodeId: state.nodeId, interactionId: state.interactionId, flowId: state.flowId },
 				{ $set: { storageRef: storageRef } }
 			);
@@ -180,12 +180,12 @@ async function upsertState(req, state) {
 	}
 }
 
-async function createInteraction(data) {
+async function createInteraction(flowId, data) {
 	try {
 		const interactionId = await mongooseUtils.createId('INTR', 'b2b.interactions', null, null, 1000);
 		const interactionData = {};
 		interactionData._id = interactionId;
-		interactionData.flowId = config.flowId;
+		interactionData.flowId = flowId;
 		interactionData.app = config.app;
 		interactionData.status = 'PENDING';
 		interactionData.headers = data.headers;
@@ -205,7 +205,7 @@ async function createInteraction(data) {
 		// interactionData.headers['content-type'] = req.headers['content-type'];
 
 		logger.debug('Starting Create Interaction');
-		let status = await mongoose.connection.db.collection(`b2b.${config.flowId}.interactions`).insertOne(interactionData);
+		let status = await mongoose.connection.db.collection(`b2b.${flowId}.interactions`).insertOne(interactionData);
 		logger.debug('Interaction Create Status:', status);
 		return interactionId;
 	} catch (err) {
@@ -214,14 +214,14 @@ async function createInteraction(data) {
 	}
 }
 
-async function updateInteraction(req, data) {
+async function updateInteraction(flowId, req, data) {
 	const txnId = req.headers['data-stack-txn-id'];
 	const remoteTxnId = req.headers['data-stack-remote-txn-id'];
 	const interactionId = req.query.interactionId;
 	try {
 		data['_metadata.lastUpdated'] = new Date();
 		logger.debug(`[${txnId}] [${remoteTxnId}] Starting Update Interaction: ${interactionId}`);
-		let status = await mongoose.connection.db.collection(`b2b.${config.flowId}.interactions`).findOneAndUpdate({ _id: interactionId, flowId: config.flowId }, { $set: data });
+		let status = await mongoose.connection.db.collection(`b2b.${flowId}.interactions`).findOneAndUpdate({ _id: interactionId, flowId: flowId }, { $set: data });
 		logger.debug(`[${txnId}] [${remoteTxnId}] Interaction Update Status:`, status);
 		if (data && (data.status == 'ERROR' || data.status == 'SUCCESS')) {
 			global.activeMessages--;
