@@ -1670,6 +1670,7 @@ async function generateNodes(pNode) {
 						code.push(`${tab(1)}parseOptions.skipLines = parseInt(\`${parseDynamicVariable(node.options.skipLines || 0)}\`);`);
 						code.push(`${tab(1)}parseOptions.skipRows = parseInt(\`${parseDynamicVariable(node.options.skipRows || 0)}\`);`);
 						code.push(`${tab(1)}parseOptions.maxRows = parseInt(\`${parseDynamicVariable(node.options.maxRows || 0)}\`);`);
+						code.push(`${tab(1)}parseOptions.sheetNo = parseInt(\`${parseDynamicVariable(node.options.sheetNo || 1)}\`);`);
 					}
 
 					if (dataFormat.subType == 'HRSF') {
