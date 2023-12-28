@@ -16,7 +16,7 @@ async function parseCommonFile(req, parseOptions) {
 			logger.info(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}] Converting EXCEL to CSV `);
 			const workbook = new exceljs.Workbook();
 			await workbook.xlsx.readFile(parseOptions.filePath);
-			await workbook.csv.writeFile(parseOptions.filePath, { sheetId: 1 });
+			await workbook.csv.writeFile(parseOptions.filePath, { sheetId: parseOptions.sheetNo });
 			logger.info(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}] EXCEL to CSV Conversion Done! `);
 		}
 
@@ -102,7 +102,7 @@ async function parseHRSFFile(req, parseOptions) {
 			logger.info(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}] Converting EXCEL to CSV `);
 			const workbook = new exceljs.Workbook();
 			await workbook.xlsx.readFile(parseOptions.filePath);
-			await workbook.csv.writeFile(parseOptions.filePath, { sheetId: 1 });
+			await workbook.csv.writeFile(parseOptions.filePath, { sheetId: parseOptions.sheetNo });
 			logger.info(`[${req.header('data-stack-txn-id')}] [${req.header('data-stack-remote-txn-id')}] EXCEL to CSV Conversion Done! `);
 		}
 
