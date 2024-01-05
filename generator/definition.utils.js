@@ -394,7 +394,13 @@ async function parseDataStructures(dataJson) {
 					code.push(`counterOptions_${schemaID}.padding = '${dataService.definition[0].padding}';`);
 					code.push(`counterOptions_${schemaID}.counter = '${dataService.definition[0].counter}';`);
 					code.push(`schema_${schemaID}.plugin(mongooseUtils.metadataPlugin(counterOptions_${schemaID}));`);
-					code.push(`const model_${schemaID} = mongoose.model('${schemaID}', schema_${schemaID}, '${dataService.collectionName}');`);
+					code.push(`let model_${schemaID};`);
+					code.push(`let is_model_${schemaID} = mongoose.modelNames().indexOf('${schemaID}') > -1;`);
+					code.push(`if (!is_model_${schemaID}) {`);
+					code.push(`model_${schemaID} = mongoose.model('${schemaID}', schema_${schemaID}, '${dataService.collectionName}');`);
+					code.push('} else {');
+					code.push(`model_${schemaID} = mongoose.model('${schemaID}');`);
+					code.push('}');
 					code.push('');
 					code.push('');
 				} else if (schemaID.startsWith('DF')) {
@@ -405,7 +411,13 @@ async function parseDataStructures(dataJson) {
 					code.push(`counterOptions_${schemaID}.padding = null;`);
 					code.push(`counterOptions_${schemaID}.counter = 1001;`);
 					code.push(`schema_${schemaID}.plugin(mongooseUtils.metadataPlugin(counterOptions_${schemaID}));`);
-					code.push(`const model_${schemaID} = mongoose.model('${schemaID}', schema_${schemaID}, 'dataformat.${schemaID}');`);
+					code.push(`let model_${schemaID};`);
+					code.push(`let is_model_${schemaID} = mongoose.modelNames().indexOf('${schemaID}') > -1;`);
+					code.push(`if (!is_model_${schemaID}) {`);
+					code.push(`model_${schemaID} = mongoose.model('${schemaID}', schema_${schemaID}, 'dataformat.${schemaID}');`);
+					code.push('} else {');
+					code.push(`model_${schemaID} = mongoose.model('${schemaID}');`);
+					code.push('}');
 					code.push('');
 					code.push('');
 				}

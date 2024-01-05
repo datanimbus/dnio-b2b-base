@@ -2053,7 +2053,7 @@ function generateMappingCode(node, code, useAbsolutePath) {
 		if (item.target.type == 'Array') {
 			let arrayItems = node.mappings.filter(e => e.target.dataPath.startsWith(item.target.dataPath) && e.target.dataPath != item.target.dataPath);
 			if (item.source && item.source.length > 0) {
-				item.source.forEach((src) => {
+				item.source.forEach((src,si) => {
 					let temp = JSON.parse(JSON.stringify(src.dataPathSegs || []));
 					if (useAbsolutePath) {
 						temp.unshift('responseBody');
@@ -2063,8 +2063,8 @@ function generateMappingCode(node, code, useAbsolutePath) {
 					if (arrIndex > -1) {
 						temp.splice(arrIndex, 1, 0);
 					}
-					code.push(`let val_${i} = _.get(node, ${JSON.stringify(temp)});`);
-					code.push(`_.set(newBody, '${item.target.dataPath}', val_${i});`);
+					code.push(`let val_${i}_${si} = _.get(node, ${JSON.stringify(temp)});`);
+					code.push(`_.set(newBody, '${item.target.dataPath}', val_${i}_${si});`);
 				});
 				arrayItems.forEach(e => {
 					parsedDataPaths.push(e.target.dataPath);
@@ -2111,6 +2111,11 @@ function generateMappingCode(node, code, useAbsolutePath) {
 			}
 			code.push('};');
 			code.push(`_.set(newBody, ${JSON.stringify(item.target.dataPathSegs)}, val_${i}());`);
+			if(item.target.type == 'Date'){
+				code.push(`if(!_.get(newBody, ${JSON.stringify(item.target.dataPathSegs)})) {`);
+				code.push(`_.set(newBody, ${JSON.stringify(item.target._id)}, undefined);`);
+				code.push(`}`);
+			}
 		}
 	});
 }
