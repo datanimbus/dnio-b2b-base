@@ -847,14 +847,15 @@ function generateCode(node, nodes, isErrorNode) {
 				code = code.concat(generateCode(tNode, nodes, isErrorNode));
 			}
 		} else if (hasGlobaErrorHandler && !isErrorNode) {
-			code.push(`${tab(4)}return handleError(response, req, res, txnId, remoteTxnId, state, node, additionalOptions);`);
+			code.push(`${tab(4)}handleError(response, req, res, txnId, remoteTxnId, state, node, additionalOptions);`);
 		} else {
 			code.push(`${tab(3)}if (!additionalOptions.isResponseSent) {`);
 			code.push(`${tab(4)}additionalOptions.isResponseSent = true;`);
 			// code.push(`${tab(4)}return res.status((response.statusCode || 200)).json({ message: 'Error occured at ${node.name || node._id}' });`);
-			code.push(`${tab(4)}return res.status((response.statusCode || 400)).json(response.responseBody);`);
+			code.push(`${tab(4)}res.status((response.statusCode || 400)).json(response.responseBody);`);
 			code.push(`${tab(3)}}`);
 		}
+		code.push(`${tab(3)}return;`);
 		code.push(`${tab(2)}}`);
 	}
 	if (node.onSuccess && node.onSuccess.length > 0) {
