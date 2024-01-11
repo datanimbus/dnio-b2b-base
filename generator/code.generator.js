@@ -58,6 +58,8 @@ function CreateNodeVariables(flowData) {
 		code.push(`${tab(1)}node['${flowData.errorNode._id}'] = {};`);
 	}
 
+	code.push(`${tab(1)}let ENV = node['ENV'];`);
+	code.push(`${tab(1)}let CONSTANTS = node['CONSTANTS'];`);
 	code.push(`${tab(1)}let ${flowData.inputNode._id} = node['${flowData.inputNode._id}'];`);
 	flowData.nodes.forEach(item => {
 		code.push(`${tab(1)}let ${item._id} = node['${item._id}'];`);
@@ -70,6 +72,8 @@ function CreateNodeVariables(flowData) {
 
 function ResetNodeVariables(flowData, init) {
 	let code = [];
+	code.push(`${tab(1)}${init ? 'let ' : ''}ENV = node['ENV'];`);
+	code.push(`${tab(1)}${init ? 'let ' : ''}CONSTANTS = node['CONSTANTS'];`);
 	code.push(`${tab(1)}${init ? 'let ' : ''}${flowData.inputNode._id} = node['${flowData.inputNode._id}'];`);
 	flowData.nodes.forEach(item => {
 		code.push(`${tab(1)}${init ? 'let ' : ''}${item._id} = node['${item._id}'];`);
