@@ -55,6 +55,30 @@
     "dotenv": "^16.3.1",
     "eslint": "^8.8.0",
     "husky": "^7.0.4",
-    "mocha": "^10.2.0"
+    "mocha": "^10.2.0",
+    "node-abi": "^3.54.0",
+    "pkg": "^5.8.1"
+  },
+  "bin": "test.js",
+  "pkg": {
+    "scripts": [
+      "generator/**/*.js",
+      "utils/**/*.js",
+      "config.js",
+      "db-factory.js",
+      "lib.middlewares.js",
+      "http-client.js",
+      "test.js"
+    ],
+    "assets": [
+      "node_modules/node-rdkafka/build/Release/**/*",
+      "flow.json"
+    ],
+    "targets": [
+      "node18-win-x64",
+      "node18-linux-x64",
+      "node18-macos-x64"
+    ],
+    "outputPath": "dist"
   }
 }
