@@ -29,6 +29,7 @@ async function createProject(flowJSON) {
 		mkdirp.sync(path.join(folderPath, 'model'));
 		mkdirp.sync(path.join(folderPath, 'SFTP-Files'));
 		mkdirp.sync(path.join(folderPath, 'downloads'));
+		mkdirp.sync(path.join(folderPath, 'utils'));
 
 		if (flowJSON.dataStructures && Object.keys(flowJSON.dataStructures).length > 0) {
 			Object.keys(flowJSON.dataStructures).forEach(schemaID => {

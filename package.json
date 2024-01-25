@@ -29,7 +29,8 @@
     "retry": "^0.13.1",
     "ssh2-sftp-client": "^9.1.0",
     "uuid": "^8.3.2",
-    "xmlbuilder": "^15.1.1"
+    "xmlbuilder": "^15.1.1",
+    "node-abi": "^3.54.0"
   },
   "name": "ds-b2b-base",
   "description": "Integration base image",
@@ -56,14 +57,12 @@
     "eslint": "^8.8.0",
     "husky": "^7.0.4",
     "mocha": "^10.2.0",
-    "node-abi": "^3.54.0",
     "pkg": "^5.8.1"
   },
   "bin": "test.js",
   "pkg": {
     "scripts": [
       "generator/**/*.js",
-      "utils/**/*.js",
       "config.js",
       "db-factory.js",
       "lib.middlewares.js",
@@ -71,8 +70,10 @@
       "test.js"
     ],
     "assets": [
+      "node_modules/open/xdg-open",
       "node_modules/node-rdkafka/build/Release/**/*",
-      "flow.json"
+      "flow.json",
+      "utils/**/*.js"
     ],
     "targets": [
       "node18-win-x64",
